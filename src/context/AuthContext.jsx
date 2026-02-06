@@ -5,6 +5,11 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  OAuthProvider,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
 } from "firebase/auth";
 
 const AuthContext = createContext({});
@@ -30,6 +35,45 @@ export const AuthProvider = ({ children }) => {
     return firebaseSignOut(auth);
   };
 
+  // Google Sign In
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    return signInWithPopup(auth, provider);
+  };
+
+  // Apple Sign In
+  const signInWithApple = async () => {
+    const provider = new OAuthProvider("apple.com");
+    return signInWithPopup(auth, provider);
+  };
+
+  // Phone Sign In - Step 1: Setup reCAPTCHA
+  const setupRecaptcha = (containerId) => {
+    // Clear existing verifier if it exists
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      size: "invisible",
+      callback: () => {
+        // reCAPTCHA solved - allow form submission
+      },
+      "expired-callback": () => {
+        // Response expired. Ask user to solve reCAPTCHA again.
+        window.recaptchaVerifier = null;
+      },
+    });
+
+    return window.recaptchaVerifier;
+  };
+
+  // Phone Sign In - Step 2: Send verification code
+  const signInWithPhone = async (phoneNumber, recaptchaVerifier) => {
+    return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -45,6 +89,10 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     loading,
+    signInWithGoogle,
+    signInWithApple,
+    signInWithPhone,
+    setupRecaptcha,
   };
 
   return (
