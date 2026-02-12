@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { initializeUserProfile } from "../utils/profileUtils";
 
 function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -35,8 +37,12 @@ function Signup() {
     try {
       setError("");
       setLoading(true);
-      await signup(email, password);
-      navigate("/");
+      const userCredential = await signup(email, password);
+      // Initialize user profile
+      await initializeUserProfile(userCredential.user, {
+        username: username || email.split("@")[0],
+      });
+      navigate("/profile");
     } catch (err) {
       setError("Failed to create account. Email may already be in use.");
       console.error(err);
@@ -49,7 +55,13 @@ function Signup() {
     try {
       setError("");
       setLoading(true);
-      await signInWithGoogle();
+      const userCredential = await signInWithGoogle();
+      // Initialize user profile if new user
+      try {
+        await initializeUserProfile(userCredential.user);
+      } catch (err) {
+        console.log("Profile might already exist");
+      }
       navigate("/");
     } catch (err) {
       setError("Failed to sign in with Google. Please try again.");
@@ -63,7 +75,13 @@ function Signup() {
     try {
       setError("");
       setLoading(true);
-      await signInWithApple();
+      const userCredential = await signInWithApple();
+      // Initialize user profile if new user
+      try {
+        await initializeUserProfile(userCredential.user);
+      } catch (err) {
+        console.log("Profile might already exist");
+      }
       navigate("/");
     } catch (err) {
       console.error("Apple Sign-In Error:", err);
@@ -156,6 +174,23 @@ function Signup() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label
+              htmlFor="username"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Choose a username"
+            />
+          </div>
+
           <div>
             <label
               htmlFor="email"

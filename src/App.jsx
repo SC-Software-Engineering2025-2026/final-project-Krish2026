@@ -2,11 +2,13 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import NavBar from "./components/NavBar";
 
-// Pages (will be created)
+// Pages
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
+import ProfilePage from "./pages/ProfilePage";
+import PostDetail from "./pages/PostDetail";
 import Communities from "./pages/Communities";
 import Discover from "./pages/Discover";
 import Messages from "./pages/Messages";
@@ -25,7 +27,9 @@ function App() {
 
               {/* Main App Routes */}
               <Route path="/" element={<Home />} />
-              <Route path="/profile/:userId" element={<Profile />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/:userId" element={<ProfilePage />} />
+              <Route path="/post/:postId" element={<PostDetail />} />
               <Route path="/communities" element={<Communities />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="/messages" element={<Messages />} />
