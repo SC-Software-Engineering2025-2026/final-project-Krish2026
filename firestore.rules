@@ -12,19 +12,23 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    function getCommunityData(communityId) {
+      return get(/databases/$(database)/documents/communities/$(communityId)).data;
+    }
+    
     function isCommunityMember(communityId) {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/communities/$(communityId)).data.members.hasAny([request.auth.uid]);
+             request.auth.uid in getCommunityData(communityId).members;
     }
     
     function isCommunityAdmin(communityId) {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/communities/$(communityId)).data.admins.hasAny([request.auth.uid]);
+             request.auth.uid in getCommunityData(communityId).admins;
     }
     
     function isCommunityCreator(communityId) {
       return isAuthenticated() && 
-             get(/databases/$(database)/documents/communities/$(communityId)).data.creatorId == request.auth.uid;
+             getCommunityData(communityId).creatorId == request.auth.uid;
     }
     
     // Users collection - stores user profiles
@@ -37,63 +41,90 @@ service cloud.firestore {
     // UserPosts collection - stores user posts
     match /userPosts/{postId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
     
     // PostComments collection - stores comments on posts
     match /postComments/{commentId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
     
     // PostLikes collection - stores likes on posts
     match /postLikes/{likeId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
     
     // Communities collection - stores community information
     match /communities/{communityId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isCommunityAdmin(communityId) || isCommunityCreator(communityId);
+      allow create: if isAuthenticated() && 
+                       request.resource.data.creatorId == request.auth.uid &&
+                       request.auth.uid in request.resource.data.members &&
+                       request.auth.uid in request.resource.data.admins;
+      allow update: if isAuthenticated() && (
+        // Allow creator/admin to update most fields
+        (isCommunityAdmin(communityId) || isCommunityCreator(communityId)) ||
+        // Allow any authenticated user to join/leave (update members array only)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberCount']))
+      );
       allow delete: if isCommunityAdmin(communityId) || isCommunityCreator(communityId);
+      
+      // Community Members subcollection
+      match /communityMembers/{memberId} {
+        allow read: if isCommunityMember(communityId) || isCommunityAdmin(communityId) || isCommunityCreator(communityId);
+        allow create: if isAuthenticated();
+        allow delete: if isCommunityAdmin(communityId) || isCommunityCreator(communityId) || isOwner(memberId);
+      }
       
       // Community Posts subcollection
       match /posts/{postId} {
         allow read: if isCommunityMember(communityId);
-        allow create: if isCommunityMember(communityId);
-        allow update, delete: if isCommunityMember(communityId) && 
-                                 (resource.data.userId == request.auth.uid || 
-                                  isCommunityAdmin(communityId));
+        allow create: if isCommunityMember(communityId) && 
+                         request.resource.data.userId == request.auth.uid;
+        allow update: if isCommunityMember(communityId) && 
+                         (resource.data.userId == request.auth.uid || 
+                          isCommunityAdmin(communityId));
+        allow delete: if isCommunityMember(communityId) && 
+                         (resource.data.userId == request.auth.uid || 
+                          isCommunityAdmin(communityId) ||
+                          isCommunityCreator(communityId));
         
         // Comments subcollection under posts
         match /comments/{commentId} {
-          allow read, create: if isAuthenticated() && 
-                                 get(/databases/$(database)/documents/communities/$(communityId)).data.members.hasAny([request.auth.uid]);
+          allow read: if isCommunityMember(communityId);
+          allow create: if isCommunityMember(communityId) && 
+                           request.resource.data.userId == request.auth.uid;
+          allow update: if false; // Comments should not be updated
           allow delete: if isAuthenticated() && 
                            (resource.data.userId == request.auth.uid || 
-                            get(/databases/$(database)/documents/communities/$(communityId)).data.admins.hasAny([request.auth.uid]));
+                            isCommunityAdmin(communityId) ||
+                            isCommunityCreator(communityId));
         }
       }
       
       // Community Media subcollection
       match /media/{mediaId} {
         allow read: if isCommunityMember(communityId);
-        allow create: if isCommunityMember(communityId);
+        allow create: if isCommunityMember(communityId) && 
+                         request.resource.data.uploadedBy == request.auth.uid;
         allow delete: if isCommunityMember(communityId) && 
                          (resource.data.uploadedBy == request.auth.uid || 
-                          isCommunityAdmin(communityId));
+                          isCommunityAdmin(communityId) ||
+                          isCommunityCreator(communityId));
       }
       
       // Community Chat subcollection
       match /chat/{messageId} {
         allow read: if isCommunityMember(communityId);
-        allow create: if isCommunityMember(communityId);
-        allow delete: if isCommunityAdmin(communityId);
+        allow create: if isCommunityMember(communityId) && 
+                         request.resource.data.userId == request.auth.uid;
+        allow update: if false; // Chat messages should not be updated
+        allow delete: if isCommunityAdmin(communityId) || isCommunityCreator(communityId);
       }
     }
   }

@@ -72,8 +72,14 @@ const CommunitySettings = ({ communityId, userRole }) => {
 
     try {
       await deleteCommunity(communityId, currentUser.uid);
+      console.log(
+        `Community id: ${communityId} deleted successfully. Current user id: ${currentUser.uid}`,
+      );
       navigate("/communities");
     } catch (error) {
+      console.log(
+        `Community id: ${communityId} deleted successfully. Current user id: ${currentUser.uid}`,
+      );
       console.error("Error deleting community:", error);
       alert(error.message || "Failed to delete community");
     }

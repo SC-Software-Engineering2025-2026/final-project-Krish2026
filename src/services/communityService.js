@@ -317,11 +317,34 @@ export const deleteCommunity = async (communityId, userId) => {
       throw new Error("Only the creator or admin can delete this community");
     }
 
+    // Helper function to get storage path from URL
+    const getStoragePathFromUrl = (url) => {
+      if (!url) return null;
+      try {
+        // If it's already a path, return it
+        if (!url.includes("http")) return url;
+
+        // Extract path from Firebase Storage URL
+        const urlObj = new URL(url);
+        const pathMatch = urlObj.pathname.match(/\/o\/(.+?)(\?|$)/);
+        if (pathMatch) {
+          return decodeURIComponent(pathMatch[1]);
+        }
+        return null;
+      } catch (err) {
+        console.warn("Error parsing storage URL:", err);
+        return null;
+      }
+    };
+
     // Delete community image from storage
     if (communityData.imageUrl) {
       try {
-        const imageRef = ref(storage, communityData.imageUrl);
-        await deleteObject(imageRef);
+        const storagePath = getStoragePathFromUrl(communityData.imageUrl);
+        if (storagePath) {
+          const imageRef = ref(storage, storagePath);
+          await deleteObject(imageRef);
+        }
       } catch (err) {
         console.warn("Error deleting community image:", err);
       }
@@ -340,8 +363,11 @@ export const deleteCommunity = async (communityId, userId) => {
         if (postData.images && Array.isArray(postData.images)) {
           for (const imageUrl of postData.images) {
             try {
-              const imageRef = ref(storage, imageUrl);
-              await deleteObject(imageRef);
+              const storagePath = getStoragePathFromUrl(imageUrl);
+              if (storagePath) {
+                const imageRef = ref(storage, storagePath);
+                await deleteObject(imageRef);
+              }
             } catch (err) {
               console.warn("Error deleting post image:", err);
             }
@@ -352,8 +378,11 @@ export const deleteCommunity = async (communityId, userId) => {
         if (postData.videos && Array.isArray(postData.videos)) {
           for (const videoUrl of postData.videos) {
             try {
-              const videoRef = ref(storage, videoUrl);
-              await deleteObject(videoRef);
+              const storagePath = getStoragePathFromUrl(videoUrl);
+              if (storagePath) {
+                const videoRef = ref(storage, storagePath);
+                await deleteObject(videoRef);
+              }
             } catch (err) {
               console.warn("Error deleting post video:", err);
             }
@@ -374,8 +403,11 @@ export const deleteCommunity = async (communityId, userId) => {
         const mediaData = mediaDoc.data();
         if (mediaData.url) {
           try {
-            const mediaRef = ref(storage, mediaData.url);
-            await deleteObject(mediaRef);
+            const storagePath = getStoragePathFromUrl(mediaData.url);
+            if (storagePath) {
+              const mediaRef = ref(storage, storagePath);
+              await deleteObject(mediaRef);
+            }
           } catch (err) {
             console.warn("Error deleting media file:", err);
           }
