@@ -2,17 +2,99 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 3, 8);
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isCommunityMember(communityId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/communities/$(communityId)).data.members.hasAny([request.auth.uid]);
+    }
+    
+    function isCommunityAdmin(communityId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/communities/$(communityId)).data.admins.hasAny([request.auth.uid]);
+    }
+    
+    function isCommunityCreator(communityId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/communities/$(communityId)).data.creatorId == request.auth.uid;
+    }
+    
+    // Users collection - stores user profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update, delete: if isOwner(userId);
+    }
+    
+    // UserPosts collection - stores user posts
+    match /userPosts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // PostComments collection - stores comments on posts
+    match /postComments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // PostLikes collection - stores likes on posts
+    match /postLikes/{likeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Communities collection - stores community information
+    match /communities/{communityId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isCommunityAdmin(communityId) || isCommunityCreator(communityId);
+      allow delete: if isCommunityAdmin(communityId) || isCommunityCreator(communityId);
+      
+      // Community Posts subcollection
+      match /posts/{postId} {
+        allow read: if isCommunityMember(communityId);
+        allow create: if isCommunityMember(communityId);
+        allow update, delete: if isCommunityMember(communityId) && 
+                                 (resource.data.userId == request.auth.uid || 
+                                  isCommunityAdmin(communityId));
+        
+        // Comments subcollection under posts
+        match /comments/{commentId} {
+          allow read, create: if isAuthenticated() && 
+                                 get(/databases/$(database)/documents/communities/$(communityId)).data.members.hasAny([request.auth.uid]);
+          allow delete: if isAuthenticated() && 
+                           (resource.data.userId == request.auth.uid || 
+                            get(/databases/$(database)/documents/communities/$(communityId)).data.admins.hasAny([request.auth.uid]));
+        }
+      }
+      
+      // Community Media subcollection
+      match /media/{mediaId} {
+        allow read: if isCommunityMember(communityId);
+        allow create: if isCommunityMember(communityId);
+        allow delete: if isCommunityMember(communityId) && 
+                         (resource.data.uploadedBy == request.auth.uid || 
+                          isCommunityAdmin(communityId));
+      }
+      
+      // Community Chat subcollection
+      match /chat/{messageId} {
+        allow read: if isCommunityMember(communityId);
+        allow create: if isCommunityMember(communityId);
+        allow delete: if isCommunityAdmin(communityId);
+      }
     }
   }
 }

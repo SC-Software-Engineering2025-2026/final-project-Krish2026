@@ -1,0 +1,325 @@
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+  increment,
+  arrayUnion,
+  arrayRemove,
+  onSnapshot,
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "./firebase";
+
+/**
+ * Create a community post
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @param {Object} postData - Post data
+ * @param {File[]} images - Array of image files
+ * @returns {Promise<string>} Post ID
+ */
+export const createCommunityPost = async (
+  communityId,
+  userId,
+  postData,
+  images = [],
+) => {
+  try {
+    // Upload images
+    const imageUrls = [];
+    for (const image of images) {
+      const imageRef = ref(
+        storage,
+        `communities/${communityId}/posts/${Date.now()}_${image.name}`,
+      );
+      const snapshot = await uploadBytes(imageRef, image);
+      const url = await getDownloadURL(snapshot.ref);
+      imageUrls.push(url);
+    }
+
+    // Create post
+    const postsRef = collection(db, `communities/${communityId}/posts`);
+    const post = {
+      userId,
+      content: postData.content || "",
+      images: imageUrls,
+      videos: postData.videos || [],
+      likes: [],
+      likesCount: 0,
+      commentsCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(postsRef, post);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating community post:", error);
+    throw new Error("Failed to create post");
+  }
+};
+
+/**
+ * Get community posts
+ * @param {string} communityId - Community ID
+ * @returns {Promise<Array>} Array of posts
+ */
+export const getCommunityPosts = async (communityId) => {
+  try {
+    const postsRef = collection(db, `communities/${communityId}/posts`);
+    const q = query(postsRef, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting community posts:", error);
+    throw error;
+  }
+};
+
+/**
+ * Like a community post
+ * @param {string} postId - Post ID (format: communityId/posts/postId)
+ * @param {string} userId - User ID
+ */
+export const likeCommunityPost = async (postId, userId) => {
+  try {
+    // postId should be in format "communityId/posts/actualPostId"
+    const postRef = doc(
+      db,
+      "communities",
+      postId.split("/")[0],
+      "posts",
+      postId.split("/")[2] || postId,
+    );
+    const postDoc = await getDoc(postRef);
+
+    if (!postDoc.exists()) {
+      throw new Error("Post not found");
+    }
+
+    const likes = postDoc.data().likes || [];
+    const isLiked = likes.includes(userId);
+
+    if (isLiked) {
+      // Unlike
+      await updateDoc(postRef, {
+        likes: arrayRemove(userId),
+        likesCount: increment(-1),
+      });
+    } else {
+      // Like
+      await updateDoc(postRef, {
+        likes: arrayUnion(userId),
+        likesCount: increment(1),
+      });
+    }
+  } catch (error) {
+    console.error("Error liking post:", error);
+    throw error;
+  }
+};
+
+/**
+ * Add comment to community post
+ * @param {string} postId - Post ID
+ * @param {string} userId - User ID
+ * @param {string} text - Comment text
+ * @returns {Promise<string>} Comment ID
+ */
+export const addCommentToCommunityPost = async (postId, userId, text) => {
+  try {
+    const commentsRef = collection(
+      db,
+      `communities/${postId.split("/")[0]}/posts/${postId.split("/")[2] || postId}/comments`,
+    );
+    const comment = {
+      userId,
+      text,
+      createdAt: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(commentsRef, comment);
+
+    // Increment comment count
+    const postRef = doc(
+      db,
+      "communities",
+      postId.split("/")[0],
+      "posts",
+      postId.split("/")[2] || postId,
+    );
+    await updateDoc(postRef, {
+      commentsCount: increment(1),
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get comments for a community post
+ * @param {string} postId - Post ID
+ * @returns {Promise<Array>} Array of comments
+ */
+export const getCommunityPostComments = async (postId) => {
+  try {
+    const commentsRef = collection(
+      db,
+      `communities/${postId.split("/")[0]}/posts/${postId.split("/")[2] || postId}/comments`,
+    );
+    const q = query(commentsRef, orderBy("createdAt", "asc"));
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting comments:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a community post
+ * @param {string} communityId - Community ID
+ * @param {string} postId - Post ID
+ * @param {string} userId - User ID (must be author or admin)
+ */
+export const deleteCommunityPost = async (communityId, postId, userId) => {
+  try {
+    const postRef = doc(db, `communities/${communityId}/posts`, postId);
+    const postDoc = await getDoc(postRef);
+
+    if (!postDoc.exists()) {
+      throw new Error("Post not found");
+    }
+
+    const postData = postDoc.data();
+
+    // Check if user is author (admin check would need to be done separately)
+    if (postData.userId !== userId) {
+      throw new Error("Only the post author can delete this post");
+    }
+
+    await deleteDoc(postRef);
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get posts from all communities a user is a member of
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>} Array of posts with community info
+ */
+export const getUserCommunitiesPosts = async (userId) => {
+  try {
+    const { getCommunities } = await import("./communityService");
+    const { getUserProfile } = await import("./profileService");
+
+    // Get user's communities
+    const communities = await getCommunities(userId);
+
+    if (communities.length === 0) {
+      return [];
+    }
+
+    // Get posts from each community
+    const allPosts = [];
+    for (const community of communities) {
+      const postsRef = collection(db, `communities/${community.id}/posts`);
+      const q = query(postsRef, orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+
+      const posts = await Promise.all(
+        snapshot.docs.map(async (docSnap) => {
+          const postData = docSnap.data();
+
+          // Get user profile for each post
+          let userProfile = null;
+          try {
+            userProfile = await getUserProfile(postData.userId);
+          } catch (error) {
+            console.error("Error fetching user profile:", error);
+          }
+
+          return {
+            id: docSnap.id,
+            ...postData,
+            communityId: community.id,
+            communityName: community.name,
+            communityImage: community.imageUrl,
+            isCollaborative: community.isCollaborative,
+            userProfile,
+          };
+        }),
+      );
+
+      allPosts.push(...posts);
+    }
+
+    // Sort all posts by creation date
+    allPosts.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() || 0;
+      const bTime = b.createdAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+
+    return allPosts;
+  } catch (error) {
+    console.error("Error getting user communities posts:", error);
+    throw error;
+  }
+};
+
+/**
+ * Subscribe to community posts in real-time
+ * @param {string} communityId - Community ID
+ * @param {Function} callback - Callback function to receive posts
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToCommunityPosts = (communityId, callback) => {
+  const postsRef = collection(db, `communities/${communityId}/posts`);
+  const q = query(postsRef, orderBy("createdAt", "desc"));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const posts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(posts);
+    },
+    (error) => {
+      console.error("Error listening to community posts:", error);
+    },
+  );
+};
+
+export default {
+  createCommunityPost,
+  getCommunityPosts,
+  likeCommunityPost,
+  addCommentToCommunityPost,
+  getCommunityPostComments,
+  deleteCommunityPost,
+  getUserCommunitiesPosts,
+};

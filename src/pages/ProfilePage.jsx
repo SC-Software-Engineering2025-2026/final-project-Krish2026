@@ -5,7 +5,14 @@ import {
   getUserProfile,
   toggleProfilePrivacy,
 } from "../services/profileService";
-import { getUserPosts } from "../services/postService";
+import {
+  getUserPosts,
+  likePost,
+  unlikePost,
+  hasLikedPost,
+  subscribeToUserPosts,
+  subscribeToUserLikes,
+} from "../services/postService";
 import PostGrid from "../components/PostGrid";
 import EditProfile from "../components/EditProfile";
 import {
@@ -24,6 +31,7 @@ const ProfilePage = () => {
   const { currentUser, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [likedPosts, setLikedPosts] = useState({});
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,9 +52,38 @@ const ProfilePage = () => {
 
   useEffect(() => {
     if (profileId && activeTab === "posts") {
-      loadPosts();
+      setPostsLoading(true);
+
+      // Subscribe to posts in real-time
+      const unsubscribePosts = subscribeToUserPosts(profileId, (userPosts) => {
+        setPosts(userPosts);
+        setPostsLoading(false);
+      });
+
+      // Subscribe to likes in real-time if user is logged in
+      let unsubscribeLikes;
+      if (currentUser) {
+        unsubscribeLikes = subscribeToUserLikes(
+          currentUser.uid,
+          (likedPostIds) => {
+            const likedStatus = {};
+            likedPostIds.forEach((postId) => {
+              likedStatus[postId] = true;
+            });
+            setLikedPosts(likedStatus);
+          },
+        );
+      }
+
+      // Cleanup subscriptions
+      return () => {
+        unsubscribePosts();
+        if (unsubscribeLikes) {
+          unsubscribeLikes();
+        }
+      };
     }
-  }, [profileId, activeTab]);
+  }, [profileId, activeTab, currentUser]);
 
   const loadProfile = async () => {
     try {
@@ -79,6 +116,18 @@ const ProfilePage = () => {
       setPostsLoading(true);
       const { posts: userPosts } = await getUserPosts(profileId);
       setPosts(userPosts);
+
+      // Check liked status for each post if user is logged in
+      if (currentUser) {
+        const likedStatus = {};
+        await Promise.all(
+          userPosts.map(async (post) => {
+            const liked = await hasLikedPost(post.id, currentUser.uid);
+            likedStatus[post.id] = liked;
+          }),
+        );
+        setLikedPosts(likedStatus);
+      }
     } catch (err) {
       console.error("Error loading posts:", err);
     } finally {
@@ -109,6 +158,25 @@ const ProfilePage = () => {
     } catch (err) {
       console.error("Error logging out:", err);
       alert("Failed to log out");
+    }
+  };
+
+  const handleLike = async (postId, isCurrentlyLiked) => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      if (isCurrentlyLiked) {
+        await unlikePost(postId, currentUser.uid);
+      } else {
+        await likePost(postId, currentUser.uid);
+      }
+      // No need to manually update state - real-time listeners will handle it
+    } catch (err) {
+      console.error("Error toggling like:", err);
+      alert("Failed to update like");
     }
   };
 
@@ -292,6 +360,17 @@ const ProfilePage = () => {
             <span>About Me</span>
           </button>
           <button
+            onClick={() => setActiveTab("posts")}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
+              activeTab === "posts"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <PhotoIcon className="h-5 w-5" />
+            <span>Posts</span>
+          </button>
+          <button
             onClick={() => setActiveTab("communities")}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
               activeTab === "communities"
@@ -332,6 +411,36 @@ const ProfilePage = () => {
               {isOwnProfile && (
                 <p className="text-gray-600">
                   Add cover photos to personalize your profile!
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "posts" && (
+        <div className="bg-white rounded-lg shadow-md p-6">
+          {postsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : posts.length > 0 ? (
+            <PostGrid
+              posts={posts}
+              onPostClick={(post) => navigate(`/post/${post.id}`)}
+              currentUserId={currentUser?.uid}
+              onLike={handleLike}
+              likedPosts={likedPosts}
+            />
+          ) : (
+            <div className="text-center py-12">
+              <PhotoIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                No posts yet
+              </h3>
+              {isOwnProfile && (
+                <p className="text-gray-600">
+                  Share your first post to get started!
                 </p>
               )}
             </div>

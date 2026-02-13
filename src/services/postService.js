@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   addDoc,
+  setDoc,
   getDoc,
   getDocs,
   updateDoc,
@@ -15,6 +16,7 @@ import {
   increment,
   arrayUnion,
   arrayRemove,
+  onSnapshot,
 } from "firebase/firestore";
 import {
   ref,
@@ -217,8 +219,15 @@ export const likePost = async (postId, userId) => {
     const postRef = doc(db, "userPosts", postId);
     const likeRef = doc(db, "postLikes", `${postId}_${userId}`);
 
-    // Add like document
-    await addDoc(collection(db, "postLikes"), {
+    // Check if already liked
+    const likeSnap = await getDoc(likeRef);
+    if (likeSnap.exists()) {
+      console.log("Post already liked");
+      return; // Already liked, do nothing
+    }
+
+    // Add like document with specific ID
+    await setDoc(likeRef, {
       postId,
       userId,
       createdAt: serverTimestamp(),
@@ -243,18 +252,17 @@ export const likePost = async (postId, userId) => {
 export const unlikePost = async (postId, userId) => {
   try {
     const postRef = doc(db, "userPosts", postId);
+    const likeRef = doc(db, "postLikes", `${postId}_${userId}`);
 
-    // Find and delete like document
-    const likesRef = collection(db, "postLikes");
-    const q = query(
-      likesRef,
-      where("postId", "==", postId),
-      where("userId", "==", userId),
-    );
+    // Check if like exists
+    const likeSnap = await getDoc(likeRef);
+    if (!likeSnap.exists()) {
+      console.log("Like not found");
+      return; // Not liked, do nothing
+    }
 
-    const querySnapshot = await getDocs(q);
-    const deletePromises = querySnapshot.docs.map((doc) => deleteDoc(doc.ref));
-    await Promise.all(deletePromises);
+    // Delete the specific like document
+    await deleteDoc(likeRef);
 
     // Decrement likes count
     await updateDoc(postRef, {
@@ -274,15 +282,9 @@ export const unlikePost = async (postId, userId) => {
  */
 export const hasLikedPost = async (postId, userId) => {
   try {
-    const likesRef = collection(db, "postLikes");
-    const q = query(
-      likesRef,
-      where("postId", "==", postId),
-      where("userId", "==", userId),
-    );
-
-    const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
+    const likeRef = doc(db, "postLikes", `${postId}_${userId}`);
+    const likeSnap = await getDoc(likeRef);
+    return likeSnap.exists();
   } catch (error) {
     console.error("Error checking if post is liked:", error);
     throw error;
@@ -389,4 +391,127 @@ export const deletePostComments = async (postId) => {
     console.error("Error deleting post comments:", error);
     throw error;
   }
+};
+
+/**
+ * Subscribe to user posts in real-time
+ * @param {string} userId - The user ID
+ * @param {Function} callback - Callback function to receive posts
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToUserPosts = (userId, callback) => {
+  const postsRef = collection(db, "userPosts");
+  const q = query(
+    postsRef,
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc"),
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const posts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(posts);
+    },
+    (error) => {
+      console.error("Error listening to posts:", error);
+    },
+  );
+};
+
+/**
+ * Subscribe to a single post in real-time
+ * @param {string} postId - The post ID
+ * @param {Function} callback - Callback function to receive post updates
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToPost = (postId, callback) => {
+  const postRef = doc(db, "userPosts", postId);
+
+  return onSnapshot(
+    postRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        callback({ id: snapshot.id, ...snapshot.data() });
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.error("Error listening to post:", error);
+    },
+  );
+};
+
+/**
+ * Subscribe to user's liked posts in real-time
+ * @param {string} userId - The user ID
+ * @param {Function} callback - Callback function to receive liked post IDs
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToUserLikes = (userId, callback) => {
+  const likesRef = collection(db, "postLikes");
+  const q = query(likesRef, where("userId", "==", userId));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const likedPostIds = snapshot.docs.map((doc) => doc.data().postId);
+      callback(likedPostIds);
+    },
+    (error) => {
+      console.error("Error listening to likes:", error);
+    },
+  );
+};
+
+/**
+ * Get all recent posts for home feed
+ * @param {number} limitCount - Number of posts to fetch
+ * @returns {Promise<Array>} Array of posts
+ */
+export const getAllRecentPosts = async (limitCount = 20) => {
+  try {
+    const postsRef = collection(db, "userPosts");
+    const q = query(postsRef, orderBy("createdAt", "desc"), limit(limitCount));
+
+    const querySnapshot = await getDocs(q);
+    const posts = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return posts;
+  } catch (error) {
+    console.error("Error getting all posts:", error);
+    throw error;
+  }
+};
+
+/**
+ * Subscribe to all recent posts in real-time
+ * @param {Function} callback - Callback function to receive posts
+ * @param {number} limitCount - Number of posts to fetch
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToAllPosts = (callback, limitCount = 20) => {
+  const postsRef = collection(db, "userPosts");
+  const q = query(postsRef, orderBy("createdAt", "desc"), limit(limitCount));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const posts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(posts);
+    },
+    (error) => {
+      console.error("Error listening to all posts:", error);
+    },
+  );
 };

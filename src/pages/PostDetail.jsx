@@ -10,6 +10,8 @@ import {
   addComment,
   getPostComments,
   deleteComment,
+  subscribeToPost,
+  subscribeToUserLikes,
 } from "../services/postService";
 import { getUserProfile } from "../services/profileService";
 import {
@@ -42,39 +44,51 @@ const PostDetail = () => {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
   useEffect(() => {
-    loadPostData();
-  }, [postId]);
+    setLoading(true);
 
-  const loadPostData = async () => {
-    try {
-      setLoading(true);
-
-      // Load post
-      const postData = await getPost(postId);
+    // Subscribe to post in real-time
+    const unsubscribePost = subscribeToPost(postId, async (postData) => {
       if (!postData) {
         navigate("/");
         return;
       }
       setPost(postData);
 
-      // Load author
-      const authorData = await getUserProfile(postData.userId);
-      setAuthor(authorData);
-
-      // Check if current user has liked the post
-      if (currentUser) {
-        const liked = await hasLikedPost(postId, currentUser.uid);
-        setIsLiked(liked);
+      // Load author (only needs to be done once)
+      if (!author) {
+        try {
+          const authorData = await getUserProfile(postData.userId);
+          setAuthor(authorData);
+        } catch (err) {
+          console.error("Error loading author:", err);
+        }
       }
 
-      // Load comments
-      await loadComments();
-    } catch (err) {
-      console.error("Error loading post data:", err);
-    } finally {
       setLoading(false);
+    });
+
+    // Subscribe to likes in real-time if user is logged in
+    let unsubscribeLikes;
+    if (currentUser) {
+      unsubscribeLikes = subscribeToUserLikes(
+        currentUser.uid,
+        (likedPostIds) => {
+          setIsLiked(likedPostIds.includes(postId));
+        },
+      );
     }
-  };
+
+    // Load comments
+    loadComments();
+
+    // Cleanup subscriptions
+    return () => {
+      unsubscribePost();
+      if (unsubscribeLikes) {
+        unsubscribeLikes();
+      }
+    };
+  }, [postId, currentUser]);
 
   const loadComments = async () => {
     try {
@@ -105,13 +119,10 @@ const PostDetail = () => {
     try {
       if (isLiked) {
         await unlikePost(postId, currentUser.uid);
-        setPost({ ...post, likesCount: (post.likesCount || 0) - 1 });
-        setIsLiked(false);
       } else {
         await likePost(postId, currentUser.uid);
-        setPost({ ...post, likesCount: (post.likesCount || 0) + 1 });
-        setIsLiked(true);
       }
+      // Real-time listeners will automatically update the state
     } catch (err) {
       console.error("Error toggling like:", err);
     }

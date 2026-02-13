@@ -47,7 +47,7 @@ const NavBar = () => {
               <div className="flex items-center gap-2">
                 <Link
                   to="/"
-                  className="px-4 py-2 text-sm font-medium transition-all duration-200"
+                  className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/") ? "#EDE8DD" : "#54524D",
@@ -59,7 +59,7 @@ const NavBar = () => {
                 </Link>
                 <Link
                   to="/communities"
-                  className="px-4 py-2 text-sm font-medium transition-all duration-200"
+                  className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/communities") ? "#EDE8DD" : "#54524D",
@@ -73,7 +73,7 @@ const NavBar = () => {
                 </Link>
                 <Link
                   to="/discover"
-                  className="px-4 py-2 text-sm font-medium transition-all duration-200"
+                  className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/discover") ? "#EDE8DD" : "#54524D",
@@ -87,7 +87,7 @@ const NavBar = () => {
                 </Link>
                 <Link
                   to={`/profile/${currentUser.uid}`}
-                  className="px-4 py-2 text-sm font-medium transition-all duration-200"
+                  className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{
                     fontFamily: "Times New Roman, serif",
                     color:

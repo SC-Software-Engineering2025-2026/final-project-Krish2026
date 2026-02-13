@@ -1,7 +1,14 @@
+import { useState, useEffect } from "react";
 import { HeartIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
 
-const PostGrid = ({ posts, onPostClick }) => {
+const PostGrid = ({
+  posts,
+  onPostClick,
+  currentUserId,
+  onLike,
+  likedPosts = {},
+}) => {
   if (!posts || posts.length === 0) {
     return null;
   }
@@ -38,10 +45,23 @@ const PostGrid = ({ posts, onPostClick }) => {
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
             <div className="flex items-center gap-6 text-white">
               {/* Likes */}
-              <div className="flex items-center gap-2">
-                <HeartSolidIcon className="h-6 w-6" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onLike) {
+                    onLike(post.id, likedPosts[post.id]);
+                  }
+                }}
+                className="flex items-center gap-2 hover:scale-110 transition-transform"
+                disabled={!currentUserId}
+              >
+                {likedPosts[post.id] ? (
+                  <HeartSolidIcon className="h-6 w-6 text-red-500" />
+                ) : (
+                  <HeartIcon className="h-6 w-6" />
+                )}
                 <span className="font-semibold">{post.likesCount || 0}</span>
-              </div>
+              </button>
 
               {/* Comments */}
               <div className="flex items-center gap-2">

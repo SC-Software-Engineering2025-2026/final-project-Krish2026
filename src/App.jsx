@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import ProfilePage from "./pages/ProfilePage";
 import PostDetail from "./pages/PostDetail";
 import Communities from "./pages/Communities";
+import CommunityPage from "./pages/CommunityPage";
 import Discover from "./pages/Discover";
 import Messages from "./pages/Messages";
 
@@ -31,6 +32,10 @@ function App() {
               <Route path="/profile/:userId" element={<ProfilePage />} />
               <Route path="/post/:postId" element={<PostDetail />} />
               <Route path="/communities" element={<Communities />} />
+              <Route
+                path="/communities/:communityId"
+                element={<CommunityPage />}
+              />
               <Route path="/discover" element={<Discover />} />
               <Route path="/messages" element={<Messages />} />
             </Routes>

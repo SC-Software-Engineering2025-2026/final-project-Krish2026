@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getUserProfile } from "../services/profileService";
+import { initializeUserProfile } from "../utils/profileUtils";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -26,7 +28,18 @@ function Login() {
     try {
       setError("");
       setLoading(true);
-      await login(email, password);
+      const userCredential = await login(email, password);
+
+      // Check if user profile exists, create if not
+      try {
+        const profile = await getUserProfile(userCredential.user.uid);
+        if (!profile) {
+          await initializeUserProfile(userCredential.user);
+        }
+      } catch (profileErr) {
+        console.error("Error checking/creating profile:", profileErr);
+      }
+
       navigate("/");
     } catch (err) {
       setError("Failed to log in. Please check your credentials.");
@@ -40,7 +53,18 @@ function Login() {
     try {
       setError("");
       setLoading(true);
-      await signInWithGoogle();
+      const userCredential = await signInWithGoogle();
+
+      // Check if user profile exists, create if not
+      try {
+        const profile = await getUserProfile(userCredential.user.uid);
+        if (!profile) {
+          await initializeUserProfile(userCredential.user);
+        }
+      } catch (profileErr) {
+        console.error("Error checking/creating profile:", profileErr);
+      }
+
       navigate("/");
     } catch (err) {
       setError("Failed to sign in with Google. Please try again.");
@@ -54,7 +78,18 @@ function Login() {
     try {
       setError("");
       setLoading(true);
-      await signInWithApple();
+      const userCredential = await signInWithApple();
+
+      // Check if user profile exists, create if not
+      try {
+        const profile = await getUserProfile(userCredential.user.uid);
+        if (!profile) {
+          await initializeUserProfile(userCredential.user);
+        }
+      } catch (profileErr) {
+        console.error("Error checking/creating profile:", profileErr);
+      }
+
       navigate("/");
     } catch (err) {
       console.error("Apple Sign-In Error:", err);
@@ -120,7 +155,18 @@ function Login() {
     try {
       setError("");
       setLoading(true);
-      await confirmationResult.confirm(verificationCode);
+      const userCredential = await confirmationResult.confirm(verificationCode);
+
+      // Check if user profile exists, create if not
+      try {
+        const profile = await getUserProfile(userCredential.user.uid);
+        if (!profile) {
+          await initializeUserProfile(userCredential.user);
+        }
+      } catch (profileErr) {
+        console.error("Error checking/creating profile:", profileErr);
+      }
+
       navigate("/");
     } catch (err) {
       setError("Invalid verification code. Please try again.");
