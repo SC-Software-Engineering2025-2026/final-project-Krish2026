@@ -1,20 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import {
-  getCommunities,
-  getAllCommunities,
-} from "../services/communityService";
+import { getCommunities } from "../services/communityService";
 import CreateCommunity from "../components/CreateCommunity";
 
 function Communities() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [myCommunities, setMyCommunities] = useState([]);
-  const [allCommunities, setAllCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [activeTab, setActiveTab] = useState("my"); // my, explore
 
   useEffect(() => {
     loadCommunities();
@@ -24,18 +19,10 @@ function Communities() {
     try {
       setLoading(true);
       if (currentUser) {
-        const [myComms, allComms] = await Promise.all([
-          getCommunities(currentUser.uid),
-          getAllCommunities(),
-        ]);
+        const myComms = await getCommunities(currentUser.uid);
         console.log("My Communities:", myComms);
-        console.log("All Communities:", allComms);
         console.log("Current User ID:", currentUser.uid);
         setMyCommunities(myComms);
-        setAllCommunities(allComms);
-      } else {
-        const allComms = await getAllCommunities();
-        setAllCommunities(allComms);
       }
     } catch (error) {
       console.error("Error loading communities:", error);
@@ -81,36 +68,8 @@ function Communities() {
           )}
         </div>
 
-        {/* Tabs */}
-        {currentUser && (
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="flex space-x-8">
-              <button
-                onClick={() => setActiveTab("my")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === "my"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                My Communities ({myCommunities.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("explore")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === "explore"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                All Communities ({allCommunities.length})
-              </button>
-            </nav>
-          </div>
-        )}
-
         {/* Communities Grid */}
-        {activeTab === "my" && currentUser ? (
+        {currentUser && (
           <div>
             {myCommunities.length === 0 ? (
               <div className="bg-white rounded-lg shadow p-12 text-center">
@@ -143,42 +102,6 @@ function Communities() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myCommunities.map((community) => (
-                  <CommunityCard
-                    key={community.id}
-                    community={community}
-                    onClick={() => navigate(`/communities/${community.id}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div>
-            {allCommunities.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-12 text-center">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <h3 className="mt-2 text-lg font-medium text-gray-900">
-                  No communities yet
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Be the first to create a community!
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {allCommunities.map((community) => (
                   <CommunityCard
                     key={community.id}
                     community={community}

@@ -5,9 +5,10 @@ import { getUserRole, isMember } from "../services/communityService";
  * Hook to get user's role in a community
  * @param {string} communityId - Community ID
  * @param {string} userId - User ID
+ * @param {number} refreshKey - Optional key to force refresh
  * @returns {Object} { role, loading, isAdmin, isMember }
  */
-export const useCommunityRole = (communityId, userId) => {
+export const useCommunityRole = (communityId, userId, refreshKey = 0) => {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +44,7 @@ export const useCommunityRole = (communityId, userId) => {
     return () => {
       isMounted = false;
     };
-  }, [communityId, userId]);
+  }, [communityId, userId, refreshKey]);
 
   return {
     role,

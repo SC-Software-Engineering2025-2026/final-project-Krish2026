@@ -76,6 +76,13 @@ export const createCommunity = async (
       joinedAt: serverTimestamp(),
     });
 
+    // Add community to user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      joinedCommunities: arrayUnion(docRef.id),
+      updatedAt: serverTimestamp(),
+    });
+
     return docRef.id;
   } catch (error) {
     console.error("Error creating community:", error);
@@ -165,6 +172,43 @@ export const getAllCommunities = async () => {
 };
 
 /**
+ * Get multiple communities by their IDs
+ * @param {Array<string>} communityIds - Array of community IDs
+ * @returns {Promise<Array>} Array of community objects
+ */
+export const getCommunitiesByIds = async (communityIds) => {
+  try {
+    if (!communityIds || communityIds.length === 0) {
+      return [];
+    }
+
+    // Fetch all communities in parallel
+    const communityPromises = communityIds.map(async (id) => {
+      try {
+        const communityDoc = await getDoc(doc(db, "communities", id));
+        if (communityDoc.exists()) {
+          return {
+            id: communityDoc.id,
+            ...communityDoc.data(),
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error(`Error fetching community ${id}:`, error);
+        return null;
+      }
+    });
+
+    const communities = await Promise.all(communityPromises);
+    // Filter out any null values (communities that don't exist or had errors)
+    return communities.filter((community) => community !== null);
+  } catch (error) {
+    console.error("Error getting communities by IDs:", error);
+    throw error;
+  }
+};
+
+/**
  * Join a community
  * @param {string} communityId - Community ID
  * @param {string} userId - User ID
@@ -190,12 +234,24 @@ export const joinCommunity = async (communityId, userId) => {
       throw new Error("Cannot join private community without invitation");
     }
 
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
     // Add user to members array and increment count
-    await updateDoc(communityRef, {
+    batch.update(communityRef, {
       members: arrayUnion(userId),
       memberCount: increment(1),
       updatedAt: serverTimestamp(),
     });
+
+    // Update user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    batch.update(userRef, {
+      joinedCommunities: arrayUnion(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
 
     // Add to community members subcollection
     await addDoc(
@@ -235,13 +291,25 @@ export const leaveCommunity = async (communityId, userId) => {
       );
     }
 
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
     // Remove user from members and admins arrays
-    await updateDoc(communityRef, {
+    batch.update(communityRef, {
       members: arrayRemove(userId),
       admins: arrayRemove(userId),
       memberCount: increment(-1),
       updatedAt: serverTimestamp(),
     });
+
+    // Update user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    batch.update(userRef, {
+      joinedCommunities: arrayRemove(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
 
     // Remove from community members subcollection
     const membersQuery = query(
@@ -250,11 +318,11 @@ export const leaveCommunity = async (communityId, userId) => {
     );
     const membersSnapshot = await getDocs(membersQuery);
 
-    const batch = writeBatch(db);
+    const memberBatch = writeBatch(db);
     membersSnapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
+      memberBatch.delete(doc.ref);
     });
-    await batch.commit();
+    await memberBatch.commit();
   } catch (error) {
     console.error("Error leaving community:", error);
     throw error;
@@ -730,6 +798,7 @@ export default {
   getCommunity,
   getCommunities,
   getAllCommunities,
+  getCommunitiesByIds,
   joinCommunity,
   leaveCommunity,
   updateCommunity,

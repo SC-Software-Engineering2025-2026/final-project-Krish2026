@@ -13,6 +13,10 @@ import Communities from "./pages/Communities";
 import CommunityPage from "./pages/CommunityPage";
 import Discover from "./pages/Discover";
 import Messages from "./pages/Messages";
+import Settings from "./pages/Settings";
+
+// Temporary utility component
+import SyncUserCommunities from "./components/SyncUserCommunities";
 
 function App() {
   return (
@@ -30,6 +34,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:userId" element={<ProfilePage />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/post/:postId" element={<PostDetail />} />
               <Route path="/communities" element={<Communities />} />
               <Route
@@ -38,6 +43,12 @@ function App() {
               />
               <Route path="/discover" element={<Discover />} />
               <Route path="/messages" element={<Messages />} />
+
+              {/* Temporary utility route - remove after use */}
+              <Route
+                path="/sync-communities"
+                element={<SyncUserCommunities />}
+              />
             </Routes>
           </div>
         </div>

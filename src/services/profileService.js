@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   arrayUnion,
   arrayRemove,
+  onSnapshot,
 } from "firebase/firestore";
 import {
   ref,
@@ -350,4 +351,32 @@ export const leaveCommunity = async (userId, communityId) => {
     console.error("Error leaving community:", error);
     throw error;
   }
+};
+
+/**
+ * Subscribe to user profile updates in real-time
+ * @param {string} userId - The user ID to subscribe to
+ * @param {Function} callback - Callback function to receive updates
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToUserProfile = (userId, callback) => {
+  const userRef = doc(db, "users", userId);
+
+  return onSnapshot(
+    userRef,
+    (doc) => {
+      if (doc.exists()) {
+        callback({
+          id: doc.id,
+          ...doc.data(),
+        });
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.error("Error listening to user profile:", error);
+      callback(null);
+    },
+  );
 };

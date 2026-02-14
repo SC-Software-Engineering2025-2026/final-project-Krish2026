@@ -1,19 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   getUserProfile,
   toggleProfilePrivacy,
+  subscribeToUserProfile,
 } from "../services/profileService";
-import {
-  getUserPosts,
-  likePost,
-  unlikePost,
-  hasLikedPost,
-  subscribeToUserPosts,
-  subscribeToUserLikes,
-} from "../services/postService";
-import PostGrid from "../components/PostGrid";
+import { getCommunitiesByIds } from "../services/communityService";
 import EditProfile from "../components/EditProfile";
 import {
   UserCircleIcon,
@@ -23,6 +16,8 @@ import {
   PhotoIcon,
   UserGroupIcon,
   ArrowRightOnRectangleIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 
 const ProfilePage = () => {
@@ -30,13 +25,14 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [likedPosts, setLikedPosts] = useState({});
+  const [communities, setCommunities] = useState([]);
+  const [communitiesLoading, setCommunitiesLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [postsLoading, setPostsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Determine if viewing own profile
   const isOwnProfile = currentUser && (userId === currentUser.uid || !userId);
@@ -47,99 +43,82 @@ const ProfilePage = () => {
       navigate("/login");
       return;
     }
-    loadProfile();
-  }, [profileId]);
 
-  useEffect(() => {
-    if (profileId && activeTab === "posts") {
-      setPostsLoading(true);
+    // Subscribe to profile updates in real-time
+    const unsubscribe = subscribeToUserProfile(
+      profileId,
+      async (profileData) => {
+        setLoading(true);
+        setError(null);
 
-      // Subscribe to posts in real-time
-      const unsubscribePosts = subscribeToUserPosts(profileId, (userPosts) => {
-        setPosts(userPosts);
-        setPostsLoading(false);
-      });
-
-      // Subscribe to likes in real-time if user is logged in
-      let unsubscribeLikes;
-      if (currentUser) {
-        unsubscribeLikes = subscribeToUserLikes(
-          currentUser.uid,
-          (likedPostIds) => {
-            const likedStatus = {};
-            likedPostIds.forEach((postId) => {
-              likedStatus[postId] = true;
-            });
-            setLikedPosts(likedStatus);
-          },
-        );
-      }
-
-      // Cleanup subscriptions
-      return () => {
-        unsubscribePosts();
-        if (unsubscribeLikes) {
-          unsubscribeLikes();
+        if (!profileData) {
+          setError("Profile not found");
+          setLoading(false);
+          return;
         }
-      };
-    }
-  }, [profileId, activeTab, currentUser]);
 
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const profileData = await getUserProfile(profileId);
+        // Check privacy settings
+        if (!isOwnProfile && profileData.isPrivate) {
+          setError("This profile is private");
+          setLoading(false);
+          return;
+        }
 
-      if (!profileData) {
-        setError("Profile not found");
-        return;
+        setProfile(profileData);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [profileId, isOwnProfile, navigate]);
+
+  // Fetch communities when communities tab is active or joinedCommunities changes
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      if (
+        profile &&
+        profile.joinedCommunities &&
+        profile.joinedCommunities.length > 0
+      ) {
+        setCommunitiesLoading(true);
+        try {
+          const communityDetails = await getCommunitiesByIds(
+            profile.joinedCommunities,
+          );
+          setCommunities(communityDetails);
+        } catch (error) {
+          console.error("Error fetching communities:", error);
+        } finally {
+          setCommunitiesLoading(false);
+        }
+      } else {
+        setCommunities([]);
+        setCommunitiesLoading(false);
       }
+    };
 
-      // Check privacy settings
-      if (!isOwnProfile && profileData.isPrivate) {
-        setError("This profile is private");
-        return;
-      }
-
-      setProfile(profileData);
-    } catch (err) {
-      console.error("Error loading profile:", err);
-      setError("Failed to load profile");
-    } finally {
-      setLoading(false);
+    if (activeTab === "communities" && profile) {
+      fetchCommunities();
     }
-  };
+  }, [activeTab, profile?.joinedCommunities, profile]);
 
-  const loadPosts = async () => {
-    try {
-      setPostsLoading(true);
-      const { posts: userPosts } = await getUserPosts(profileId);
-      setPosts(userPosts);
-
-      // Check liked status for each post if user is logged in
-      if (currentUser) {
-        const likedStatus = {};
-        await Promise.all(
-          userPosts.map(async (post) => {
-            const liked = await hasLikedPost(post.id, currentUser.uid);
-            likedStatus[post.id] = liked;
-          }),
-        );
-        setLikedPosts(likedStatus);
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
       }
-    } catch (err) {
-      console.error("Error loading posts:", err);
-    } finally {
-      setPostsLoading(false);
-    }
-  };
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleTogglePrivacy = async () => {
     try {
       const newPrivacyStatus = !profile.isPrivate;
       await toggleProfilePrivacy(profileId, newPrivacyStatus);
-      setProfile({ ...profile, isPrivate: newPrivacyStatus });
+      // Profile will be updated via subscription
     } catch (err) {
       console.error("Error toggling privacy:", err);
       alert("Failed to update privacy settings");
@@ -147,7 +126,7 @@ const ProfilePage = () => {
   };
 
   const handleProfileUpdate = async () => {
-    await loadProfile();
+    // Profile will be updated via subscription
     setIsEditMode(false);
   };
 
@@ -158,25 +137,6 @@ const ProfilePage = () => {
     } catch (err) {
       console.error("Error logging out:", err);
       alert("Failed to log out");
-    }
-  };
-
-  const handleLike = async (postId, isCurrentlyLiked) => {
-    if (!currentUser) {
-      navigate("/login");
-      return;
-    }
-
-    try {
-      if (isCurrentlyLiked) {
-        await unlikePost(postId, currentUser.uid);
-      } else {
-        await likePost(postId, currentUser.uid);
-      }
-      // No need to manually update state - real-time listeners will handle it
-    } catch (err) {
-      console.error("Error toggling like:", err);
-      alert("Failed to update like");
     }
   };
 
@@ -253,18 +213,44 @@ const ProfilePage = () => {
 
           {/* Profile Info */}
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center justify-between mb-2">
               <h1 className="text-3xl font-bold text-gray-900">
                 {profile.displayName || "Anonymous User"}
               </h1>
               {isOwnProfile && (
-                <button
-                  onClick={() => setIsEditMode(true)}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
-                  title="Edit Profile"
-                >
-                  <Cog6ToothIcon className="h-6 w-6" />
-                </button>
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
+                    title="More options"
+                  >
+                    <EllipsisVerticalIcon className="h-6 w-6" />
+                  </button>
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          setIsEditMode(true);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                      >
+                        <PencilIcon className="h-5 w-5" />
+                        <span>Edit Profile</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          navigate("/settings");
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                      >
+                        <Cog6ToothIcon className="h-5 w-5" />
+                        <span>Settings</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -312,35 +298,6 @@ const ProfilePage = () => {
                 ))}
               </div>
             )}
-
-            {/* Privacy Toggle and Logout (Own Profile Only) */}
-            {isOwnProfile && (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleTogglePrivacy}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-                >
-                  {profile.isPrivate ? (
-                    <>
-                      <LockClosedIcon className="h-5 w-5" />
-                      <span>Private Profile</span>
-                    </>
-                  ) : (
-                    <>
-                      <LockOpenIcon className="h-5 w-5" />
-                      <span>Public Profile</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
-                >
-                  <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                  <span>Log Out</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -358,17 +315,6 @@ const ProfilePage = () => {
           >
             <PhotoIcon className="h-5 w-5" />
             <span>About Me</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("posts")}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
-              activeTab === "posts"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <PhotoIcon className="h-5 w-5" />
-            <span>Posts</span>
           </button>
           <button
             onClick={() => setActiveTab("communities")}
@@ -418,51 +364,45 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {activeTab === "posts" && (
+      {activeTab === "communities" && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          {postsLoading ? (
+          {communitiesLoading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
-          ) : posts.length > 0 ? (
-            <PostGrid
-              posts={posts}
-              onPostClick={(post) => navigate(`/post/${post.id}`)}
-              currentUserId={currentUser?.uid}
-              onLike={handleLike}
-              likedPosts={likedPosts}
-            />
-          ) : (
-            <div className="text-center py-12">
-              <PhotoIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No posts yet
-              </h3>
-              {isOwnProfile && (
-                <p className="text-gray-600">
-                  Share your first post to get started!
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === "communities" && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          {profile.joinedCommunities && profile.joinedCommunities.length > 0 ? (
+          ) : communities.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profile.joinedCommunities.map((communityId, index) => (
+              {communities.map((community) => (
                 <Link
-                  key={index}
-                  to={`/community/${communityId}`}
-                  className="p-4 border rounded-lg hover:bg-gray-50 transition"
+                  key={community.id}
+                  to={`/community/${community.id}`}
+                  className="p-4 border rounded-lg hover:bg-gray-50 hover:shadow-md transition"
                 >
-                  <div className="flex items-center gap-3">
-                    <UserGroupIcon className="h-8 w-8 text-blue-600" />
-                    <span className="font-medium text-gray-900">
-                      {communityId}
-                    </span>
+                  <div className="flex items-start gap-3">
+                    {community.imageUrl ? (
+                      <img
+                        src={community.imageUrl}
+                        alt={community.name}
+                        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <UserGroupIcon className="h-8 w-8 text-blue-600" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate mb-1">
+                        {community.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        {community.description || "No description"}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{community.memberCount} members</span>
+                        <span>•</span>
+                        <span>{community.isPublic ? "Public" : "Private"}</span>
+                      </div>
+                    </div>
                   </div>
                 </Link>
               ))}
@@ -474,9 +414,17 @@ const ProfilePage = () => {
                 No communities yet
               </h3>
               {isOwnProfile && (
-                <p className="text-gray-600">
-                  Join communities to connect with others!
-                </p>
+                <>
+                  <p className="text-gray-600 mb-4">
+                    Join communities to connect with others!
+                  </p>
+                  <Link
+                    to="/communities"
+                    className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Browse Communities
+                  </Link>
+                </>
               )}
             </div>
           )}

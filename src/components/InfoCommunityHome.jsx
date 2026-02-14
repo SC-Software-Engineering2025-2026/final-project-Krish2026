@@ -7,7 +7,13 @@ import {
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
-const InfoCommunityHome = ({ communityId, userRole }) => {
+const InfoCommunityHome = ({
+  communityId,
+  userRole,
+  isMember = true,
+  onJoin,
+  joining = false,
+}) => {
   const { currentUser } = useAuth();
   const [community, setCommunity] = useState(null);
   const [content, setContent] = useState("");
@@ -76,6 +82,25 @@ const InfoCommunityHome = ({ communityId, userRole }) => {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Join Button for Non-Members */}
+      {!isMember && (
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Join {community?.name}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Become a member to access posts and communicate with admins
+          </p>
+          <button
+            onClick={onJoin}
+            disabled={joining}
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+          >
+            {joining ? "Joining..." : "Join Community"}
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-start justify-between">

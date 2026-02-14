@@ -1,26 +1,49 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   getCommunity,
   updateHomePageContent,
+  leaveCommunity,
 } from "../services/communityService";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
-const CommunityHome = ({ communityId, userRole }) => {
+const CommunityHome = ({
+  communityId,
+  userRole,
+  isMember = true,
+  onJoin,
+  joining = false,
+}) => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [content, setContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const quillRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const isAdmin = userRole === "admin";
 
   useEffect(() => {
     loadCommunity();
   }, [communityId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const loadCommunity = async () => {
     try {
@@ -54,6 +77,27 @@ const CommunityHome = ({ communityId, userRole }) => {
     setIsEditing(false);
   };
 
+  const handleLeaveCommunity = async () => {
+    // Check if user is the creator
+    if (community?.createdBy === currentUser.uid) {
+      alert(
+        "Creator cannot leave the community. Transfer ownership or delete the community.",
+      );
+      return;
+    }
+
+    const confirmed = confirm("Are you sure you want to leave this community?");
+    if (!confirmed) return;
+
+    try {
+      await leaveCommunity(communityId, currentUser.uid);
+      navigate("/communities");
+    } catch (error) {
+      console.error("Error leaving community:", error);
+      alert(error.message || "Failed to leave community");
+    }
+  };
+
   const modules = {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
@@ -76,6 +120,25 @@ const CommunityHome = ({ communityId, userRole }) => {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Join Button for Non-Members */}
+      {!isMember && (
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Join {community?.name}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Become a member to fully participate in this community
+          </p>
+          <button
+            onClick={onJoin}
+            disabled={joining}
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+          >
+            {joining ? "Joining..." : "Join Community"}
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="flex items-start justify-between">
@@ -100,27 +163,78 @@ const CommunityHome = ({ communityId, userRole }) => {
             </div>
           </div>
 
-          {isAdmin && !isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex items-center space-x-2">
+            {isAdmin && !isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              <span>Edit Page</span>
-            </button>
-          )}
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                <span>Edit Page</span>
+              </button>
+            )}
+
+            {/* Three-dot menu */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <svg
+                  className="w-6 h-6 text-gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                  />
+                </svg>
+              </button>
+
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      handleLeaveCommunity();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    <span>Leave Community</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

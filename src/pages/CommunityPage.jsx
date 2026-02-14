@@ -26,13 +26,14 @@ const CommunityPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home");
   const [joining, setJoining] = useState(false);
+  const [membershipRefresh, setMembershipRefresh] = useState(0);
 
   const {
     role,
     isAdmin,
     isMember,
     loading: roleLoading,
-  } = useCommunityRole(communityId, currentUser?.uid);
+  } = useCommunityRole(communityId, currentUser?.uid, membershipRefresh);
 
   useEffect(() => {
     if (!communityId) return;
@@ -55,7 +56,10 @@ const CommunityPage = () => {
     setJoining(true);
     try {
       await joinCommunity(communityId, currentUser.uid);
-      // The subscription will update the community state automatically
+      // Trigger a refresh of the membership status
+      setMembershipRefresh((prev) => prev + 1);
+      // Set active tab to home
+      setActiveTab("home");
     } catch (error) {
       console.error("Error joining community:", error);
       alert(error.message || "Failed to join community");
@@ -91,42 +95,8 @@ const CommunityPage = () => {
     );
   }
 
-  // Non-member view for public communities
-  if (!isMember && community.isPublic) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          {community.imageUrl && (
-            <img
-              src={community.imageUrl}
-              alt={community.name}
-              className="w-32 h-32 rounded-lg object-cover mx-auto mb-4"
-            />
-          )}
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {community.name}
-          </h1>
-          <p className="text-gray-600 mb-4">{community.description}</p>
-          <div className="flex items-center justify-center space-x-4 text-sm text-gray-500 mb-6">
-            <span>{community.memberCount} members</span>
-            <span>•</span>
-            <span>{community.isPublic ? "Public" : "Private"}</span>
-            <span>•</span>
-            <span>
-              {community.isCollaborative ? "Collaborative" : "Informational"}
-            </span>
-          </div>
-          <button
-            onClick={handleJoin}
-            disabled={joining}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 font-medium"
-          >
-            {joining ? "Joining..." : "Join Community"}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Allow non-members to view public communities but they will see join button on home page
+  // We don't block access, just pass the isMember status to components
 
   // Private community non-member view
   if (!isMember && !community.isPublic) {
@@ -166,25 +136,29 @@ const CommunityPage = () => {
   // Determine available tabs based on community type
   const tabs = [];
   tabs.push({ id: "home", label: "Home" });
-  tabs.push({ id: "posts", label: "Posts" });
 
-  if (community.isCollaborative) {
-    tabs.push({ id: "chat", label: "Chat" });
-    tabs.push({ id: "media", label: "Media" });
-  } else {
-    // Informational community tabs
-    if (isAdmin) {
-      tabs.push({ id: "adminChat", label: "Admin Chat" });
+  // Only show other tabs if user is a member
+  if (isMember) {
+    tabs.push({ id: "posts", label: "Posts" });
+
+    if (community.isCollaborative) {
+      tabs.push({ id: "chat", label: "Chat" });
+      tabs.push({ id: "media", label: "Media" });
+    } else {
+      // Informational community tabs
+      if (isAdmin) {
+        tabs.push({ id: "adminChat", label: "Admin Chat" });
+      }
+      tabs.push({
+        id: "userToAdmin",
+        label: isAdmin ? "Member Messages" : "Message Admins",
+      });
     }
-    tabs.push({
-      id: "userToAdmin",
-      label: isAdmin ? "Member Messages" : "Message Admins",
-    });
-  }
 
-  if (isAdmin) {
-    tabs.push({ id: "settings", label: "Settings" });
-  }
+    if (isAdmin) {
+      tabs.push({ id: "settings", label: "Settings" });
+    }
+  } // End of isMember check
 
   return (
     <div className="min-h-screen bg-gray-100 pb-8">
@@ -240,9 +214,21 @@ const CommunityPage = () => {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {activeTab === "home" &&
           (community.isCollaborative ? (
-            <CommunityHome communityId={communityId} userRole={role} />
+            <CommunityHome
+              communityId={communityId}
+              userRole={role}
+              isMember={isMember}
+              onJoin={handleJoin}
+              joining={joining}
+            />
           ) : (
-            <InfoCommunityHome communityId={communityId} userRole={role} />
+            <InfoCommunityHome
+              communityId={communityId}
+              userRole={role}
+              isMember={isMember}
+              onJoin={handleJoin}
+              joining={joining}
+            />
           ))}
 
         {activeTab === "posts" &&
