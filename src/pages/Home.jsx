@@ -260,7 +260,11 @@ const Home = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Welcome back,{" "}
-              {userProfile?.username || currentUser.displayName || "User"}!
+              {userProfile?.firstName ||
+                userProfile?.username ||
+                currentUser.displayName ||
+                "User"}
+              !
             </h1>
             <p className="text-gray-600">
               View new moments from your communities!
@@ -310,7 +314,7 @@ const Home = () => {
                       <img
                         src={post.communityImage}
                         alt={post.communityName}
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="w-10 h-10 rounded-lg object-cover"
                       />
                     )}
                     <div className="flex-1">
@@ -340,9 +344,9 @@ const Home = () => {
                 <div className="p-4">
                   {/* Author Info */}
                   <div className="flex items-center space-x-3 mb-3">
-                    {post.userProfile?.profilePicture ? (
+                    {post.userProfile?.profileImage ? (
                       <img
-                        src={post.userProfile.profilePicture}
+                        src={post.userProfile.profileImage}
                         alt={post.userProfile.username}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -617,9 +621,9 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
             <>
               {comments.map((comment) => (
                 <div key={comment.id} className="flex space-x-3">
-                  {comment.userProfile?.profilePicture ? (
+                  {comment.userProfile?.profileImage ? (
                     <img
-                      src={comment.userProfile.profilePicture}
+                      src={comment.userProfile.profileImage}
                       alt={comment.userProfile.username}
                       className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                     />

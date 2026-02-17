@@ -25,6 +25,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
   const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     displayName: profile.displayName || "",
+    firstName: profile.firstName || "",
+    lastName: profile.lastName || "",
     username: profile.username || "",
     bio: profile.bio || "",
     email: profile.email || currentUser?.email || "",
@@ -262,6 +264,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
       // Update profile data
       await updateUserProfile(currentUser.uid, {
         displayName: formData.displayName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         username: formData.username,
         bio: formData.bio,
         email: formData.email,
@@ -404,6 +408,44 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 onChange={handleInputChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Your name"
+              />
+            </div>
+
+            {/* First Name */}
+            <div>
+              <label
+                htmlFor="firstName"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                First Name
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="First name"
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label
+                htmlFor="lastName"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Last Name
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Last name"
               />
             </div>
 

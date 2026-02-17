@@ -52,6 +52,8 @@ export const createUserProfile = async (userId, profileData) => {
     const defaultProfile = {
       username: profileData.username || "",
       displayName: profileData.displayName || "",
+      firstName: profileData.firstName || "",
+      lastName: profileData.lastName || "",
       email: profileData.email || "",
       bio: "",
       profileImage: "",

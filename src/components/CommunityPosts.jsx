@@ -260,9 +260,9 @@ const PostCard = ({
       {/* Post Header */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          {post.userProfile?.profilePicture ? (
+          {post.userProfile?.profileImage ? (
             <img
-              src={post.userProfile.profilePicture}
+              src={post.userProfile.profileImage}
               alt={post.userProfile.username}
               className="w-10 h-10 rounded-full object-cover"
             />
@@ -1160,9 +1160,9 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
             <>
               {comments.map((comment) => (
                 <div key={comment.id} className="flex space-x-3">
-                  {comment.userProfile?.profilePicture ? (
+                  {comment.userProfile?.profileImage ? (
                     <img
-                      src={comment.userProfile.profilePicture}
+                      src={comment.userProfile.profileImage}
                       alt={comment.userProfile.username}
                       className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                     />
