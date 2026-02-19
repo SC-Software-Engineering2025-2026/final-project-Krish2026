@@ -40,6 +40,14 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [currentImageIndices, setCurrentImageIndices] = useState({});
+
+  const handleImageScroll = (postId, e) => {
+    const scrollLeft = e.target.scrollLeft;
+    const width = e.target.offsetWidth;
+    const index = Math.round(scrollLeft / width);
+    setCurrentImageIndices((prev) => ({ ...prev, [postId]: index }));
+  };
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -120,17 +128,57 @@ const Home = () => {
     };
   }, [currentUser]);
 
-  // Combine and sort all posts
+  // Group posts by community and include personal posts
   useEffect(() => {
-    const allPosts = [...personalPosts, ...communityPosts];
-    allPosts.sort((a, b) => {
-      const aTime =
-        a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
-      const bTime =
-        b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
-      return bTime - aTime;
+    const grouped = {};
+
+    // Add personal posts as a separate group
+    if (personalPosts.length > 0) {
+      grouped["personal"] = {
+        name: "Personal Posts",
+        image: null,
+        posts: [...personalPosts]
+          .sort((a, b) => {
+            const aTime =
+              a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
+            const bTime =
+              b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
+            return bTime - aTime;
+          })
+          .slice(0, 4),
+      };
+    }
+
+    // Group community posts by community
+    communityPosts.forEach((post) => {
+      const key = post.communityId;
+      if (!grouped[key]) {
+        grouped[key] = {
+          name: post.communityName,
+          image: post.communityImage,
+          isCollaborative: post.isCollaborative,
+          communityId: post.communityId,
+          posts: [],
+        };
+      }
+      grouped[key].posts.push(post);
     });
-    setPosts(allPosts);
+
+    // Sort posts within each community by date and limit to 4
+    Object.keys(grouped).forEach((key) => {
+      if (key !== "personal") {
+        grouped[key].posts.sort((a, b) => {
+          const aTime =
+            a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0;
+          const bTime =
+            b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0;
+          return bTime - aTime;
+        });
+        grouped[key].posts = grouped[key].posts.slice(0, 4);
+      }
+    });
+
+    setPosts(grouped);
   }, [personalPosts, communityPosts]);
 
   const handlePostCreated = async (postId) => {
@@ -150,15 +198,27 @@ const Home = () => {
   const handleLike = async (post) => {
     try {
       if (post.postType === "community") {
-        // Community post like
-        await likeCommunityPost(post.communityId, post.id, currentUser.uid);
-        // Reload community posts
-        const communityPostsData = await getUserCommunitiesPosts(
-          currentUser.uid,
+        // Optimistically update UI
+        const isLiked = post.likes?.includes(currentUser.uid);
+        const updatedLikes = isLiked
+          ? post.likes.filter((uid) => uid !== currentUser.uid)
+          : [...(post.likes || []), currentUser.uid];
+
+        setCommunityPosts((prevPosts) =>
+          prevPosts.map((p) =>
+            p.id === post.id
+              ? {
+                  ...p,
+                  likes: updatedLikes,
+                  likesCount: updatedLikes.length,
+                }
+              : p,
+          ),
         );
-        setCommunityPosts(
-          communityPostsData.map((p) => ({ ...p, postType: "community" })),
-        );
+
+        // Community post like - format postId correctly
+        const postId = `${post.communityId}/posts/${post.id}`;
+        await likeCommunityPost(postId, currentUser.uid);
       } else {
         // Personal post like
         const isLiked = likedPosts[post.id];
@@ -171,6 +231,15 @@ const Home = () => {
       }
     } catch (error) {
       console.error("Error liking post:", error);
+      // Reload community posts on error to sync state
+      if (post.postType === "community") {
+        const communityPostsData = await getUserCommunitiesPosts(
+          currentUser.uid,
+        );
+        setCommunityPosts(
+          communityPostsData.map((p) => ({ ...p, postType: "community" })),
+        );
+      }
     }
   };
 
@@ -274,170 +343,95 @@ const Home = () => {
       </div>
 
       {/* Feed Section */}
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Feed</h2>
-
+      <div className="space-y-8">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <PhotoIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              No posts yet
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Join communities to see posts in your feed
-            </p>
-            <button
-              onClick={() => navigate("/communities")}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-            >
-              Explore Communities
-            </button>
+        ) : Object.keys(posts).length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <div className="text-center py-12">
+              <PhotoIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                No posts yet
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Join communities to see posts in your feed
+              </p>
+              <button
+                onClick={() => navigate("/communities")}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              >
+                Explore Communities
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition"
-              >
-                {/* Post Header - Community or Personal */}
-                {post.postType === "community" ? (
-                  <div
-                    onClick={() => navigate(`/communities/${post.communityId}`)}
-                    className="flex items-center space-x-3 p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition"
-                  >
-                    {post.communityImage && (
-                      <img
-                        src={post.communityImage}
-                        alt={post.communityName}
-                        className="w-10 h-10 rounded-lg object-cover"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">
-                        {post.communityName}
-                      </h3>
+          <>
+            {Object.entries(posts).map(([groupKey, group]) => (
+              <div key={groupKey} className="bg-white rounded-lg shadow-md p-6">
+                {/* Community Header */}
+                {groupKey === "personal" ? (
+                  <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200">
+                    <PhotoIcon className="h-8 w-8 text-blue-600" />
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">
+                        Personal Posts
+                      </h2>
                       <p className="text-sm text-gray-500">
-                        {post.isCollaborative
-                          ? "Collaborative"
-                          : "Informational"}{" "}
-                        Community
+                        {group.posts.length}{" "}
+                        {group.posts.length === 1 ? "post" : "posts"}
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-blue-50 border-b border-blue-100">
-                    <div className="flex items-center space-x-2">
-                      <PhotoIcon className="h-5 w-5 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-900">
-                        Personal Post
-                      </span>
+                  <div
+                    onClick={() =>
+                      navigate(`/communities/${group.communityId}`)
+                    }
+                    className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 -m-6 p-6 rounded-t-lg transition"
+                  >
+                    {group.image && (
+                      <img
+                        src={group.image}
+                        alt={group.name}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-gray-900">
+                        {group.name}
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        {group.isCollaborative
+                          ? "Collaborative"
+                          : "Informational"}{" "}
+                        • {group.posts.length}{" "}
+                        {group.posts.length === 1 ? "post" : "posts"}
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Post Content */}
-                <div className="p-4">
-                  {/* Author Info */}
-                  <div className="flex items-center space-x-3 mb-3">
-                    {post.userProfile?.profileImage ? (
-                      <img
-                        src={post.userProfile.profileImage}
-                        alt={post.userProfile.username}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-gray-600 font-medium">
-                          {post.userProfile?.username?.[0]?.toUpperCase() ||
-                            "U"}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {post.userProfile?.username || "User"}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {post.createdAt?.toDate?.()?.toLocaleDateString() ||
-                          "Recently"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Post Text */}
-                  {(post.content || post.caption) && (
-                    <p className="text-gray-800 mb-4 whitespace-pre-wrap">
-                      {post.content || post.caption}
-                    </p>
-                  )}
-
-                  {/* Post Images */}
-                  {post.images && post.images.length > 0 && (
-                    <div
-                      className={`grid gap-2 mb-4 ${
-                        post.images.length === 1
-                          ? "grid-cols-1"
-                          : post.images.length === 2
-                            ? "grid-cols-2"
-                            : "grid-cols-2"
-                      }`}
-                    >
-                      {post.images.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Post image ${index + 1}`}
-                          className="w-full h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
-                          onClick={() => {
-                            if (post.postType === "community") {
-                              navigate(`/communities/${post.communityId}`);
-                            } else {
-                              navigate(`/post/${post.id}`);
-                            }
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Post Actions */}
-                  <div className="flex items-center space-x-6 pt-3 border-t border-gray-200">
-                    <button
-                      onClick={() => handleLike(post)}
-                      className="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition"
-                    >
-                      {(
-                        post.postType === "community"
-                          ? post.likes?.includes(currentUser.uid)
-                          : likedPosts[post.id]
-                      ) ? (
-                        <HeartIconSolid className="h-6 w-6 text-red-600" />
-                      ) : (
-                        <HeartIcon className="h-6 w-6" />
-                      )}
-                      <span className="text-sm font-medium">
-                        {post.likesCount || 0}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => handleOpenComments(post)}
-                      className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
-                    >
-                      <ChatBubbleLeftIcon className="h-6 w-6" />
-                      <span className="text-sm font-medium">
-                        {post.commentsCount || 0}
-                      </span>
-                    </button>
-                  </div>
+                {/* Posts Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  {group.posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      currentUser={currentUser}
+                      likedPosts={likedPosts}
+                      currentImageIndices={currentImageIndices}
+                      handleImageScroll={handleImageScroll}
+                      handleLike={handleLike}
+                      handleOpenComments={handleOpenComments}
+                      navigate={navigate}
+                    />
+                  ))}
                 </div>
               </div>
             ))}
-          </div>
+          </>
         )}
       </div>
 
@@ -471,8 +465,13 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [selectedComment, setSelectedComment] = useState(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState(null);
+  const [editingComment, setEditingComment] = useState(null);
+  const [editText, setEditText] = useState("");
   const commentsEndRef = useRef(null);
   const inputRef = useRef(null);
+  const editInputRef = useRef(null);
 
   useEffect(() => {
     loadComments();
@@ -518,6 +517,68 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
       setLoadingComments(false);
     }
   };
+
+  const handleCommentDoubleClick = (comment, event) => {
+    if (comment.userId !== currentUser.uid) return;
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    setSelectedComment(comment);
+    setContextMenuPosition({
+      x: event.clientX,
+      y: rect.bottom + 5,
+    });
+  };
+
+  const handleEditComment = () => {
+    if (!selectedComment) return;
+    setEditingComment(selectedComment);
+    setEditText(selectedComment.text);
+    setContextMenuPosition(null);
+    setSelectedComment(null);
+  };
+
+  const handleDeleteComment = async () => {
+    if (!selectedComment) return;
+    if (window.confirm("Are you sure you want to delete this comment?")) {
+      try {
+        alert("Delete functionality needs to be implemented in the service");
+        setContextMenuPosition(null);
+        setSelectedComment(null);
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+        alert("Failed to delete comment");
+      }
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim() || !editingComment) return;
+    try {
+      alert("Edit functionality needs to be implemented in the service");
+      setEditingComment(null);
+      setEditText("");
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      alert("Failed to update comment");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingComment(null);
+    setEditText("");
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenuPosition(null);
+      setSelectedComment(null);
+    };
+
+    if (contextMenuPosition) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [contextMenuPosition]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -639,7 +700,41 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                     <p className="font-semibold text-sm">
                       {comment.userProfile?.username || "User"}
                     </p>
-                    <p className="text-gray-900 mt-1">{comment.text}</p>
+                    {editingComment?.id === comment.id ? (
+                      <div className="mt-1">
+                        <input
+                          ref={editInputRef}
+                          type="text"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          autoFocus
+                        />
+                        <div className="flex space-x-2 mt-2">
+                          <button
+                            onClick={handleSaveEdit}
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p
+                        className="text-gray-900 mt-1 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                        onDoubleClick={(e) =>
+                          handleCommentDoubleClick(comment, e)
+                        }
+                      >
+                        {comment.text}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500 mt-1">
                       {comment.createdAt?.toDate?.()?.toLocaleDateString() ||
                         "Just now"}
@@ -649,6 +744,55 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
               ))}
               <div ref={commentsEndRef} />
             </>
+          )}
+          {contextMenuPosition && selectedComment && (
+            <div
+              className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[60]"
+              style={{
+                left: `${contextMenuPosition.x}px`,
+                top: `${contextMenuPosition.y}px`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={handleEditComment}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                <span>Edit</span>
+              </button>
+              <button
+                onClick={handleDeleteComment}
+                className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 flex items-center space-x-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                <span>Delete</span>
+              </button>
+            </div>
           )}
         </div>
 
@@ -673,6 +817,150 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Compact Post Card Component for Grid Display
+const PostCard = ({
+  post,
+  currentUser,
+  likedPosts,
+  currentImageIndices,
+  handleImageScroll,
+  handleLike,
+  handleOpenComments,
+  navigate,
+}) => {
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const onLikeClick = () => {
+    setIsAnimating(true);
+    handleLike(post);
+    setTimeout(() => setIsAnimating(false), 600);
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
+      {/* Author Info */}
+      <div className="flex items-center space-x-2 p-3 bg-gray-50 border-b border-gray-200">
+        {post.userProfile?.profileImage ? (
+          <img
+            src={post.userProfile.profileImage}
+            alt={post.userProfile.username}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+            <span className="text-gray-600 text-xs font-medium">
+              {post.userProfile?.username?.[0]?.toUpperCase() || "U"}
+            </span>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm text-gray-900 truncate">
+            {post.userProfile?.username || "User"}
+          </p>
+          <p className="text-xs text-gray-500">
+            {post.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}
+          </p>
+        </div>
+      </div>
+
+      {/* Post Content */}
+      <div className="p-3">
+        {/* Post Text */}
+        {(post.content || post.caption) && (
+          <p className="text-sm text-gray-800 mb-3 line-clamp-3 whitespace-pre-wrap">
+            {post.content || post.caption}
+          </p>
+        )}
+
+        {/* Post Images */}
+        {post.images && post.images.length > 0 && (
+          <div className="relative mb-3">
+            <div
+              className="overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+              onScroll={(e) => handleImageScroll(post.id, e)}
+            >
+              <div className="flex">
+                {post.images.map((image, index) => (
+                  <div
+                    key={index}
+                    className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-gray-50"
+                  >
+                    <img
+                      src={image}
+                      alt={`Post image ${index + 1}`}
+                      className="h-auto object-contain cursor-pointer"
+                      style={{
+                        maxHeight: "250px",
+                        width: "100%",
+                      }}
+                      onClick={() => {
+                        if (post.postType === "community") {
+                          navigate(`/communities/${post.communityId}`);
+                        } else {
+                          navigate(`/post/${post.id}`);
+                        }
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Pagination indicators */}
+            {post.images.length > 1 && (
+              <div className="flex justify-center gap-1 mt-2">
+                {post.images.map((_, index) => (
+                  <div
+                    key={index}
+                    className="w-1.5 h-1.5 rounded-full transition-colors duration-200"
+                    style={{
+                      backgroundColor:
+                        (currentImageIndices[post.id] || 0) === index
+                          ? "#171717"
+                          : "#9ca3af",
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Post Actions */}
+        <div className="flex items-center space-x-4 pt-2 border-t border-gray-200">
+          <button
+            onClick={onLikeClick}
+            className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition"
+          >
+            {(
+              post.postType === "community"
+                ? post.likes?.includes(currentUser.uid)
+                : likedPosts[post.id]
+            ) ? (
+              <HeartIconSolid
+                className={`h-5 w-5 text-red-600 ${isAnimating ? "like-animate" : ""}`}
+              />
+            ) : (
+              <HeartIcon
+                className={`h-5 w-5 ${isAnimating ? "like-animate" : ""}`}
+              />
+            )}
+            <span className="text-xs font-medium">{post.likesCount || 0}</span>
+          </button>
+          <button
+            onClick={() => handleOpenComments(post)}
+            className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition"
+          >
+            <ChatBubbleLeftIcon className="h-5 w-5" />
+            <span className="text-xs font-medium">
+              {post.commentsCount || 0}
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

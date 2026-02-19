@@ -6,12 +6,13 @@ const ImageCropper = ({
   image,
   onCropComplete,
   onCancel,
-  aspectRatio = 3 / 4,
+  aspectRatio = 4 / 3,
   cropShape = "rect",
 }) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [selectedRatio, setSelectedRatio] = useState(aspectRatio);
 
   const onCropChange = (crop) => {
     setCrop(crop);
@@ -51,7 +52,7 @@ const ImageCropper = ({
           image={image}
           crop={crop}
           zoom={zoom}
-          aspect={aspectRatio}
+          aspect={selectedRatio}
           cropShape={cropShape}
           onCropChange={onCropChange}
           onZoomChange={onZoomChange}
@@ -61,6 +62,46 @@ const ImageCropper = ({
 
       {/* Controls */}
       <div className="bg-black p-6 space-y-4">
+        {/* Aspect Ratio Selector */}
+        <div className="flex flex-col items-center">
+          <label className="text-white text-sm mb-3 block">Aspect Ratio</label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedRatio(1 / 1)}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                selectedRatio === 1 / 1
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              }`}
+            >
+              1:1
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRatio(4 / 3)}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                selectedRatio === 4 / 3
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              }`}
+            >
+              4:3
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRatio(3 / 4)}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                selectedRatio === 3 / 4
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              }`}
+            >
+              3:4
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-col items-center">
           <label className="text-white text-sm mb-2 block">Zoom</label>
           <div className="relative w-[500px]">
