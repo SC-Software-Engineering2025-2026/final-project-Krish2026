@@ -3,8 +3,11 @@ import { useAuth } from "../context/AuthContext";
 import {
   sendCommunityMessage,
   subscribeToCommunityMessages,
+  deleteCommunityMessage,
+  updateCommunityMessage,
 } from "../services/communityChatService";
 import { getCommunityMembers } from "../services/communityService";
+import { getUserProfile } from "../services/profileService";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../services/firebase";
 
@@ -13,11 +16,20 @@ const CommunityChat = ({ communityId }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [members, setMembers] = useState([]);
+  const [userProfiles, setUserProfiles] = useState({});
   const [loading, setLoading] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const messageRefs = useRef({});
+  const textareaRef = useRef(null);
 
   useEffect(() => {
     loadMembers();
@@ -25,8 +37,25 @@ const CommunityChat = ({ communityId }) => {
     // Subscribe to real-time messages
     const unsubscribe = subscribeToCommunityMessages(
       communityId,
-      (newMessages) => {
+      async (newMessages) => {
         setMessages(newMessages);
+
+        // Fetch user profiles for all message senders
+        const userIds = [...new Set(newMessages.map((msg) => msg.userId))];
+        const profiles = {};
+        await Promise.all(
+          userIds.map(async (userId) => {
+            if (!userProfiles[userId]) {
+              try {
+                const profile = await getUserProfile(userId);
+                profiles[userId] = profile;
+              } catch (error) {
+                console.error(`Error fetching profile for ${userId}:`, error);
+              }
+            }
+          }),
+        );
+        setUserProfiles((prev) => ({ ...prev, ...profiles }));
       },
     );
 
@@ -37,6 +66,13 @@ const CommunityChat = ({ communityId }) => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [newMessage]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -45,6 +81,23 @@ const CommunityChat = ({ communityId }) => {
     try {
       const membersData = await getCommunityMembers(communityId);
       setMembers(membersData);
+
+      // Fetch user profiles for all members
+      const profiles = {};
+      await Promise.all(
+        membersData.map(async (member) => {
+          try {
+            const profile = await getUserProfile(member.userId);
+            profiles[member.userId] = profile;
+          } catch (error) {
+            console.error(
+              `Error fetching profile for ${member.userId}:`,
+              error,
+            );
+          }
+        }),
+      );
+      setUserProfiles((prev) => ({ ...prev, ...profiles }));
     } catch (error) {
       console.error("Error loading members:", error);
     }
@@ -56,11 +109,23 @@ const CommunityChat = ({ communityId }) => {
 
     setLoading(true);
     try {
-      await sendCommunityMessage(communityId, currentUser.uid, {
+      const messageData = {
         text: newMessage.trim(),
         type: "text",
-      });
+      };
+
+      // Add reply reference if replying to a message
+      if (replyingTo) {
+        messageData.replyTo = replyingTo.id;
+        messageData.replyToText = replyingTo.text;
+        messageData.replyToUser =
+          userProfiles[replyingTo.userId]?.displayName || "User";
+        console.log("Sending message with reply data:", messageData);
+      }
+
+      await sendCommunityMessage(communityId, currentUser.uid, messageData);
       setNewMessage("");
+      setReplyingTo(null);
     } catch (error) {
       console.error("Error sending message:", error);
       alert("Failed to send message");
@@ -68,6 +133,103 @@ const CommunityChat = ({ communityId }) => {
       setLoading(false);
     }
   };
+
+  const handleMessageDoubleClick = (message, event) => {
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    setSelectedMessage(message);
+    setContextMenuPosition({
+      x: event.clientX,
+      y: rect.bottom + 5,
+    });
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!selectedMessage) return;
+
+    if (window.confirm("Are you sure you want to delete this message?")) {
+      try {
+        await deleteCommunityMessage(communityId, selectedMessage.id);
+        setContextMenuPosition(null);
+        setSelectedMessage(null);
+      } catch (error) {
+        console.error("Error deleting message:", error);
+        alert("Failed to delete message");
+      }
+    }
+  };
+
+  const handleEditMessage = () => {
+    if (!selectedMessage || selectedMessage.type !== "text") return;
+
+    setEditingMessage(selectedMessage);
+    setEditText(selectedMessage.text);
+    setContextMenuPosition(null);
+    setSelectedMessage(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessage || !editText.trim()) return;
+
+    try {
+      await updateCommunityMessage(
+        communityId,
+        editingMessage.id,
+        editText.trim(),
+      );
+      setEditingMessage(null);
+      setEditText("");
+    } catch (error) {
+      console.error("Error updating message:", error);
+      alert("Failed to update message");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setEditText("");
+  };
+
+  const handleReplyMessage = () => {
+    if (!selectedMessage) return;
+
+    setReplyingTo(selectedMessage);
+    setContextMenuPosition(null);
+    setSelectedMessage(null);
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleClickReply = (replyToId) => {
+    if (!replyToId) return;
+
+    // Scroll to the original message
+    const messageElement = messageRefs.current[replyToId];
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Highlight the message temporarily
+      setHighlightedMessageId(replyToId);
+      setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 2000);
+    }
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenuPosition(null);
+      setSelectedMessage(null);
+    };
+
+    if (contextMenuPosition) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [contextMenuPosition]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -151,6 +313,23 @@ const CommunityChat = ({ communityId }) => {
                 key={message.id}
                 message={message}
                 isOwn={message.userId === currentUser.uid}
+                userProfile={userProfiles[message.userId]}
+                onDoubleClick={handleMessageDoubleClick}
+                isEditing={editingMessage?.id === message.id}
+                editText={editText}
+                onEditTextChange={setEditText}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
+                replyToProfile={
+                  message.replyTo
+                    ? userProfiles[
+                        messages.find((m) => m.id === message.replyTo)?.userId
+                      ]
+                    : null
+                }
+                onClickReply={handleClickReply}
+                isHighlighted={highlightedMessageId === message.id}
+                messageRef={(el) => (messageRefs.current[message.id] = el)}
               />
             ))
           )}
@@ -159,6 +338,45 @@ const CommunityChat = ({ communityId }) => {
 
         {/* Message Input */}
         <form onSubmit={handleSubmit} className="p-4 border-t">
+          {/* Reply indicator */}
+          {replyingTo && (
+            <div
+              className="mb-2 p-2 rounded-lg flex items-center justify-between"
+              style={{ backgroundColor: "#54524D" }}
+            >
+              <div className="flex-1">
+                <p className="text-xs font-medium" style={{ color: "#EDE8DD" }}>
+                  Replying to{" "}
+                  {userProfiles[replyingTo.userId]?.displayName || "User"}
+                </p>
+                <p className="text-sm truncate" style={{ color: "#EDE8DD" }}>
+                  {replyingTo.text
+                    ? replyingTo.text.length > 50
+                      ? `${replyingTo.text.substring(0, 50)}...`
+                      : replyingTo.text
+                    : "Image"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelReply}
+                className="p-1 hover:opacity-80 rounded"
+              >
+                <svg
+                  className="w-4 h-4"
+                  style={{ color: "#EDE8DD" }}
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
           <div className="flex items-center space-x-2">
             <button
               type="button"
@@ -191,13 +409,24 @@ const CommunityChat = ({ communityId }) => {
               onChange={handleImageUpload}
               className="hidden"
             />
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto"
               disabled={loading}
+              rows={1}
+              style={{
+                minHeight: "42px",
+                maxHeight: "120px",
+              }}
             />
             <button
               type="submit"
@@ -215,38 +444,185 @@ const CommunityChat = ({ communityId }) => {
         <div className="w-64 border-l bg-gray-50 overflow-y-auto">
           <div className="p-4">
             <h3 className="font-semibold text-gray-900 mb-4">Members</h3>
-            <div className="space-y-2">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0"></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      User {member.userId.slice(0, 8)}
-                    </p>
-                    <p className="text-xs text-gray-500 capitalize">
-                      {member.role}
-                    </p>
-                  </div>
-                  {member.role === "admin" && (
-                    <svg
-                      className="w-4 h-4 text-blue-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
+            {/* Admins Section */}
+            {members.filter((m) => m.role === "admin").length > 0 && (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Admins
+                </p>
+                <div className="space-y-2 mb-4">
+                  {members
+                    .filter((m) => m.role === "admin")
+                    .map((member) => {
+                      const profile = userProfiles[member.userId];
+                      return (
+                        <div
+                          key={member.id}
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg"
+                        >
+                          {profile?.profileImage ? (
+                            <img
+                              src={profile.profileImage}
+                              alt={profile.displayName}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+                              <span className="text-gray-600 font-medium">
+                                {profile?.displayName?.[0]?.toUpperCase() ||
+                                  "U"}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {profile?.displayName ||
+                                profile?.username ||
+                                `User ${member.userId.slice(0, 8)}`}
+                            </p>
+                            <p className="text-xs text-gray-500 capitalize">
+                              {member.role}
+                            </p>
+                          </div>
+                          <svg
+                            className="w-4 h-4 text-blue-600"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      );
+                    })}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+            {/* Members Section */}
+            {members.filter((m) => m.role === "member").length > 0 && (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Members
+                </p>
+                <div className="space-y-2">
+                  {members
+                    .filter((m) => m.role === "member")
+                    .map((member) => {
+                      const profile = userProfiles[member.userId];
+                      return (
+                        <div
+                          key={member.id}
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg"
+                        >
+                          {profile?.profileImage ? (
+                            <img
+                              src={profile.profileImage}
+                              alt={profile.displayName}
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+                              <span className="text-gray-600 font-medium">
+                                {profile?.displayName?.[0]?.toUpperCase() ||
+                                  "U"}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">
+                              {profile?.displayName ||
+                                profile?.username ||
+                                `User ${member.userId.slice(0, 8)}`}
+                            </p>
+                            <p className="text-xs text-gray-500 capitalize">
+                              {member.role}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenuPosition && selectedMessage && (
+        <div
+          className="fixed bg-white shadow-lg rounded-lg border border-gray-200 py-1 z-50"
+          style={{
+            left: `${contextMenuPosition.x}px`,
+            top: `${contextMenuPosition.y}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleReplyMessage}
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center space-x-2"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+              />
+            </svg>
+            <span>Reply</span>
+          </button>
+          {selectedMessage.userId === currentUser.uid &&
+            selectedMessage.type === "text" && (
+              <button
+                onClick={handleEditMessage}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center space-x-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                <span>Edit</span>
+              </button>
+            )}
+          {selectedMessage.userId === currentUser.uid && (
+            <button
+              onClick={handleDeleteMessage}
+              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+              <span>Delete</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -254,32 +630,159 @@ const CommunityChat = ({ communityId }) => {
 };
 
 // Message Bubble Component
-const MessageBubble = ({ message, isOwn }) => {
+const MessageBubble = ({
+  message,
+  isOwn,
+  userProfile,
+  onDoubleClick,
+  isEditing,
+  editText,
+  onEditTextChange,
+  onSaveEdit,
+  onCancelEdit,
+  replyToProfile,
+  onClickReply,
+  isHighlighted,
+  messageRef,
+}) => {
+  if (isEditing) {
+    return (
+      <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+        <div className="max-w-md w-full">
+          <div className="bg-gray-100 p-3 rounded-lg">
+            <textarea
+              value={editText}
+              onChange={(e) => onEditTextChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows="3"
+              autoFocus
+            />
+            <div className="flex justify-end space-x-2 mt-2">
+              <button
+                onClick={onCancelEdit}
+                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onSaveEdit}
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+    <div
+      ref={messageRef}
+      className={`flex ${isOwn ? "justify-end" : "justify-start"} transition-all ${
+        isHighlighted ? "bg-yellow-100 py-2 -mx-2 px-2 rounded-lg" : ""
+      }`}
+    >
       <div
         className={`flex items-end space-x-2 max-w-md ${isOwn ? "flex-row-reverse space-x-reverse" : ""}`}
+        onDoubleClick={(e) => onDoubleClick(message, e)}
       >
-        <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0"></div>
-        <div>
-          {message.type === "text" && (
-            <div
-              className={`px-4 py-2 rounded-lg ${
-                isOwn ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-900"
-              }`}
-            >
-              <p>{message.text}</p>
-            </div>
+        {userProfile?.profileImage ? (
+          <img
+            src={userProfile.profileImage}
+            alt={userProfile.displayName}
+            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+            <span className="text-gray-600 text-xs font-medium">
+              {userProfile?.displayName?.[0]?.toUpperCase() || "U"}
+            </span>
+          </div>
+        )}
+        <div className="flex-1">
+          {!isOwn && (
+            <p className="text-xs text-gray-600 mb-1 px-1 font-medium">
+              {userProfile?.displayName || userProfile?.username || "User"}
+            </p>
           )}
-          {message.type === "image" && (
-            <div className="rounded-lg overflow-hidden">
-              <img
-                src={message.imageUrl}
-                alt="Shared"
-                className="max-w-xs rounded-lg"
-              />
-            </div>
-          )}
+          {/* Container for message with reply indicator */}
+          <div
+            className={`rounded-lg overflow-hidden shadow-sm ${
+              isOwn ? "bg-blue-600" : "bg-gray-200"
+            }`}
+          >
+            {/* Reply indicator - clickable container showing original message */}
+            {message.replyTo && (
+              <div
+                className="px-3 py-2.5 cursor-pointer transition hover:opacity-90 border-b-2 border-gray-500"
+                style={{ backgroundColor: "#54524D" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClickReply(message.replyTo);
+                }}
+                title="Click to view original message"
+              >
+                <div className="flex items-start space-x-2">
+                  <svg
+                    className="w-4 h-4 flex-shrink-0 mt-0.5"
+                    style={{ color: "#EDE8DD" }}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                    />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-xs font-semibold mb-1"
+                      style={{ color: "#EDE8DD" }}
+                    >
+                      {message.replyToUser || "User"}
+                    </p>
+                    <div
+                      className="text-sm px-2 py-1.5 rounded bg-black bg-opacity-20"
+                      style={{ color: "#EDE8DD" }}
+                    >
+                      <p className="break-words whitespace-pre-wrap line-clamp-3">
+                        {message.replyToText || "Message"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Actual message content */}
+            {message.type === "text" && (
+              <div
+                className={`px-4 py-2 ${
+                  isOwn ? "text-white" : "text-gray-900"
+                }`}
+              >
+                <p>{message.text}</p>
+                {message.edited && (
+                  <p
+                    className={`text-xs mt-1 ${
+                      isOwn ? "text-blue-100" : "text-gray-500"
+                    }`}
+                  >
+                    (edited)
+                  </p>
+                )}
+              </div>
+            )}
+            {message.type === "image" && (
+              <div className="overflow-hidden">
+                <img src={message.imageUrl} alt="Shared" className="max-w-xs" />
+              </div>
+            )}
+          </div>
           <p className="text-xs text-gray-500 mt-1 px-1">
             {message.createdAt && formatTime(message.createdAt)}
           </p>

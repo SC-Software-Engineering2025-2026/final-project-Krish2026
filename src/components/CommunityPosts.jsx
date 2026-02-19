@@ -10,6 +10,8 @@ import {
   deleteCommunityPost,
 } from "../services/communityPostService";
 import { getUserProfile } from "../services/profileService";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
 
 const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
   const { currentUser } = useAuth();
@@ -433,6 +435,8 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   const [hashtags, setHashtags] = useState("");
   const [taggedUsers, setTaggedUsers] = useState("");
   const [loading, setLoading] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -482,7 +486,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
     }
   };
 
-  const handleMediaChange = (e) => {
+  const handleMediaChange = async (e) => {
     const files = Array.from(e.target.files);
 
     if (files.length + mediaFiles.length > 20) {
@@ -490,26 +494,79 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
       return;
     }
 
-    const validFiles = files.filter((file) => {
+    for (const file of files) {
       if (file.size > 100 * 1024 * 1024) {
         // 100MB limit
         alert(`${file.name} is too large. Maximum size is 100MB`);
-        return false;
+        continue;
       }
+
       if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
         alert(`${file.name} is not a valid image or video file`);
-        return false;
+        continue;
       }
-      return true;
-    });
 
-    setMediaFiles([...mediaFiles, ...validFiles]);
+      // If it's an image, show cropper with 4:3 aspect ratio
+      if (file.type.startsWith("image/")) {
+        const imageUrl = URL.createObjectURL(file);
+        setImageToCrop(imageUrl);
+        setCurrentImageIndex(mediaFiles.length); // Store index for where to insert
+      } else {
+        // For videos, just add them directly
+        setMediaFiles((prev) => [...prev, file]);
+        setMediaPreviews((prev) => [
+          ...prev,
+          {
+            url: URL.createObjectURL(file),
+            type: "video",
+          },
+        ]);
+      }
+    }
 
-    const previews = validFiles.map((file) => ({
-      url: URL.createObjectURL(file),
-      type: file.type.startsWith("video/") ? "video" : "image",
-    }));
-    setMediaPreviews([...mediaPreviews, ...previews]);
+    // Reset file input
+    e.target.value = "";
+  };
+
+  const handleCropComplete = async (croppedAreaPixels) => {
+    try {
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
+
+      // Convert blob to file
+      const croppedFile = new File(
+        [croppedBlob],
+        `cropped-image-${Date.now()}.jpg`,
+        { type: "image/jpeg" },
+      );
+
+      // Add to media files and previews
+      setMediaFiles((prev) => [...prev, croppedFile]);
+      setMediaPreviews((prev) => [
+        ...prev,
+        {
+          url: URL.createObjectURL(croppedFile),
+          type: "image",
+        },
+      ]);
+
+      // Clean up
+      URL.revokeObjectURL(imageToCrop);
+      setImageToCrop(null);
+      setCurrentImageIndex(null);
+    } catch (error) {
+      console.error("Error cropping image:", error);
+      alert("Failed to crop image");
+      setImageToCrop(null);
+      setCurrentImageIndex(null);
+    }
+  };
+
+  const handleCropCancel = () => {
+    if (imageToCrop) {
+      URL.revokeObjectURL(imageToCrop);
+    }
+    setImageToCrop(null);
+    setCurrentImageIndex(null);
   };
 
   const handleRemoveMedia = (index) => {
@@ -998,6 +1055,16 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           </div>
         </form>
       </div>
+
+      {/* Image Cropper Modal - 4:3 Aspect Ratio */}
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={4 / 3}
+        />
+      )}
     </div>
   );
 };

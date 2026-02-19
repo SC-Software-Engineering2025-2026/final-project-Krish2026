@@ -10,6 +10,8 @@ import {
   deleteCommunityPost,
 } from "../services/communityPostService";
 import { getUserProfile } from "../services/profileService";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
 
 const InfoCommunityPosts = ({ communityId, userRole }) => {
   const { currentUser } = useAuth();
@@ -452,6 +454,8 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   const [content, setContent] = useState("");
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -480,13 +484,61 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
     }
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length + images.length > 4) {
       alert("Maximum 4 images allowed");
       return;
     }
-    setImages([...images, ...files]);
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        alert(`${file.name} is not an image file`);
+        continue;
+      }
+
+      // Show cropper with 4:3 aspect ratio
+      const imageUrl = URL.createObjectURL(file);
+      setImageToCrop(imageUrl);
+      setCurrentImageIndex(images.length);
+    }
+
+    // Reset file input
+    e.target.value = "";
+  };
+
+  const handleCropComplete = async (croppedAreaPixels) => {
+    try {
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
+
+      // Convert blob to file
+      const croppedFile = new File(
+        [croppedBlob],
+        `cropped-image-${Date.now()}.jpg`,
+        { type: "image/jpeg" },
+      );
+
+      // Add to images
+      setImages((prev) => [...prev, croppedFile]);
+
+      // Clean up
+      URL.revokeObjectURL(imageToCrop);
+      setImageToCrop(null);
+      setCurrentImageIndex(null);
+    } catch (error) {
+      console.error("Error cropping image:", error);
+      alert("Failed to crop image");
+      setImageToCrop(null);
+      setCurrentImageIndex(null);
+    }
+  };
+
+  const handleCropCancel = () => {
+    if (imageToCrop) {
+      URL.revokeObjectURL(imageToCrop);
+    }
+    setImageToCrop(null);
+    setCurrentImageIndex(null);
   };
 
   return (
@@ -594,6 +646,16 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           </div>
         </form>
       </div>
+
+      {/* Image Cropper Modal - 4:3 Aspect Ratio */}
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={4 / 3}
+        />
+      )}
     </div>
   );
 };

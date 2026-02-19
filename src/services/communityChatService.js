@@ -7,6 +7,9 @@ import {
   serverTimestamp,
   limit,
   where,
+  doc,
+  deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -31,6 +34,13 @@ export const sendCommunityMessage = async (
       type: messageData.type || "text",
       createdAt: serverTimestamp(),
     };
+
+    // Add reply data if present
+    if (messageData.replyTo) {
+      message.replyTo = messageData.replyTo;
+      message.replyToText = messageData.replyToText || "";
+      message.replyToUser = messageData.replyToUser || "User";
+    }
 
     const docRef = await addDoc(messagesRef, message);
     return docRef.id;
@@ -178,9 +188,60 @@ export const subscribeToUserToAdminMessages = (communityId, callback) => {
   );
 };
 
+/**
+ * Delete a message from community chat
+ * @param {string} communityId - Community ID
+ * @param {string} messageId - Message ID
+ * @returns {Promise<void>}
+ */
+export const deleteCommunityMessage = async (communityId, messageId) => {
+  try {
+    const messageRef = doc(
+      db,
+      `communities/${communityId}/messages`,
+      messageId,
+    );
+    await deleteDoc(messageRef);
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    throw new Error("Failed to delete message");
+  }
+};
+
+/**
+ * Update a message in community chat
+ * @param {string} communityId - Community ID
+ * @param {string} messageId - Message ID
+ * @param {string} newText - New message text
+ * @returns {Promise<void>}
+ */
+export const updateCommunityMessage = async (
+  communityId,
+  messageId,
+  newText,
+) => {
+  try {
+    const messageRef = doc(
+      db,
+      `communities/${communityId}/messages`,
+      messageId,
+    );
+    await updateDoc(messageRef, {
+      text: newText,
+      edited: true,
+      editedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating message:", error);
+    throw new Error("Failed to update message");
+  }
+};
+
 export default {
   sendCommunityMessage,
   subscribeToCommunityMessages,
+  deleteCommunityMessage,
+  updateCommunityMessage,
   sendAdminMessage,
   subscribeToAdminMessages,
   sendUserToAdminMessage,
