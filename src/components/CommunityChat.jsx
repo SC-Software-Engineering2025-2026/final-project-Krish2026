@@ -272,18 +272,22 @@ const CommunityChat = ({ communityId }) => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-200px)] bg-white rounded-lg shadow overflow-hidden">
+    <div className="flex h-[calc(100vh-200px)] bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       {/* Messages Area */}
       <div className="flex-1 flex flex-col">
         {/* Chat Header */}
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">Community Chat</h2>
-            <p className="text-sm text-gray-500">{members.length} members</p>
+            <h2 className="text-xl font-semibold dark:text-white">
+              Community Chat
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {members.length} members
+            </p>
           </div>
           <button
             onClick={() => setShowMembers(!showMembers)}
-            className="lg:hidden px-3 py-2 text-sm bg-gray-100 rounded-lg"
+            className="lg:hidden px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 dark:text-gray-300 rounded-lg"
           >
             {showMembers ? "Hide" : "Show"} Members
           </button>
@@ -294,7 +298,7 @@ const CommunityChat = ({ communityId }) => {
           {messages.length === 0 ? (
             <div className="text-center py-12">
               <svg
-                className="mx-auto h-12 w-12 text-gray-400"
+                className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -306,8 +310,12 @@ const CommunityChat = ({ communityId }) => {
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                 />
               </svg>
-              <p className="mt-2 text-gray-500">No messages yet</p>
-              <p className="text-sm text-gray-400">Start the conversation!</p>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">
+                No messages yet
+              </p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">
+                Start the conversation!
+              </p>
             </div>
           ) : (
             messages.map((message) => (
@@ -339,7 +347,10 @@ const CommunityChat = ({ communityId }) => {
         </div>
 
         {/* Message Input */}
-        <form onSubmit={handleSubmit} className="p-4 border-t">
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 border-t dark:border-gray-700"
+        >
           {/* Reply indicator */}
           {replyingTo && (
             <div
@@ -384,7 +395,7 @@ const CommunityChat = ({ communityId }) => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingImage}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-lg"
             >
               {uploadingImage ? (
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -422,7 +433,7 @@ const CommunityChat = ({ communityId }) => {
                 }
               }}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               disabled={loading}
               rows={1}
               style={{
@@ -443,13 +454,15 @@ const CommunityChat = ({ communityId }) => {
 
       {/* Members Sidebar */}
       {showMembers && (
-        <div className="w-64 border-l bg-gray-50 overflow-y-auto">
+        <div className="w-64 border-l dark:border-gray-700 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
           <div className="p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Members</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+              Members
+            </h3>
             {/* Admins Section */}
             {members.filter((m) => m.role === "admin").length > 0 && (
               <>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Admins
                 </p>
                 <div className="space-y-2 mb-4">
@@ -507,7 +520,7 @@ const CommunityChat = ({ communityId }) => {
             {/* Members Section */}
             {members.filter((m) => m.role === "member").length > 0 && (
               <>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Members
                 </p>
                 <div className="space-y-2">
@@ -519,7 +532,7 @@ const CommunityChat = ({ communityId }) => {
                         <div
                           key={member.id}
                           onClick={() => navigate(`/profile/${member.userId}`)}
-                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
                         >
                           {profile?.profileImage ? (
                             <img
@@ -528,20 +541,20 @@ const CommunityChat = ({ communityId }) => {
                               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                              <span className="text-gray-600 font-medium">
+                            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                              <span className="text-gray-600 dark:text-gray-300 font-medium">
                                 {profile?.displayName?.[0]?.toUpperCase() ||
                                   "U"}
                               </span>
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
+                            <p className="font-medium text-sm truncate dark:text-white">
                               {profile?.displayName ||
                                 profile?.username ||
                                 `User ${member.userId.slice(0, 8)}`}
                             </p>
-                            <p className="text-xs text-gray-500 capitalize">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                               {member.role}
                             </p>
                           </div>
@@ -558,7 +571,7 @@ const CommunityChat = ({ communityId }) => {
       {/* Context Menu */}
       {contextMenuPosition && selectedMessage && (
         <div
-          className="fixed bg-white shadow-lg rounded-lg border border-gray-200 py-1 z-50"
+          className="fixed bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
           style={{
             left: `${contextMenuPosition.x}px`,
             top: `${contextMenuPosition.y}px`,
@@ -567,7 +580,7 @@ const CommunityChat = ({ communityId }) => {
         >
           <button
             onClick={handleReplyMessage}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center space-x-2"
+            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white flex items-center space-x-2"
           >
             <svg
               className="w-4 h-4"
@@ -588,7 +601,7 @@ const CommunityChat = ({ communityId }) => {
             selectedMessage.type === "text" && (
               <button
                 onClick={handleEditMessage}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white flex items-center space-x-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -609,7 +622,7 @@ const CommunityChat = ({ communityId }) => {
           {selectedMessage.userId === currentUser.uid && (
             <button
               onClick={handleDeleteMessage}
-              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center space-x-2"
             >
               <svg
                 className="w-4 h-4"
@@ -655,18 +668,18 @@ const MessageBubble = ({
     return (
       <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
         <div className="max-w-md w-full">
-          <div className="bg-gray-100 p-3 rounded-lg">
+          <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
             <textarea
               value={editText}
               onChange={(e) => onEditTextChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-800 dark:text-white"
               rows="3"
               autoFocus
             />
             <div className="flex justify-end space-x-2 mt-2">
               <button
                 onClick={onCancelEdit}
-                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                className="px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
               >
                 Cancel
               </button>
@@ -711,10 +724,10 @@ const MessageBubble = ({
               e.stopPropagation();
               navigate(`/profile/${message.userId}`);
             }}
-            className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+            className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
             title={`View ${userProfile?.displayName || "user"}'s profile`}
           >
-            <span className="text-gray-600 text-xs font-medium">
+            <span className="text-gray-600 dark:text-gray-300 text-xs font-medium">
               {userProfile?.displayName?.[0]?.toUpperCase() || "U"}
             </span>
           </div>
@@ -726,7 +739,7 @@ const MessageBubble = ({
                 e.stopPropagation();
                 navigate(`/profile/${message.userId}`);
               }}
-              className="text-xs text-gray-600 mb-1 px-1 font-medium cursor-pointer hover:text-blue-600 transition-colors"
+              className="text-xs text-gray-600 dark:text-gray-400 mb-1 px-1 font-medium cursor-pointer hover:text-blue-600 transition-colors"
               title={`View ${userProfile?.displayName || "user"}'s profile`}
             >
               {userProfile?.displayName || userProfile?.username || "User"}
@@ -735,7 +748,7 @@ const MessageBubble = ({
           {/* Container for message with reply indicator */}
           <div
             className={`rounded-lg overflow-hidden shadow-sm ${
-              isOwn ? "bg-blue-600" : "bg-gray-200"
+              isOwn ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-700"
             }`}
           >
             {/* Reply indicator - clickable container showing original message */}
@@ -787,7 +800,7 @@ const MessageBubble = ({
             {message.type === "text" && (
               <div
                 className={`px-4 py-2 ${
-                  isOwn ? "text-white" : "text-gray-900"
+                  isOwn ? "text-white" : "text-gray-900 dark:text-white"
                 }`}
               >
                 <p>{message.text}</p>
@@ -808,7 +821,7 @@ const MessageBubble = ({
               </div>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-1 px-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">
             {message.createdAt && formatTime(message.createdAt)}
           </p>
         </div>

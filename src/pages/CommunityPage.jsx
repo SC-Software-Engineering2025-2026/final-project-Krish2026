@@ -70,19 +70,19 @@ const CommunityPage = () => {
 
   if (loading || roleLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
 
   if (!community) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
           Community Not Found
         </h2>
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
           The community you're looking for doesn't exist.
         </p>
         <button
@@ -101,10 +101,10 @@ const CommunityPage = () => {
   // Private community non-member view
   if (!isMember && !community.isPublic) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <div className="bg-white rounded-lg shadow p-8">
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
           <svg
-            className="mx-auto h-16 w-16 text-gray-400 mb-4"
+            className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500 mb-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -116,10 +116,10 @@ const CommunityPage = () => {
               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
             />
           </svg>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Private Community
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             This is a private community. You need an invitation to join.
           </p>
           <button
@@ -161,9 +161,9 @@ const CommunityPage = () => {
   } // End of isMember check
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-8">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-8">
       {/* Community Header */}
-      <div className="bg-white border-b sticky top-0 z-40 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-40 shadow-sm">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center space-x-4">
@@ -175,17 +175,17 @@ const CommunityPage = () => {
                 />
               )}
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {community.name}
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {community.memberCount} members
                 </p>
               </div>
             </div>
             <button
               onClick={() => navigate("/communities")}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900"
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
             >
               Back to Communities
             </button>
@@ -199,8 +199,8 @@ const CommunityPage = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-3 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600"
                 }`}
               >
                 {tab.label}

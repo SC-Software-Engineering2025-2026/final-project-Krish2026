@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { getUserProfile } from "../services/profileService";
 
 const NavBar = () => {
   const { currentUser } = useAuth();
+  const { isDark } = useTheme();
   const location = useLocation();
   const [userProfile, setUserProfile] = useState(null);
 
@@ -25,7 +27,7 @@ const NavBar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo and Navigation */}
@@ -35,7 +37,7 @@ const NavBar = () => {
                 className="text-4xl font-bold"
                 style={{
                   fontFamily: "UnifrakturMaguntia, cursive",
-                  color: "#54524D",
+                  color: isDark ? "#EDE8DD" : "#54524D",
                 }}
               >
                 Sfera
@@ -50,7 +52,11 @@ const NavBar = () => {
                   className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{
                     fontFamily: "Times New Roman, serif",
-                    color: isActive("/") ? "#EDE8DD" : "#54524D",
+                    color: isActive("/")
+                      ? "#EDE8DD"
+                      : isDark
+                        ? "#EDE8DD"
+                        : "#54524D",
                     backgroundColor: isActive("/") ? "#54524D" : "transparent",
                     borderRadius: isActive("/") ? "20px" : "0",
                   }}
@@ -62,7 +68,11 @@ const NavBar = () => {
                   className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{
                     fontFamily: "Times New Roman, serif",
-                    color: isActive("/communities") ? "#EDE8DD" : "#54524D",
+                    color: isActive("/communities")
+                      ? "#EDE8DD"
+                      : isDark
+                        ? "#EDE8DD"
+                        : "#54524D",
                     backgroundColor: isActive("/communities")
                       ? "#54524D"
                       : "transparent",
@@ -76,7 +86,11 @@ const NavBar = () => {
                   className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{
                     fontFamily: "Times New Roman, serif",
-                    color: isActive("/discover") ? "#EDE8DD" : "#54524D",
+                    color: isActive("/discover")
+                      ? "#EDE8DD"
+                      : isDark
+                        ? "#EDE8DD"
+                        : "#54524D",
                     backgroundColor: isActive("/discover")
                       ? "#54524D"
                       : "transparent",
@@ -94,7 +108,9 @@ const NavBar = () => {
                       isActive(`/profile/${currentUser.uid}`) ||
                       location.pathname === "/profile"
                         ? "#EDE8DD"
-                        : "#54524D",
+                        : isDark
+                          ? "#EDE8DD"
+                          : "#54524D",
                     backgroundColor:
                       isActive(`/profile/${currentUser.uid}`) ||
                       location.pathname === "/profile"
@@ -123,13 +139,13 @@ const NavBar = () => {
                 <img
                   src={userProfile.profileImage}
                   alt="Profile"
-                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 hover:border-gray-400 transition-colors"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-200 hover:border-gray-400 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 flex items-center justify-center border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
                   <span
                     className="font-semibold text-lg"
-                    style={{ color: "#54524D" }}
+                    style={{ color: isDark ? "#EDE8DD" : "#54524D" }}
                   >
                     {currentUser.email?.[0].toUpperCase() || "U"}
                   </span>

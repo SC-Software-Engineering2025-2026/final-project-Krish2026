@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import NavBar from "./components/NavBar";
 
 // Pages
@@ -20,40 +21,42 @@ import SyncUserCommunities from "./components/SyncUserCommunities";
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <NavBar />
-          <div className="pt-16">
-            <Routes>
-              {/* Auth Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+            <NavBar />
+            <div className="pt-16">
+              <Routes>
+                {/* Auth Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
 
-              {/* Main App Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/profile/:userId" element={<ProfilePage />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/post/:postId" element={<PostDetail />} />
-              <Route path="/communities" element={<Communities />} />
-              <Route
-                path="/communities/:communityId"
-                element={<CommunityPage />}
-              />
-              <Route path="/discover" element={<Discover />} />
-              <Route path="/messages" element={<Messages />} />
+                {/* Main App Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:userId" element={<ProfilePage />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/post/:postId" element={<PostDetail />} />
+                <Route path="/communities" element={<Communities />} />
+                <Route
+                  path="/communities/:communityId"
+                  element={<CommunityPage />}
+                />
+                <Route path="/discover" element={<Discover />} />
+                <Route path="/messages" element={<Messages />} />
 
-              {/* Temporary utility route - remove after use */}
-              <Route
-                path="/sync-communities"
-                element={<SyncUserCommunities />}
-              />
-            </Routes>
+                {/* Temporary utility route - remove after use */}
+                <Route
+                  path="/sync-communities"
+                  element={<SyncUserCommunities />}
+                />
+              </Routes>
+            </div>
           </div>
-        </div>
-      </Router>
-    </AuthProvider>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

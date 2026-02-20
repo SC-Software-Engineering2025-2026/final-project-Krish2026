@@ -206,9 +206,11 @@ const CommunitySettings = ({ communityId, userRole }) => {
   if (!isAdmin) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold mb-4">Community Settings</h2>
-          <p className="text-gray-600 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold mb-4 dark:text-white">
+            Community Settings
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Only admins can access community settings.
           </p>
           <button
@@ -224,24 +226,26 @@ const CommunitySettings = ({ communityId, userRole }) => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         {/* Header */}
-        <div className="p-6 border-b">
-          <h2 className="text-2xl font-bold">Community Settings</h2>
-          <p className="text-gray-600 mt-1">
+        <div className="p-6 border-b dark:border-gray-700">
+          <h2 className="text-2xl font-bold dark:text-white">
+            Community Settings
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage your community settings and members
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="border-b">
+        <div className="border-b dark:border-gray-700">
           <nav className="flex space-x-8 px-6">
             <button
               onClick={() => setActiveTab("general")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "general"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
               }`}
             >
               General
@@ -250,8 +254,8 @@ const CommunitySettings = ({ communityId, userRole }) => {
               onClick={() => setActiveTab("members")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "members"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
               }`}
             >
               Members ({members.length})
@@ -315,7 +319,7 @@ const GeneralSettings = ({
         <div>
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
             Community Name
           </label>
@@ -324,7 +328,7 @@ const GeneralSettings = ({
             id="name"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             required
             maxLength={50}
           />
@@ -334,7 +338,7 @@ const GeneralSettings = ({
         <div>
           <label
             htmlFor="description"
-            className="block text-sm font-medium text-gray-700 mb-2"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
             Description
           </label>
@@ -344,17 +348,19 @@ const GeneralSettings = ({
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
             }
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white"
             rows={4}
             maxLength={500}
           />
         </div>
 
         {/* Privacy Setting */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
           <div>
-            <h3 className="font-medium text-gray-900">Public Community</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              Public Community
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {formData.isPublic
                 ? "Anyone can find and join this community"
                 : "Only invited members can join"}
@@ -378,12 +384,14 @@ const GeneralSettings = ({
         </div>
 
         {/* Community Type (Read-only) */}
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium text-gray-900">Community Type</h3>
-          <p className="text-sm text-gray-500 mt-1">
+        <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <h3 className="font-medium text-gray-900 dark:text-white">
+            Community Type
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {community?.isCollaborative ? "Collaborative" : "Informational"}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Community type cannot be changed after creation
           </p>
         </div>
@@ -400,13 +408,15 @@ const GeneralSettings = ({
 
       {/* Danger Zone */}
       {canDelete && (
-        <div className="pt-6 border-t">
-          <h3 className="text-lg font-semibold text-red-600 mb-4">
+        <div className="pt-6 border-t dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">
             Danger Zone
           </h3>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h4 className="font-medium text-red-900">Delete Community</h4>
-            <p className="text-sm text-red-700 mt-1 mb-4">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <h4 className="font-medium text-red-900 dark:text-red-400">
+              Delete Community
+            </h4>
+            <p className="text-sm text-red-700 dark:text-red-300 mt-1 mb-4">
               Once you delete a community, there is no going back. This will
               permanently delete all posts, comments, messages, media, and
               member data.
@@ -436,6 +446,7 @@ const MembersSettings = ({
   currentUserId,
   isCreator,
 }) => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -472,9 +483,12 @@ const MembersSettings = ({
     return (
       <div
         key={member.id}
-        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+        className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600"
       >
-        <div className="flex items-center space-x-3">
+        <div
+          className="flex items-center space-x-3 flex-1 cursor-pointer"
+          onClick={() => navigate(`/profile/${member.userId}`)}
+        >
           {profile?.profileImage ? (
             <img
               src={profile.profileImage}
@@ -482,15 +496,15 @@ const MembersSettings = ({
               className="w-12 h-12 rounded-full object-cover"
             />
           ) : (
-            <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 font-medium text-lg">
+            <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 dark:text-gray-300 font-medium text-lg">
                 {profile?.username?.[0]?.toUpperCase() || "U"}
               </span>
             </div>
           )}
           <div>
             <div className="flex items-center space-x-2">
-              <p className="font-medium">
+              <p className="font-medium dark:text-white">
                 {isCurrentUser
                   ? "You"
                   : profile?.firstName && profile?.lastName
@@ -500,17 +514,17 @@ const MembersSettings = ({
                       `User ${member.userId.slice(0, 8)}`}
               </p>
               {isCommunityCreator && (
-                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
+                <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs font-medium rounded">
                   Owner
                 </span>
               )}
               {isMemberAdmin && (
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded">
                   Admin
                 </span>
               )}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               {!isCurrentUser && profile?.username && (
                 <p className="truncate max-w-xs">@{profile.username}</p>
               )}
@@ -526,13 +540,14 @@ const MembersSettings = ({
         {!isCurrentUser && !isCommunityCreator && (
           <div className="relative">
             <button
-              onClick={() =>
-                setOpenMenuId(openMenuId === member.id ? null : member.id)
-              }
-              className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuId(openMenuId === member.id ? null : member.id);
+              }}
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-full transition-colors"
             >
               <svg
-                className="w-5 h-5 text-gray-600"
+                className="w-5 h-5 text-gray-600 dark:text-gray-300"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -549,14 +564,14 @@ const MembersSettings = ({
                 />
 
                 {/* Dropdown Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
                   {!isMemberAdmin && (
                     <button
                       onClick={() => {
                         onPromote(member.userId);
                         setOpenMenuId(null);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-400"
                     >
                       Promote to Admin
                     </button>
@@ -568,7 +583,7 @@ const MembersSettings = ({
                           onDemote(member.userId);
                           setOpenMenuId(null);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-700 dark:hover:text-orange-400"
                       >
                         Demote to Member
                       </button>
@@ -577,7 +592,7 @@ const MembersSettings = ({
                           onTransferOwnership(member.userId);
                           setOpenMenuId(null);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 hover:text-yellow-700 dark:hover:text-yellow-400"
                       >
                         Transfer Ownership
                       </button>
@@ -588,7 +603,7 @@ const MembersSettings = ({
                       onRemove(member.userId);
                       setOpenMenuId(null);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 border-t border-gray-200"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 border-t border-gray-200 dark:border-gray-700"
                   >
                     Remove Member
                   </button>
@@ -610,14 +625,16 @@ const MembersSettings = ({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search members..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
         />
       </div>
 
       {/* Owner Section */}
       {ownerMember.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-gray-900">Owner</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Owner
+          </h3>
           <div className="space-y-2 overflow-visible">
             {ownerMember.map(renderMember)}
           </div>
@@ -627,7 +644,7 @@ const MembersSettings = ({
       {/* Admins Section */}
       {adminMembers.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Admins ({adminMembers.length})
           </h3>
           <div className="space-y-2 overflow-visible">
@@ -639,7 +656,7 @@ const MembersSettings = ({
       {/* Regular Members Section */}
       {regularMembers.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Members ({regularMembers.length})
           </h3>
           <div className="space-y-2 overflow-visible">
@@ -650,7 +667,7 @@ const MembersSettings = ({
 
       {filteredMembers.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">No members found</p>
+          <p className="text-gray-500 dark:text-gray-400">No members found</p>
         </div>
       )}
     </div>

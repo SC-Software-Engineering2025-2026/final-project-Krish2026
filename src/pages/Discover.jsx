@@ -85,10 +85,12 @@ function Discover() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-center items-center h-64">
-            <div className="text-xl text-gray-600">Loading communities...</div>
+            <div className="text-xl text-gray-600 dark:text-gray-400">
+              Loading communities...
+            </div>
           </div>
         </div>
       </div>
@@ -97,10 +99,10 @@ function Discover() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4">
+            <p className="text-red-800 dark:text-red-200">{error}</p>
           </div>
         </div>
       </div>
@@ -108,9 +110,9 @@ function Discover() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-6">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
           Discover Communities
         </h1>
 
@@ -122,7 +124,7 @@ function Discover() {
               placeholder="Search communities by name or description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 pl-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
             <svg
               className="absolute left-4 top-3.5 h-5 w-5 text-gray-400"
@@ -138,7 +140,7 @@ function Discover() {
               />
             </svg>
           </div>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Showing {filteredCommunities.length} of {communities.length}{" "}
             communities
           </p>
@@ -146,8 +148,8 @@ function Discover() {
 
         {/* Communities Grid */}
         {filteredCommunities.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-600 text-lg">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+            <p className="text-gray-600 dark:text-gray-400 text-lg">
               {searchTerm
                 ? "No communities found matching your search."
                 : currentUser
@@ -160,7 +162,7 @@ function Discover() {
             {filteredCommunities.map((community) => (
               <div
                 key={community.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-200"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow duration-200"
               >
                 {/* Community Image */}
                 {community.imageUrl && (
@@ -174,25 +176,25 @@ function Discover() {
                 {/* Community Info */}
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-xl font-bold text-gray-900 flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white flex-1">
                       {community.name}
                     </h3>
                     <span
                       className={`px-2 py-1 text-xs font-semibold rounded ${
                         community.isPublic
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
                       }`}
                     >
                       {community.isPublic ? "Public" : "Private"}
                     </span>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3">
                     {community.description || "No description available"}
                   </p>
 
-                  <div className="flex items-center text-sm text-gray-500 mb-4">
+                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
                     <svg
                       className="h-4 w-4 mr-1"
                       fill="none"

@@ -8,16 +8,18 @@ import {
   MapPinIcon,
   HashtagIcon,
 } from "@heroicons/react/24/outline";
+import LocationPicker from "./LocationPicker";
 
 const PostUpload = ({ onClose, onPostCreated }) => {
   const { currentUser } = useAuth();
   const [caption, setCaption] = useState("");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState(null); // { name, coordinates: { lat, lng } }
   const [tags, setTags] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -70,7 +72,8 @@ const PostUpload = ({ onClose, onPostCreated }) => {
     try {
       const postData = {
         caption: caption.trim(),
-        location: location.trim(),
+        location: location?.name || "",
+        locationCoordinates: location?.coordinates || null,
         tags: tags
           .split(",")
           .map((tag) => tag.trim())
@@ -94,21 +97,23 @@ const PostUpload = ({ onClose, onPostCreated }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Create New Post</h2>
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            Create New Post
+          </h2>
           <button
             onClick={onClose}
             disabled={loading}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition disabled:opacity-50"
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition disabled:opacity-50"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="mx-6 mt-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded">
             {error}
           </div>
         )}
@@ -116,7 +121,7 @@ const PostUpload = ({ onClose, onPostCreated }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Image Upload Section */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Photos ({imagePreviews.length}/10)
             </label>
 
@@ -149,7 +154,7 @@ const PostUpload = ({ onClose, onPostCreated }) => {
 
             {/* Upload Button */}
             {imagePreviews.length < 10 && (
-              <label className="cursor-pointer w-full flex flex-col items-center justify-center gap-2 px-6 py-12 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+              <label className="cursor-pointer w-full flex flex-col items-center justify-center gap-2 px-6 py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                 <input
                   type="file"
                   accept="image/*"
@@ -158,9 +163,9 @@ const PostUpload = ({ onClose, onPostCreated }) => {
                   className="hidden"
                   disabled={loading}
                 />
-                <PhotoIcon className="h-12 w-12 text-gray-400" />
+                <PhotoIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Click to upload images
                   </p>
                   <p className="text-xs text-gray-500">
@@ -175,7 +180,7 @@ const PostUpload = ({ onClose, onPostCreated }) => {
           <div>
             <label
               htmlFor="caption"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               Caption
             </label>
@@ -184,37 +189,67 @@ const PostUpload = ({ onClose, onPostCreated }) => {
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Write a caption..."
               maxLength={2200}
               disabled={loading}
             />
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {caption.length}/2200 characters
             </p>
           </div>
 
           {/* Location */}
           <div>
-            <label
-              htmlFor="location"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <div className="flex items-center gap-2">
                 <MapPinIcon className="h-5 w-5" />
                 <span>Location</span>
               </div>
             </label>
-            <input
-              type="text"
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Add location"
-              disabled={loading}
-            />
+            {location ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center gap-2">
+                    <MapPinIcon className="h-4 w-4 text-blue-600" />
+                    <span className="text-gray-900 dark:text-white">
+                      {location.name}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLocation(null)}
+                  disabled={loading}
+                  className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowLocationPicker(true)}
+                disabled={loading}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-left flex items-center gap-2 text-gray-500 dark:text-gray-400"
+              >
+                <MapPinIcon className="h-5 w-5" />
+                <span>Add location</span>
+              </button>
+            )}
           </div>
+
+          {/* Location Picker Modal */}
+          {showLocationPicker && (
+            <LocationPicker
+              onLocationSelect={(selectedLocation) => {
+                setLocation(selectedLocation);
+                setShowLocationPicker(false);
+              }}
+              onClose={() => setShowLocationPicker(false)}
+              currentLocation={location}
+            />
+          )}
 
           {/* Tags */}
           <div>
@@ -232,11 +267,11 @@ const PostUpload = ({ onClose, onPostCreated }) => {
               id="tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="Add tags separated by commas (e.g., nature, travel, photography)"
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Separate tags with commas
             </p>
           </div>
@@ -261,7 +296,7 @@ const PostUpload = ({ onClose, onPostCreated }) => {
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+              className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
             >
               Cancel
             </button>

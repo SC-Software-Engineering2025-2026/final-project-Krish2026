@@ -75,7 +75,7 @@ const InfoCommunityHome = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -84,11 +84,11 @@ const InfoCommunityHome = ({
     <div className="max-w-4xl mx-auto">
       {/* Join Button for Non-Members */}
       {!isMember && (
-        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Join {community?.name}
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
             Become a member to access posts and communicate with admins
           </p>
           <button
@@ -102,7 +102,7 @@ const InfoCommunityHome = ({
       )}
 
       {/* Header */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
             {community?.imageUrl && (
@@ -113,11 +113,13 @@ const InfoCommunityHome = ({
               />
             )}
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {community?.name}
               </h1>
-              <p className="text-gray-600 mt-1">{community?.description}</p>
-              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                {community?.description}
+              </p>
+              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
                 <span>{community?.memberCount} members</span>
                 <span>•</span>
                 <span>{community?.isPublic ? "Public" : "Private"}</span>
@@ -167,10 +169,10 @@ const InfoCommunityHome = ({
 
       {/* Notice for Non-Admins */}
       {!isAdmin && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
           <div className="flex items-start space-x-3">
             <svg
-              className="w-5 h-5 text-blue-600 mt-0.5"
+              className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -181,10 +183,10 @@ const InfoCommunityHome = ({
               />
             </svg>
             <div>
-              <h3 className="font-medium text-blue-900">
+              <h3 className="font-medium text-blue-900 dark:text-blue-200">
                 Informational Community
               </h3>
-              <p className="text-sm text-blue-800 mt-1">
+              <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
                 This is an informational community. Only admins can edit this
                 page and create posts. You can view content and comment on
                 posts.
@@ -195,12 +197,14 @@ const InfoCommunityHome = ({
       )}
 
       {/* Content Area */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         {isEditing ? (
           <div>
             <div className="mb-4">
-              <h2 className="text-xl font-semibold mb-2">Edit Home Page</h2>
-              <p className="text-sm text-gray-600">
+              <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                Edit Home Page
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Use the editor below to customize your community's home page
               </p>
             </div>
@@ -226,7 +230,7 @@ const InfoCommunityHome = ({
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
               >
                 Cancel
               </button>
@@ -236,13 +240,13 @@ const InfoCommunityHome = ({
           <div>
             {content ? (
               <div
-                className="prose max-w-none"
+                className="prose dark:prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: content }}
               />
             ) : (
               <div className="text-center py-12">
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -254,10 +258,10 @@ const InfoCommunityHome = ({
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <h3 className="mt-2 text-lg font-medium text-gray-900">
+                <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
                   No content yet
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   {isAdmin
                     ? "Click 'Edit Page' to add content to your community home page"
                     : "The community admins haven't added any content yet"}

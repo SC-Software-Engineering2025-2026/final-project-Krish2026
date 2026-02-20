@@ -19,7 +19,7 @@ const PostGrid = ({
         <div
           key={post.id}
           onClick={() => onPostClick && onPostClick(post)}
-          className="relative aspect-square cursor-pointer group overflow-hidden rounded-lg bg-gray-200"
+          className="relative aspect-square cursor-pointer group overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-800"
         >
           {/* Post Image */}
           {post.images && post.images.length > 0 ? (
@@ -29,8 +29,10 @@ const PostGrid = ({
               className="w-full h-full object-cover transition-transform group-hover:scale-110"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-300">
-              <span className="text-gray-500 text-sm">No image</span>
+            <div className="w-full h-full flex items-center justify-center bg-gray-300 dark:bg-gray-700">
+              <span className="text-gray-500 dark:text-gray-400 text-sm">
+                No image
+              </span>
             </div>
           )}
 
@@ -72,9 +74,29 @@ const PostGrid = ({
           </div>
 
           {/* Caption Preview (if exists) */}
-          {post.caption && (
+          {(post.caption ||
+            (post.tags && post.tags.length > 0) ||
+            (post.hashtags && post.hashtags.length > 0)) && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              <p className="text-white text-sm line-clamp-2">{post.caption}</p>
+              {post.caption && (
+                <p className="text-white text-sm line-clamp-2 mb-2">
+                  {post.caption}
+                </p>
+              )}
+              {/* Hashtags/Tags */}
+              {((post.hashtags && post.hashtags.length > 0) ||
+                (post.tags && post.tags.length > 0)) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(post.hashtags || post.tags)?.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="text-white text-xs font-medium bg-white bg-opacity-20 px-2 py-0.5 rounded"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

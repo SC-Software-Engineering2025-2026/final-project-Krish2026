@@ -78,7 +78,7 @@ const MediaLibrary = ({ communityId, userRole }) => {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             <button
@@ -86,7 +86,7 @@ const MediaLibrary = ({ communityId, userRole }) => {
               className={`px-4 py-2 rounded-lg font-medium ${
                 filter === "all"
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               All Media
@@ -96,7 +96,7 @@ const MediaLibrary = ({ communityId, userRole }) => {
               className={`px-4 py-2 rounded-lg font-medium ${
                 filter === "photos"
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               Photos
@@ -106,7 +106,7 @@ const MediaLibrary = ({ communityId, userRole }) => {
               className={`px-4 py-2 rounded-lg font-medium ${
                 filter === "videos"
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               Videos
@@ -148,16 +148,16 @@ const MediaLibrary = ({ communityId, userRole }) => {
           </label>
         </div>
 
-        <div className="mt-3 text-sm text-gray-500">
+        <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
           {filteredMedia.length} {filter === "all" ? "items" : filter}
         </div>
       </div>
 
       {/* Media Grid */}
       {filteredMedia.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -169,10 +169,10 @@ const MediaLibrary = ({ communityId, userRole }) => {
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <h3 className="mt-2 text-lg font-medium text-gray-900">
+          <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
             No media yet
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Upload photos and videos to share with the community
           </p>
         </div>
@@ -210,7 +210,7 @@ const MediaLibrary = ({ communityId, userRole }) => {
 // Media Item Component
 const MediaItem = ({ item, onDelete, onClick, canDelete }) => {
   return (
-    <div className="relative group aspect-square bg-gray-200 rounded-lg overflow-hidden cursor-pointer">
+    <div className="relative group aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden cursor-pointer">
       {item.type === "image" ? (
         <img
           src={item.url}

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { createCommunity } from "../services/communityService";
 import { useNavigate } from "react-router-dom";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
 
 const CreateCommunity = ({ onClose }) => {
   const { currentUser } = useAuth();
@@ -18,6 +20,7 @@ const CreateCommunity = ({ onClose }) => {
   });
 
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageToCrop, setImageToCrop] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -35,14 +38,36 @@ const CreateCommunity = ({ onClose }) => {
         setError("Image must be less than 5MB");
         return;
       }
-      setFormData((prev) => ({ ...prev, image: file }));
 
-      // Create preview
+      if (!file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+
+      // Show cropper instead of directly setting image
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        setImageToCrop(reader.result);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = async (croppedAreaPixels) => {
+    try {
+      const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+
+      // Convert blob to file
+      const file = new File([croppedImage], "community-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      setFormData((prev) => ({ ...prev, image: file }));
+      setImagePreview(URL.createObjectURL(croppedImage));
+      setImageToCrop(null);
+    } catch (error) {
+      console.error("Error cropping image:", error);
+      setError("Failed to crop image");
     }
   };
 
@@ -93,13 +118,15 @@ const CreateCommunity = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-          <h2 className="text-xl font-semibold">Create Community</h2>
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Create Community
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             disabled={loading}
           >
             <svg
@@ -121,18 +148,18 @@ const CreateCommunity = ({ onClose }) => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+            <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-600 dark:text-red-200 px-4 py-3 rounded">
               {error}
             </div>
           )}
 
           {/* Community Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Community Image
             </label>
             <div className="flex items-center space-x-4">
-              <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden">
+              <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
                 {imagePreview ? (
                   <img
                     src={imagePreview}
@@ -157,7 +184,7 @@ const CreateCommunity = ({ onClose }) => {
                   </div>
                 )}
               </div>
-              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg text-sm font-medium">
+              <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium text-gray-900 dark:text-white">
                 Choose Image
                 <input
                   type="file"
@@ -174,7 +201,7 @@ const CreateCommunity = ({ onClose }) => {
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               Community Name *
             </label>
@@ -185,7 +212,7 @@ const CreateCommunity = ({ onClose }) => {
               value={formData.name}
               onChange={handleInputChange}
               placeholder="Enter community name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               required
               disabled={loading}
               maxLength={50}
@@ -209,21 +236,23 @@ const CreateCommunity = ({ onClose }) => {
               value={formData.description}
               onChange={handleInputChange}
               placeholder="Describe your community..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               rows={4}
               disabled={loading}
               maxLength={500}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {formData.description.length}/500 characters
             </p>
           </div>
 
           {/* Privacy Toggle */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div>
-              <h3 className="font-medium text-gray-900">Privacy</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="font-medium text-gray-900 dark:text-white">
+                Privacy
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {formData.isPublic
                   ? "Anyone can find and join"
                   : "Invitation only"}
@@ -246,10 +275,12 @@ const CreateCommunity = ({ onClose }) => {
           </div>
 
           {/* Community Type Toggle */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <div>
-              <h3 className="font-medium text-gray-900">Community Type</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="font-medium text-gray-900 dark:text-white">
+                Community Type
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {formData.isCollaborative
                   ? "All members can post and contribute"
                   : "Only admins can post, members can view"}
@@ -272,11 +303,11 @@ const CreateCommunity = ({ onClose }) => {
           </div>
 
           {/* Page Configuration Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-2">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h3 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
               Community Features
             </h3>
-            <ul className="text-sm text-blue-800 space-y-1">
+            <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
               {formData.isCollaborative ? (
                 <>
                   <li>✓ Home page with rich text editor</li>
@@ -300,7 +331,7 @@ const CreateCommunity = ({ onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               disabled={loading}
             >
               Cancel
@@ -315,6 +346,17 @@ const CreateCommunity = ({ onClose }) => {
           </div>
         </form>
       </div>
+
+      {/* Image Cropper Modal */}
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setImageToCrop(null)}
+          aspect={1}
+          lockAspectRatio={true}
+        />
+      )}
     </div>
   );
 };

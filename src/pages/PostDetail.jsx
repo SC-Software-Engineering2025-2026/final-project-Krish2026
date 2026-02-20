@@ -234,7 +234,7 @@ const PostDetail = () => {
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="flex flex-col lg:flex-row">
           {/* Image Section */}
-          <div className="lg:w-2/3 bg-black relative">
+          <div className="lg:w-2/3 bg-black dark:bg-gray-800 relative">
             {post.images && post.images.length > 0 ? (
               <>
                 <img
@@ -344,7 +344,7 @@ const PostDetail = () => {
               {/* Caption */}
               {post.caption && (
                 <div className="mb-4">
-                  <p className="text-gray-900 whitespace-pre-wrap">
+                  <p className="text-gray-900 whitespace-pre-wrap pl-2.5">
                     {post.caption}
                   </p>
                   <p className="text-xs text-gray-500 mt-2">
@@ -355,7 +355,7 @@ const PostDetail = () => {
 
               {/* Tags */}
               {post.tags && post.tags.length > 0 && (
-                <div className="mb-4 flex flex-wrap gap-2">
+                <div className="mb-4 flex flex-wrap gap-2 pl-2.5">
                   {post.tags.map((tag, index) => (
                     <span
                       key={index}

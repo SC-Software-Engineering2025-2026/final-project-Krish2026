@@ -350,7 +350,7 @@ const ProfilePage = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Profile Header */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         {/* Banner Image */}
         {profile.bannerImage && (
           <div
@@ -406,7 +406,7 @@ const ProfilePage = () => {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                   {profile.firstName && profile.lastName
                     ? `${profile.firstName} ${profile.lastName}`
                     : profile.displayName || "Anonymous User"}
@@ -417,19 +417,19 @@ const ProfilePage = () => {
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setShowDropdown(!showDropdown)}
-                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
+                      className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
                       title="More options"
                     >
                       <EllipsisVerticalIcon className="h-6 w-6" />
                     </button>
                     {showDropdown && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                      <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-10">
                         <button
                           onClick={() => {
                             setShowDropdown(false);
                             setIsEditMode(true);
                           }}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-3 text-gray-700 dark:text-gray-200"
                         >
                           <PencilIcon className="h-5 w-5" />
                           <span>Edit Profile</span>
@@ -439,7 +439,7 @@ const ProfilePage = () => {
                             setShowDropdown(false);
                             navigate("/settings");
                           }}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-3 text-gray-700 dark:text-gray-200"
                         >
                           <Cog6ToothIcon className="h-5 w-5" />
                           <span>Settings</span>
@@ -452,42 +452,54 @@ const ProfilePage = () => {
             </div>
 
             {profile.username && (
-              <p className="text-gray-600 mb-2">@{profile.username}</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                @{profile.username}
+              </p>
             )}
 
-            {profile.bio && <p className="text-gray-700 mb-4">{profile.bio}</p>}
+            {profile.bio && (
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                {profile.bio}
+              </p>
+            )}
 
             {/* Stats */}
             <div className="flex gap-6 mb-4">
               <div
-                className="text-center cursor-pointer hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+                className="text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
                 onClick={handleOpenCommunitiesModal}
                 title="View communities"
               >
-                <p className="font-bold text-xl text-gray-900">
+                <p className="font-bold text-xl text-gray-900 dark:text-white">
                   {profile.joinedCommunities?.length || 0}
                 </p>
-                <p className="text-gray-600 text-sm">Communities</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Communities
+                </p>
               </div>
               <div
-                className="text-center cursor-pointer hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+                className="text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
                 onClick={handleOpenFollowersModal}
                 title="View followers"
               >
-                <p className="font-bold text-xl text-gray-900">
+                <p className="font-bold text-xl text-gray-900 dark:text-white">
                   {profile.followersCount || 0}
                 </p>
-                <p className="text-gray-600 text-sm">Followers</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Followers
+                </p>
               </div>
               <div
-                className="text-center cursor-pointer hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+                className="text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
                 onClick={handleOpenFollowingModal}
                 title="View following"
               >
-                <p className="font-bold text-xl text-gray-900">
+                <p className="font-bold text-xl text-gray-900 dark:text-white">
                   {profile.followingCount || 0}
                 </p>
-                <p className="text-gray-600 text-sm">Following</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Following
+                </p>
               </div>
             </div>
 
@@ -540,56 +552,47 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-md mb-6">
-        <div className="flex border-b">
-          <button
-            onClick={() => setActiveTab("about")}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
-              activeTab === "about"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
+      {/* About Me Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6">
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
+          <div className="flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium text-black dark:text-[#EDE8DD]">
             <PhotoIcon className="h-5 w-5" />
             <span>About Me</span>
-          </button>
+          </div>
         </div>
       </div>
 
       {/* Tab Content */}
-      {activeTab === "about" && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          {profile.coverImages && profile.coverImages.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {profile.coverImages.map((imageUrl, index) => (
-                <div
-                  key={index}
-                  className="rounded-lg overflow-hidden bg-gray-200 aspect-[3/4]"
-                >
-                  <img
-                    src={imageUrl}
-                    alt={`Cover photo ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <PhotoIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No cover photos yet
-              </h3>
-              {isOwnProfile && (
-                <p className="text-gray-600">
-                  Add cover photos to personalize your profile!
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        {profile.coverImages && profile.coverImages.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {profile.coverImages.map((imageUrl, index) => (
+              <div
+                key={index}
+                className="rounded-lg overflow-hidden bg-gray-200 aspect-[3/4]"
+              >
+                <img
+                  src={imageUrl}
+                  alt={`Cover photo ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <PhotoIcon className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              No cover photos yet
+            </h3>
+            {isOwnProfile && (
+              <p className="text-gray-600 dark:text-gray-400">
+                Add cover photos to personalize your profile!
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Followers Modal */}
       {showFollowersModal && (
@@ -598,30 +601,32 @@ const ProfilePage = () => {
           onClick={() => setShowFollowersModal(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Followers</h2>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Followers
+              </h2>
               <button
                 onClick={() => setShowFollowersModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
               >
-                <XMarkIcon className="h-6 w-6 text-gray-600" />
+                <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
 
             {/* Search Input */}
-            <div className="p-4 border-b">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder="Search followers..."
                   value={followersSearchQuery}
                   onChange={(e) => setFollowersSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -646,7 +651,7 @@ const ProfilePage = () => {
                     username.includes(searchLower)
                   );
                 }).length > 0 ? (
-                <div className="divide-y">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {followersList
                     .filter((follower) => {
                       const searchLower = followersSearchQuery.toLowerCase();
@@ -669,7 +674,7 @@ const ProfilePage = () => {
                           setShowFollowersModal(false);
                           navigate(`/profile/${follower.id}`);
                         }}
-                        className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition"
+                        className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition"
                       >
                         {follower.profileImage ? (
                           <img
@@ -678,8 +683,8 @@ const ProfilePage = () => {
                             className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                            <span className="text-gray-600 font-medium text-lg">
+                          <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                            <span className="text-gray-600 dark:text-gray-300 font-medium text-lg">
                               {follower.displayName?.[0]?.toUpperCase() ||
                                 follower.firstName?.[0]?.toUpperCase() ||
                                 "U"}
@@ -687,13 +692,13 @@ const ProfilePage = () => {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 truncate">
+                          <p className="font-semibold text-gray-900 dark:text-white truncate">
                             {follower.firstName && follower.lastName
                               ? `${follower.firstName} ${follower.lastName}`
                               : follower.displayName || "Anonymous User"}
                           </p>
                           {follower.username && (
-                            <p className="text-sm text-gray-600 truncate">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                               @{follower.username}
                             </p>
                           )}
@@ -723,30 +728,32 @@ const ProfilePage = () => {
           onClick={() => setShowFollowingModal(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Following</h2>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Following
+              </h2>
               <button
                 onClick={() => setShowFollowingModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
               >
-                <XMarkIcon className="h-6 w-6 text-gray-600" />
+                <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
 
             {/* Search Input */}
-            <div className="p-4 border-b">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder="Search following..."
                   value={followingSearchQuery}
                   onChange={(e) => setFollowingSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -850,30 +857,32 @@ const ProfilePage = () => {
           onClick={() => setShowCommunitiesModal(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Communities</h2>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Communities
+              </h2>
               <button
                 onClick={() => setShowCommunitiesModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
               >
-                <XMarkIcon className="h-6 w-6 text-gray-600" />
+                <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
 
             {/* Search Input */}
-            <div className="p-4 border-b">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder="Search communities..."
                   value={communitiesSearchQuery}
                   onChange={(e) => setCommunitiesSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -987,7 +996,7 @@ const ProfilePage = () => {
           onCancel={handleCropCancel}
           aspectRatio={cropperType === "banner" ? 16 / 3 : 1}
           cropShape={cropperType === "profile" ? "round" : "rect"}
-          allowRatioChange={true}
+          allowRatioChange={false}
         />
       )}
     </div>

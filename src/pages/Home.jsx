@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { getUserProfile } from "../services/profileService";
 import {
   getUserCommunitiesPosts,
@@ -36,6 +37,7 @@ import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 
 const Home = () => {
   const { currentUser } = useAuth();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [showPostUpload, setShowPostUpload] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
@@ -271,10 +273,10 @@ const Home = () => {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Welcome to Sfera
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
             A modern social media platform for digital communities
           </p>
           <div className="flex justify-center gap-4">
@@ -295,30 +297,30 @@ const Home = () => {
 
         {/* Features Section */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
             <PhotoIcon className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Share Your Moments
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Upload photos and share your experiences with the community
             </p>
           </div>
-          <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
             <UserGroupIcon className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Join Communities
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Connect with like-minded people in various communities
             </p>
           </div>
-          <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
             <GlobeAltIcon className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Discover Content
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Explore new content and discover amazing creators
             </p>
           </div>
@@ -330,10 +332,10 @@ const Home = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Welcome back,{" "}
               {userProfile?.firstName ||
                 userProfile?.username ||
@@ -341,7 +343,7 @@ const Home = () => {
                 "User"}
               !
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               View new moments from your communities!
             </p>
           </div>
@@ -352,16 +354,16 @@ const Home = () => {
       <div className="space-y-8">
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
           </div>
         ) : Object.keys(posts).length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
             <div className="text-center py-12">
-              <PhotoIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              <PhotoIcon className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 No posts yet
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Join communities to see posts in your feed
               </p>
               <button
@@ -375,16 +377,19 @@ const Home = () => {
         ) : (
           <>
             {Object.entries(posts).map(([groupKey, group]) => (
-              <div key={groupKey} className="bg-white rounded-lg shadow-md p-6">
+              <div
+                key={groupKey}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6"
+              >
                 {/* Community Header */}
                 {groupKey === "personal" ? (
-                  <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                     <PhotoIcon className="h-8 w-8 text-blue-600" />
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900">
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                         Personal Posts
                       </h2>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {group.posts.length}{" "}
                         {group.posts.length === 1 ? "post" : "posts"}
                       </p>
@@ -395,7 +400,7 @@ const Home = () => {
                     onClick={() =>
                       navigate(`/communities/${group.communityId}`)
                     }
-                    className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 -m-6 p-6 rounded-t-lg transition"
+                    className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-6 p-6 rounded-t-lg transition"
                   >
                     {group.image && (
                       <img
@@ -405,10 +410,13 @@ const Home = () => {
                       />
                     )}
                     <div className="flex-1">
-                      <h2 className="text-xl font-bold text-gray-900">
+                      <h2
+                        className="text-xl font-bold"
+                        style={{ color: isDark ? "#EDE8DD" : "#171717" }}
+                      >
                         {group.name}
                       </h2>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {group.isCollaborative
                           ? "Collaborative"
                           : "Informational"}{" "}
@@ -770,12 +778,14 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
           <div>
-            <h2 className="text-xl font-semibold">Comments</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Comments
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {post.postType === "community"
                 ? post.communityName
                 : "Personal Post"}
@@ -783,7 +793,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
@@ -793,11 +803,11 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {loadingComments ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
             </div>
           ) : comments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <ChatBubbleLeftIcon className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <ChatBubbleLeftIcon className="h-12 w-12 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
               <p>No comments yet. Be the first to comment!</p>
             </div>
           ) : (
@@ -812,15 +822,15 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                        <span className="text-gray-600 font-medium">
+                      <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           {comment.userProfile?.username?.[0]?.toUpperCase() ||
                             "U"}
                         </span>
                       </div>
                     )}
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">
+                      <p className="font-semibold text-sm text-gray-900 dark:text-white">
                         {comment.userProfile?.username || "User"}
                       </p>
                       {editingComment?.id === comment.id ? (
@@ -830,7 +840,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                             type="text"
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
-                            className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             autoFocus
                           />
                           <div className="flex space-x-2 mt-2">
@@ -842,7 +852,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                             </button>
                             <button
                               onClick={handleCancelEdit}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
@@ -850,7 +860,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                         </div>
                       ) : (
                         <p
-                          className="text-gray-900 mt-1 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                          className="text-gray-900 dark:text-gray-100 mt-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded p-1 -ml-1"
                           onDoubleClick={(e) =>
                             handleCommentDoubleClick(comment, e)
                           }
@@ -859,7 +869,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                         </p>
                       )}
                       <div className="flex items-center space-x-3 mt-1">
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {comment.createdAt
                             ?.toDate?.()
                             ?.toLocaleDateString() || "Just now"}
@@ -869,7 +879,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                         </p>
                         <button
                           onClick={() => handleCommentLike(comment.id)}
-                          className="flex items-center space-x-1 text-xs text-gray-600 hover:text-red-600 font-medium"
+                          className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium"
                         >
                           <svg
                             className={`w-3.5 h-3.5 ${
@@ -1068,7 +1078,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
           )}
           {contextMenuPosition && selectedComment && (
             <div
-              className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[60]"
+              className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-[60]"
               style={{
                 left: `${contextMenuPosition.x}px`,
                 top: `${contextMenuPosition.y}px`,
@@ -1077,7 +1087,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
             >
               <button
                 onClick={handleEditComment}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 text-gray-900 dark:text-gray-100"
               >
                 <svg
                   className="w-4 h-4"
@@ -1096,7 +1106,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
               </button>
               <button
                 onClick={handleDeleteComment}
-                className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center space-x-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -1126,7 +1136,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               disabled={loading}
             />
             <button
@@ -1163,9 +1173,9 @@ const PostCard = ({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-md transition bg-white dark:bg-gray-800">
       {/* Author Info */}
-      <div className="flex items-center space-x-2 p-3 bg-gray-50 border-b border-gray-200">
+      <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
         {post.userProfile?.profileImage ? (
           <img
             src={post.userProfile.profileImage}
@@ -1173,17 +1183,41 @@ const PostCard = ({
             className="w-8 h-8 rounded-full object-cover"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-            <span className="text-gray-600 text-xs font-medium">
+          <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+            <span className="text-gray-600 dark:text-gray-300 text-xs font-medium">
               {post.userProfile?.username?.[0]?.toUpperCase() || "U"}
             </span>
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm text-gray-900 truncate">
+          <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
             {post.userProfile?.username || "User"}
           </p>
-          <p className="text-xs text-gray-500">
+          {post.location && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 truncate">
+              <svg
+                className="w-3 h-3 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              {post.location.split(",").slice(0, 2).join(",")}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {post.createdAt?.toDate?.()?.toLocaleDateString() || "Recently"}
           </p>
         </div>
@@ -1191,13 +1225,6 @@ const PostCard = ({
 
       {/* Post Content */}
       <div className="p-3">
-        {/* Post Text */}
-        {(post.content || post.caption) && (
-          <p className="text-sm text-gray-800 mb-3 line-clamp-3 whitespace-pre-wrap">
-            {post.content || post.caption}
-          </p>
-        )}
-
         {/* Post Images */}
         {post.images && post.images.length > 0 && (
           <div className="relative mb-3">
@@ -1209,7 +1236,7 @@ const PostCard = ({
                 {post.images.map((image, index) => (
                   <div
                     key={index}
-                    className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-gray-50"
+                    className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-white dark:bg-gray-800"
                   >
                     <img
                       src={image}
@@ -1251,11 +1278,34 @@ const PostCard = ({
           </div>
         )}
 
+        {/* Post Text */}
+        {(post.content || post.caption) && (
+          <>
+            <p className="text-sm text-gray-800 dark:text-gray-200 mb-2 mt-3 line-clamp-3 whitespace-pre-wrap pl-2.5">
+              {post.content || post.caption}
+            </p>
+            {/* Hashtags/Tags */}
+            {((post.hashtags && post.hashtags.length > 0) ||
+              (post.tags && post.tags.length > 0)) && (
+              <div className="flex flex-wrap gap-2 mb-3 pl-2.5">
+                {(post.hashtags || post.tags)?.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="text-blue-600 dark:text-blue-400 text-xs font-medium hover:underline cursor-pointer"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
         {/* Post Actions */}
-        <div className="flex items-center space-x-4 pt-2 border-t border-gray-200">
+        <div className="flex items-center space-x-4 pt-2 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={onLikeClick}
-            className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition"
+            className="flex items-center space-x-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition"
           >
             {(
               post.postType === "community"
@@ -1274,7 +1324,7 @@ const PostCard = ({
           </button>
           <button
             onClick={() => handleOpenComments(post)}
-            className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition"
+            className="flex items-center space-x-1 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-500 transition"
           >
             <ChatBubbleLeftIcon className="h-5 w-5" />
             <span className="text-xs font-medium">

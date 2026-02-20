@@ -15,6 +15,7 @@ import {
 import { getUserProfile } from "../services/profileService";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
+import { shortenLocation } from "../utils/locationUtils";
 
 const InfoCommunityPosts = ({ communityId, userRole }) => {
   const { currentUser } = useAuth();
@@ -88,7 +89,7 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -97,10 +98,10 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
     <div className="max-w-2xl mx-auto">
       {/* Notice for Non-Admins */}
       {!isAdmin && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
           <div className="flex items-start space-x-3">
             <svg
-              className="w-5 h-5 text-blue-600 mt-0.5"
+              className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -111,8 +112,10 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
               />
             </svg>
             <div>
-              <h3 className="font-medium text-blue-900">Admin-Only Posting</h3>
-              <p className="text-sm text-blue-800 mt-1">
+              <h3 className="font-medium text-blue-900 dark:text-blue-200">
+                Admin-Only Posting
+              </h3>
+              <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
                 Only admins can create posts in this informational community.
                 You can view, like, and comment on posts.
               </p>
@@ -122,7 +125,7 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
       )}
 
       {/* Header */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             <button
@@ -130,7 +133,7 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
               className={`px-4 py-2 rounded-lg font-medium ${
                 filter === "all"
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               All
@@ -194,9 +197,9 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
       {/* Posts Feed */}
       <div className="space-y-6">
         {filteredPosts.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -302,7 +305,7 @@ const PostCard = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           {post.userProfile?.profilePicture ? (
@@ -312,22 +315,46 @@ const PostCard = ({
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 font-medium">
+            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 dark:text-gray-300 font-medium">
                 {post.userProfile?.username?.[0]?.toUpperCase() || "A"}
               </span>
             </div>
           )}
           <div>
             <div className="flex items-center space-x-2">
-              <p className="font-semibold">
+              <p className="font-semibold text-gray-900 dark:text-white">
                 {post.userProfile?.username || "Admin"}
               </p>
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded">
                 Admin
               </span>
             </div>
-            <p className="text-xs text-gray-500">
+            {post.location && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                {shortenLocation(post.location)}
+              </p>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {post.createdAt?.toDate?.().toLocaleDateString() || "Just now"}
             </p>
           </div>
@@ -338,7 +365,7 @@ const PostCard = ({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
@@ -354,10 +381,10 @@ const PostCard = ({
                   onClick={() => setShowMenu(false)}
                 />
                 {/* Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
                   <button
                     onClick={handleDelete}
-                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center space-x-2 transition"
+                    className="w-full px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center space-x-2 transition"
                   >
                     <svg
                       className="w-5 h-5"
@@ -381,12 +408,6 @@ const PostCard = ({
         )}
       </div>
 
-      {post.content && (
-        <div className="px-4 pb-3">
-          <p className="text-gray-900">{post.content}</p>
-        </div>
-      )}
-
       {post.images && post.images.length > 0 && (
         <div className="relative">
           <div
@@ -397,7 +418,7 @@ const PostCard = ({
               {post.images.map((image, index) => (
                 <div
                   key={index}
-                  className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-gray-50"
+                  className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-gray-50 dark:bg-gray-800"
                 >
                   <img
                     src={image}
@@ -438,8 +459,27 @@ const PostCard = ({
         </div>
       )}
 
-      <div className="p-4 border-t">
-        <div className="flex items-center space-x-6 text-sm text-gray-600 mb-3 font-medium">
+      {post.content && (
+        <div className="px-4 pb-3 pt-3">
+          <p className="text-gray-900 dark:text-white pl-2.5">{post.content}</p>
+          {/* Hashtags */}
+          {post.hashtags && post.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2 pl-2.5">
+              {post.hashtags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline cursor-pointer"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="p-4 border-t dark:border-gray-700">
+        <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
           <span>
             {post.likesCount || 0}{" "}
             {(post.likesCount || 0) === 1 ? "like" : "likes"}
@@ -454,8 +494,8 @@ const PostCard = ({
             onClick={handleLikeClick}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
               isLiked
-                ? "text-red-600 bg-red-50"
-                : "text-gray-600 hover:bg-gray-50"
+                ? "text-red-600 bg-red-50 dark:bg-red-900/30"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
           >
             <svg
@@ -475,7 +515,7 @@ const PostCard = ({
           </button>
           <button
             onClick={onComment}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50"
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <svg
               className="w-5 h-5"
@@ -593,12 +633,12 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-          <h2 className="text-xl font-semibold">Create Post</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+          <h2 className="text-xl font-semibold dark:text-white">Create Post</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <svg
               className="w-6 h-6"
@@ -621,7 +661,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Share an announcement or update..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
             rows={6}
           />
 
@@ -661,7 +701,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           )}
 
           <div className="mt-4 flex items-center justify-between">
-            <label className="cursor-pointer flex items-center space-x-2 text-gray-600 hover:text-gray-800">
+            <label className="cursor-pointer flex items-center space-x-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
               <svg
                 className="w-6 h-6"
                 fill="none"
@@ -987,12 +1027,14 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">Comments</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Comments
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
           >
             <svg
               className="w-6 h-6"
@@ -1013,12 +1055,12 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {loadingComments ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
             </div>
           ) : comments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <svg
-                className="h-12 w-12 mx-auto mb-2 text-gray-400"
+                className="h-12 w-12 mx-auto mb-2 text-gray-400 dark:text-gray-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1044,15 +1086,15 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                        <span className="text-gray-600 font-medium">
+                      <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           {comment.userProfile?.username?.[0]?.toUpperCase() ||
                             "U"}
                         </span>
                       </div>
                     )}
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">
+                      <p className="font-semibold text-sm text-gray-900 dark:text-white">
                         {comment.userProfile?.username || "User"}
                       </p>
                       {editingComment?.id === comment.id ? (
@@ -1062,7 +1104,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             type="text"
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
-                            className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             autoFocus
                           />
                           <div className="flex space-x-2 mt-2">
@@ -1074,7 +1116,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             </button>
                             <button
                               onClick={handleCancelEdit}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
@@ -1082,7 +1124,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </div>
                       ) : (
                         <p
-                          className="text-gray-900 mt-1 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                          className="text-gray-900 dark:text-white mt-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded p-1 -ml-1"
                           onDoubleClick={(e) =>
                             handleCommentDoubleClick(comment, e)
                           }
@@ -1091,7 +1133,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </p>
                       )}
                       <div className="flex items-center space-x-3 mt-1">
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {comment.createdAt
                             ?.toDate?.()
                             ?.toLocaleDateString() || "Just now"}
@@ -1101,7 +1143,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </p>
                         <button
                           onClick={() => handleCommentLike(comment.id)}
-                          className="flex items-center space-x-1 text-xs text-gray-600 hover:text-red-600 font-medium"
+                          className="flex items-center space-x-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 font-medium"
                         >
                           <svg
                             className={`w-3.5 h-3.5 ${
@@ -1123,7 +1165,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </button>
                         <button
                           onClick={() => handleReply(comment)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                         >
                           Reply
                         </button>
@@ -1139,7 +1181,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                               value={replyText}
                               onChange={(e) => setReplyText(e.target.value)}
                               placeholder={`Reply to ${comment.userProfile?.username || "User"}...`}
-                              className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                               disabled={loading}
                             />
                             <button
@@ -1152,7 +1194,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             <button
                               type="button"
                               onClick={handleCancelReply}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
@@ -1165,7 +1207,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         <div className="mt-2">
                           <button
                             onClick={() => toggleReplies(comment.id)}
-                            className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-800 font-medium"
+                            className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 font-medium"
                           >
                             <svg
                               className={`w-4 h-4 transition-transform ${collapsedReplies[comment.id] ? "" : "rotate-90"}`}
@@ -1190,7 +1232,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                           </button>
 
                           {!collapsedReplies[comment.id] && (
-                            <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 pl-3">
+                            <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                               {comment.replies.map((reply) => (
                                 <div key={reply.id} className="flex space-x-2">
                                   {reply.userProfile?.profilePicture ? (
@@ -1200,15 +1242,15 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     />
                                   ) : (
-                                    <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                                      <span className="text-gray-600 text-xs font-medium">
+                                    <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center dark:bg-gray-600">
+                                      <span className="text-gray-600 text-xs font-medium dark:text-gray-300">
                                         {reply.userProfile?.username?.[0]?.toUpperCase() ||
                                           "U"}
                                       </span>
                                     </div>
                                   )}
                                   <div className="flex-1">
-                                    <p className="font-semibold text-xs">
+                                    <p className="font-semibold text-xs dark:text-white">
                                       {reply.userProfile?.username || "User"}
                                     </p>
                                     {editingComment?.id === reply.id ? (
@@ -1220,7 +1262,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                           onChange={(e) =>
                                             setEditText(e.target.value)
                                           }
-                                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                                           autoFocus
                                         />
                                         <div className="flex space-x-2 mt-1">
@@ -1232,7 +1274,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                           </button>
                                           <button
                                             onClick={handleCancelEdit}
-                                            className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                                            className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                                           >
                                             Cancel
                                           </button>
@@ -1240,7 +1282,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                       </div>
                                     ) : (
                                       <p
-                                        className="text-gray-900 text-sm mt-0.5 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                                        className="text-gray-900 text-sm mt-0.5 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1 dark:text-white dark:hover:bg-gray-700"
                                         onDoubleClick={(e) =>
                                           handleReplyDoubleClick(reply, e)
                                         }
@@ -1248,7 +1290,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                         {reply.text}
                                       </p>
                                     )}
-                                    <p className="text-xs text-gray-500 mt-0.5">
+                                    <p className="text-xs text-gray-500 mt-0.5 dark:text-gray-400">
                                       {reply.createdAt
                                         ?.toDate?.()
                                         ?.toLocaleDateString() || "Just now"}
@@ -1261,7 +1303,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                         onClick={() =>
                                           handleCommentLike(reply.id)
                                         }
-                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 hover:text-red-600 font-medium"
+                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 font-medium"
                                       >
                                         <svg
                                           className={`w-3 h-3 ${
@@ -1300,7 +1342,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
           )}
           {contextMenuPosition && selectedComment && (
             <div
-              className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[60]"
+              className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[60] dark:bg-gray-800 dark:border-gray-700"
               style={{
                 left: `${contextMenuPosition.x}px`,
                 top: `${contextMenuPosition.y}px`,
@@ -1309,7 +1351,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
             >
               <button
                 onClick={handleEditComment}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 dark:hover:bg-gray-700 dark:text-white"
               >
                 <svg
                   className="w-4 h-4"
@@ -1328,7 +1370,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               </button>
               <button
                 onClick={handleDeleteComment}
-                className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 flex items-center space-x-2 dark:hover:bg-red-900/30 dark:text-red-400"
               >
                 <svg
                   className="w-4 h-4"
@@ -1349,7 +1391,10 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 border-t">
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 border-t dark:border-gray-700"
+        >
           <div className="flex space-x-2">
             <input
               ref={inputRef}
@@ -1357,7 +1402,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               disabled={loading}
             />
             <button

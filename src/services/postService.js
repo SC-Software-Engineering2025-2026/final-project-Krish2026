@@ -46,6 +46,7 @@ export const createPost = async (userId, postData, images = []) => {
       images: imageUrls,
       tags: postData.tags || [],
       location: postData.location || "",
+      locationCoordinates: postData.locationCoordinates || null,
       likesCount: 0,
       commentsCount: 0,
       createdAt: serverTimestamp(),

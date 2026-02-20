@@ -14,7 +14,9 @@ import {
 } from "../services/communityPostService";
 import { getUserProfile } from "../services/profileService";
 import ImageCropper from "./ImageCropper";
+import LocationPicker from "./LocationPicker";
 import { getCroppedImg } from "../utils/cropImage";
+import { shortenLocation } from "../utils/locationUtils";
 
 const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
   const { currentUser } = useAuth();
@@ -88,7 +90,7 @@ const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -96,7 +98,7 @@ const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             <button
@@ -104,7 +106,7 @@ const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
               className={`px-4 py-2 rounded-lg font-medium ${
                 filter === "all"
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
               All
@@ -168,9 +170,9 @@ const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
       {/* Posts Feed */}
       <div className="space-y-6">
         {filteredPosts.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -182,10 +184,10 @@ const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
               />
             </svg>
-            <h3 className="mt-2 text-lg font-medium text-gray-900">
+            <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
               No posts yet
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {canPost
                 ? "Be the first to create a post!"
                 : "No posts have been created yet"}
@@ -286,7 +288,7 @@ const PostCard = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
       {/* Post Header */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -297,17 +299,41 @@ const PostCard = ({
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 font-medium">
+            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 dark:text-gray-300 font-medium">
                 {post.userProfile?.username?.[0]?.toUpperCase() || "U"}
               </span>
             </div>
           )}
           <div>
-            <p className="font-semibold">
+            <p className="font-semibold text-gray-900 dark:text-white">
               {post.userProfile?.username || "User"}
             </p>
-            <p className="text-xs text-gray-500">
+            {post.location && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                {shortenLocation(post.location)}
+              </p>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {post.createdAt?.toDate?.().toLocaleDateString() || "Just now"}
             </p>
           </div>
@@ -318,7 +344,7 @@ const PostCard = ({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
@@ -334,10 +360,10 @@ const PostCard = ({
                   onClick={() => setShowMenu(false)}
                 />
                 {/* Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
                   <button
                     onClick={handleDelete}
-                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 flex items-center space-x-2 transition"
+                    className="w-full px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center space-x-2 transition"
                   >
                     <svg
                       className="w-5 h-5"
@@ -361,13 +387,6 @@ const PostCard = ({
         )}
       </div>
 
-      {/* Post Content */}
-      {post.content && (
-        <div className="px-4 pb-3">
-          <p className="text-gray-900">{post.content}</p>
-        </div>
-      )}
-
       {/* Post Images */}
       {post.images && post.images.length > 0 && (
         <div className="relative">
@@ -379,7 +398,7 @@ const PostCard = ({
               {post.images.map((image, index) => (
                 <div
                   key={index}
-                  className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-gray-50"
+                  className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-gray-50 dark:bg-gray-800"
                 >
                   <img
                     src={image}
@@ -406,6 +425,26 @@ const PostCard = ({
                       currentImageIndex === index ? "#171717" : "#9ca3af",
                   }}
                 />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Post Content */}
+      {post.content && (
+        <div className="px-4 pb-3 pt-3">
+          <p className="text-gray-900 dark:text-white pl-2.5">{post.content}</p>
+          {/* Hashtags */}
+          {post.hashtags && post.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2 pl-2.5">
+              {post.hashtags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline cursor-pointer"
+                >
+                  #{tag}
+                </span>
               ))}
             </div>
           )}
@@ -456,9 +495,29 @@ const PostCard = ({
         </div>
       )}
 
+      {/* Post Content */}
+      {post.content && (
+        <div className="px-4 pb-3 pt-3">
+          <p className="text-gray-900 dark:text-white pl-2.5">{post.content}</p>
+          {/* Hashtags */}
+          {post.hashtags && post.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2 pl-2.5">
+              {post.hashtags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline cursor-pointer"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Post Actions */}
-      <div className="p-4 border-t">
-        <div className="flex items-center space-x-6 text-sm text-gray-600 mb-3 font-medium">
+      <div className="p-4 border-t dark:border-gray-700">
+        <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
           <span>
             {post.likesCount || 0}{" "}
             {(post.likesCount || 0) === 1 ? "like" : "likes"}
@@ -473,8 +532,8 @@ const PostCard = ({
             onClick={handleLikeClick}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
               isLiked
-                ? "text-red-600 bg-red-50"
-                : "text-gray-600 hover:bg-gray-50"
+                ? "text-red-600 bg-red-50 dark:bg-red-900/30"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
           >
             <svg
@@ -494,7 +553,7 @@ const PostCard = ({
           </button>
           <button
             onClick={onComment}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50"
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <svg
               className="w-5 h-5"
@@ -524,12 +583,13 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   const [content, setContent] = useState("");
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState(null); // { name, coordinates: { lat, lng } }
   const [hashtags, setHashtags] = useState("");
   const [taggedUsers, setTaggedUsers] = useState("");
   const [loading, setLoading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -548,7 +608,8 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
     try {
       const postData = {
         content: content.trim(),
-        location: location.trim(),
+        location: location?.name || "",
+        locationCoordinates: location?.coordinates || null,
         hashtags: hashtags
           .split(",")
           .map((tag) => tag.trim())
@@ -677,12 +738,14 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   if (!postType) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Choose Post Type</h2>
+            <h2 className="text-xl font-semibold dark:text-white">
+              Choose Post Type
+            </h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <svg
                 className="w-6 h-6"
@@ -703,11 +766,11 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           <div className="space-y-4">
             <button
               onClick={() => setPostType("text")}
-              className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition group"
+              className="w-full p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition group"
             >
               <div className="flex flex-col items-center space-y-3">
                 <svg
-                  className="w-12 h-12 text-gray-400 group-hover:text-blue-600"
+                  className="w-12 h-12 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -720,10 +783,10 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                   />
                 </svg>
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600">
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                     Text Post
                   </h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     Share your thoughts with text
                   </p>
                 </div>
@@ -732,11 +795,11 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
 
             <button
               onClick={() => setPostType("media")}
-              className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition group"
+              className="w-full p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition group"
             >
               <div className="flex flex-col items-center space-y-3">
                 <svg
-                  className="w-12 h-12 text-gray-400 group-hover:text-blue-600"
+                  className="w-12 h-12 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -749,10 +812,10 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                   />
                 </svg>
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600">
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
                     Photo/Video Post
                   </h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     Share photos or videos with captions
                   </p>
                 </div>
@@ -768,12 +831,12 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   if (postType === "text") {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setPostType(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <svg
                   className="w-5 h-5"
@@ -789,11 +852,13 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                   />
                 </svg>
               </button>
-              <h2 className="text-xl font-semibold">Create Text Post</h2>
+              <h2 className="text-xl font-semibold dark:text-white">
+                Create Text Post
+              </h2>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <svg
                 className="w-6 h-6"
@@ -816,12 +881,12 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What's on your mind?"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               rows={8}
               maxLength={5000}
               disabled={loading}
             />
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {content.length}/5000 characters
             </p>
 
@@ -830,7 +895,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -851,12 +916,12 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   // Step 3: Media post form
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setPostType(null)}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <svg
                 className="w-5 h-5"
@@ -872,11 +937,13 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                 />
               </svg>
             </button>
-            <h2 className="text-xl font-semibold">Create Photo/Video Post</h2>
+            <h2 className="text-xl font-semibold dark:text-white">
+              Create Photo/Video Post
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <svg
               className="w-6 h-6"
@@ -897,7 +964,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Media Upload Section */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Photos/Videos ({mediaPreviews.length}/20)
             </label>
 
@@ -950,7 +1017,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
 
             {/* Upload Button */}
             {mediaPreviews.length < 20 && (
-              <label className="cursor-pointer w-full flex flex-col items-center justify-center gap-2 px-6 py-12 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+              <label className="cursor-pointer w-full flex flex-col items-center justify-center gap-2 px-6 py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition">
                 <input
                   type="file"
                   accept="image/*,video/*"
@@ -960,7 +1027,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                   disabled={loading}
                 />
                 <svg
-                  className="w-12 h-12 text-gray-400"
+                  className="w-12 h-12 text-gray-400 dark:text-gray-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -973,10 +1040,10 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                   />
                 </svg>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Click to upload photos or videos
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Up to 20 files, 100MB each
                   </p>
                 </div>
@@ -988,7 +1055,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           <div>
             <label
               htmlFor="caption"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               Caption
             </label>
@@ -997,22 +1064,19 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               placeholder="Write a caption..."
               maxLength={2200}
               disabled={loading}
             />
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {content.length}/2200 characters
             </p>
           </div>
 
           {/* Location */}
           <div>
-            <label
-              htmlFor="location"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <div className="flex items-center gap-2">
                 <svg
                   className="w-5 h-5"
@@ -1036,22 +1100,91 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                 <span>Location</span>
               </div>
             </label>
-            <input
-              type="text"
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Add location"
-              disabled={loading}
-            />
+            {location ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 text-blue-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <span className="text-gray-900 dark:text-white">
+                      {location.name}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLocation(null)}
+                  disabled={loading}
+                  className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowLocationPicker(true)}
+                disabled={loading}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-left flex items-center gap-2 text-gray-500 dark:text-gray-400"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <span>Add location</span>
+              </button>
+            )}
           </div>
+
+          {/* Location Picker Modal */}
+          {showLocationPicker && (
+            <LocationPicker
+              onLocationSelect={(selectedLocation) => {
+                setLocation(selectedLocation);
+                setShowLocationPicker(false);
+              }}
+              onClose={() => setShowLocationPicker(false)}
+              currentLocation={location}
+            />
+          )}
 
           {/* Hashtags */}
           <div>
             <label
               htmlFor="hashtags"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               <div className="flex items-center gap-2">
                 <svg
@@ -1075,11 +1208,11 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
               id="hashtags"
               value={hashtags}
               onChange={(e) => setHashtags(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               placeholder="Add hashtags separated by commas (e.g., nature, travel, photography)"
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Separate hashtags with commas
             </p>
           </div>
@@ -1088,7 +1221,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           <div>
             <label
               htmlFor="taggedUsers"
-              className="block text-sm font-medium text-gray-700 mb-2"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               <div className="flex items-center gap-2">
                 <svg
@@ -1112,11 +1245,11 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
               id="taggedUsers"
               value={taggedUsers}
               onChange={(e) => setTaggedUsers(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
               placeholder="Tag users by username, separated by commas (e.g., @john, @jane)"
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Separate usernames with commas
             </p>
           </div>
@@ -1141,7 +1274,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+              className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
             >
               Cancel
             </button>
@@ -1440,12 +1573,14 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">Comments</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Comments
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
           >
             <svg
               className="w-6 h-6"
@@ -1466,12 +1601,12 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {loadingComments ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
             </div>
           ) : comments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <svg
-                className="h-12 w-12 mx-auto mb-2 text-gray-400"
+                className="h-12 w-12 mx-auto mb-2 text-gray-400 dark:text-gray-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1497,15 +1632,15 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                        <span className="text-gray-600 font-medium">
+                      <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
                           {comment.userProfile?.username?.[0]?.toUpperCase() ||
                             "U"}
                         </span>
                       </div>
                     )}
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">
+                      <p className="font-semibold text-sm text-gray-900 dark:text-white">
                         {comment.userProfile?.username || "User"}
                       </p>
                       {editingComment?.id === comment.id ? (
@@ -1515,7 +1650,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             type="text"
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
-                            className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             autoFocus
                           />
                           <div className="flex space-x-2 mt-2">
@@ -1527,7 +1662,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             </button>
                             <button
                               onClick={handleCancelEdit}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
@@ -1535,7 +1670,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </div>
                       ) : (
                         <p
-                          className="text-gray-900 mt-1 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                          className="text-gray-900 dark:text-white mt-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded p-1 -ml-1"
                           onDoubleClick={(e) =>
                             handleCommentDoubleClick(comment, e)
                           }
@@ -1544,7 +1679,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </p>
                       )}
                       <div className="flex items-center space-x-3 mt-1">
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {comment.createdAt
                             ?.toDate?.()
                             ?.toLocaleDateString() || "Just now"}
@@ -1554,7 +1689,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </p>
                         <button
                           onClick={() => handleCommentLike(comment.id)}
-                          className="flex items-center space-x-1 text-xs text-gray-600 hover:text-red-600 font-medium"
+                          className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium"
                         >
                           <svg
                             className={`w-3.5 h-3.5 ${
@@ -1592,7 +1727,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                               value={replyText}
                               onChange={(e) => setReplyText(e.target.value)}
                               placeholder={`Reply to ${comment.userProfile?.username || "User"}...`}
-                              className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="flex-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                               disabled={loading}
                             />
                             <button
@@ -1605,7 +1740,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             <button
                               type="button"
                               onClick={handleCancelReply}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
@@ -1618,7 +1753,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         <div className="mt-2">
                           <button
                             onClick={() => toggleReplies(comment.id)}
-                            className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-800 font-medium"
+                            className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
                           >
                             <svg
                               className={`w-4 h-4 transition-transform ${collapsedReplies[comment.id] ? "" : "rotate-90"}`}
@@ -1643,7 +1778,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                           </button>
 
                           {!collapsedReplies[comment.id] && (
-                            <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 pl-3">
+                            <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                               {comment.replies.map((reply) => (
                                 <div key={reply.id} className="flex space-x-2">
                                   {reply.userProfile?.profileImage ? (
@@ -1653,15 +1788,15 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     />
                                   ) : (
-                                    <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                                      <span className="text-gray-600 text-xs font-medium">
+                                    <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                                      <span className="text-gray-600 dark:text-gray-300 text-xs font-medium">
                                         {reply.userProfile?.username?.[0]?.toUpperCase() ||
                                           "U"}
                                       </span>
                                     </div>
                                   )}
                                   <div className="flex-1">
-                                    <p className="font-semibold text-xs">
+                                    <p className="font-semibold text-xs text-gray-900 dark:text-white">
                                       {reply.userProfile?.username || "User"}
                                     </p>
                                     {editingComment?.id === reply.id ? (
@@ -1673,7 +1808,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                           onChange={(e) =>
                                             setEditText(e.target.value)
                                           }
-                                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                           autoFocus
                                         />
                                         <div className="flex space-x-2 mt-1">
@@ -1685,7 +1820,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                           </button>
                                           <button
                                             onClick={handleCancelEdit}
-                                            className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                                            className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-gray-600"
                                           >
                                             Cancel
                                           </button>
@@ -1693,7 +1828,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                       </div>
                                     ) : (
                                       <p
-                                        className="text-gray-900 text-sm mt-0.5 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                                        className="text-gray-900 dark:text-white text-sm mt-0.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded p-1 -ml-1"
                                         onDoubleClick={(e) =>
                                           handleReplyDoubleClick(reply, e)
                                         }
@@ -1701,7 +1836,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                         {reply.text}
                                       </p>
                                     )}
-                                    <p className="text-xs text-gray-500 mt-0.5">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                       {reply.createdAt
                                         ?.toDate?.()
                                         ?.toLocaleDateString() || "Just now"}
@@ -1714,7 +1849,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                         onClick={() =>
                                           handleCommentLike(reply.id)
                                         }
-                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 hover:text-red-600 font-medium"
+                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium"
                                       >
                                         <svg
                                           className={`w-3 h-3 ${
@@ -1754,7 +1889,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
           {/* Context Menu */}
           {contextMenuPosition && selectedComment && (
             <div
-              className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[60]"
+              className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-[60]"
               style={{
                 left: `${contextMenuPosition.x}px`,
                 top: `${contextMenuPosition.y}px`,
@@ -1763,7 +1898,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
             >
               <button
                 onClick={handleEditComment}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white flex items-center space-x-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -1782,7 +1917,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               </button>
               <button
                 onClick={handleDeleteComment}
-                className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 flex items-center space-x-2"
+                className="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center space-x-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -1803,7 +1938,10 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 border-t">
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 border-t dark:border-gray-700"
+        >
           <div className="flex space-x-2">
             <input
               ref={inputRef}
@@ -1811,7 +1949,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               disabled={loading}
             />
             <button
