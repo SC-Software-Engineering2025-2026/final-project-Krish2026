@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   sendCommunityMessage,
@@ -13,6 +14,7 @@ import { storage } from "../services/firebase";
 
 const CommunityChat = ({ communityId }) => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [members, setMembers] = useState([]);
@@ -458,7 +460,8 @@ const CommunityChat = ({ communityId }) => {
                       return (
                         <div
                           key={member.id}
-                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg"
+                          onClick={() => navigate(`/profile/${member.userId}`)}
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
                         >
                           {profile?.profileImage ? (
                             <img
@@ -515,7 +518,8 @@ const CommunityChat = ({ communityId }) => {
                       return (
                         <div
                           key={member.id}
-                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg"
+                          onClick={() => navigate(`/profile/${member.userId}`)}
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
                         >
                           {profile?.profileImage ? (
                             <img
@@ -645,6 +649,8 @@ const MessageBubble = ({
   isHighlighted,
   messageRef,
 }) => {
+  const navigate = useNavigate();
+
   if (isEditing) {
     return (
       <div className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
@@ -692,10 +698,22 @@ const MessageBubble = ({
           <img
             src={userProfile.profileImage}
             alt={userProfile.displayName}
-            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/profile/${message.userId}`);
+            }}
+            className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+            title={`View ${userProfile.displayName || "user"}'s profile`}
           />
         ) : (
-          <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/profile/${message.userId}`);
+            }}
+            className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+            title={`View ${userProfile?.displayName || "user"}'s profile`}
+          >
             <span className="text-gray-600 text-xs font-medium">
               {userProfile?.displayName?.[0]?.toUpperCase() || "U"}
             </span>
@@ -703,7 +721,14 @@ const MessageBubble = ({
         )}
         <div className="flex-1">
           {!isOwn && (
-            <p className="text-xs text-gray-600 mb-1 px-1 font-medium">
+            <p
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/profile/${message.userId}`);
+              }}
+              className="text-xs text-gray-600 mb-1 px-1 font-medium cursor-pointer hover:text-blue-600 transition-colors"
+              title={`View ${userProfile?.displayName || "user"}'s profile`}
+            >
               {userProfile?.displayName || userProfile?.username || "User"}
             </p>
           )}

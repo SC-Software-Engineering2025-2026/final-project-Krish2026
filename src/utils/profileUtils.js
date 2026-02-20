@@ -19,6 +19,8 @@ export const initializeUserProfile = async (user, additionalData = {}) => {
         additionalData.displayName ||
         user.displayName ||
         user.email.split("@")[0],
+      firstName: additionalData.firstName || "",
+      lastName: additionalData.lastName || "",
       email: user.email,
       bio: additionalData.bio || "",
       profileImage: user.photoURL || "",
@@ -29,6 +31,8 @@ export const initializeUserProfile = async (user, additionalData = {}) => {
       postsCount: 0,
       followersCount: 0,
       followingCount: 0,
+      followers: [],
+      following: [],
     };
 
     await createUserProfile(user.uid, profileData);

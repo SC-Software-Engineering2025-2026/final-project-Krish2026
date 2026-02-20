@@ -64,6 +64,8 @@ export const createUserProfile = async (userId, profileData) => {
       postsCount: 0,
       followersCount: 0,
       followingCount: 0,
+      followers: [],
+      following: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       ...profileData,
@@ -381,4 +383,147 @@ export const subscribeToUserProfile = (userId, callback) => {
       callback(null);
     },
   );
+};
+
+/**
+ * Follow a user
+ * @param {string} currentUserId - The ID of the user who is following
+ * @param {string} targetUserId - The ID of the user to follow
+ * @returns {Promise<void>}
+ */
+export const followUser = async (currentUserId, targetUserId) => {
+  try {
+    if (currentUserId === targetUserId) {
+      throw new Error("Cannot follow yourself");
+    }
+
+    // Add to current user's following list
+    const currentUserRef = doc(db, "users", currentUserId);
+    await updateDoc(currentUserRef, {
+      following: arrayUnion(targetUserId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Add to target user's followers list
+    const targetUserRef = doc(db, "users", targetUserId);
+    await updateDoc(targetUserRef, {
+      followers: arrayUnion(currentUserId),
+      followersCount:
+        (await getDoc(targetUserRef)).data().followersCount + 1 || 1,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Increment current user's following count
+    const currentUserDoc = await getDoc(currentUserRef);
+    await updateDoc(currentUserRef, {
+      followingCount: (currentUserDoc.data().followingCount || 0) + 1,
+    });
+  } catch (error) {
+    console.error("Error following user:", error);
+    throw error;
+  }
+};
+
+/**
+ * Unfollow a user
+ * @param {string} currentUserId - The ID of the user who is unfollowing
+ * @param {string} targetUserId - The ID of the user to unfollow
+ * @returns {Promise<void>}
+ */
+export const unfollowUser = async (currentUserId, targetUserId) => {
+  try {
+    // Remove from current user's following list
+    const currentUserRef = doc(db, "users", currentUserId);
+    await updateDoc(currentUserRef, {
+      following: arrayRemove(targetUserId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Remove from target user's followers list
+    const targetUserRef = doc(db, "users", targetUserId);
+    await updateDoc(targetUserRef, {
+      followers: arrayRemove(currentUserId),
+      followersCount: Math.max(
+        ((await getDoc(targetUserRef)).data().followersCount || 1) - 1,
+        0,
+      ),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Decrement current user's following count
+    const currentUserDoc = await getDoc(currentUserRef);
+    await updateDoc(currentUserRef, {
+      followingCount: Math.max(
+        (currentUserDoc.data().followingCount || 1) - 1,
+        0,
+      ),
+    });
+  } catch (error) {
+    console.error("Error unfollowing user:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if current user is following target user
+ * @param {string} currentUserId - The ID of the current user
+ * @param {string} targetUserId - The ID of the user to check
+ * @returns {Promise<boolean>} True if following
+ */
+export const isFollowing = async (currentUserId, targetUserId) => {
+  try {
+    const currentUserRef = doc(db, "users", currentUserId);
+    const currentUserDoc = await getDoc(currentUserRef);
+    const following = currentUserDoc.data()?.following || [];
+    return following.includes(targetUserId);
+  } catch (error) {
+    console.error("Error checking follow status:", error);
+    return false;
+  }
+};
+
+/**
+ * Get user's followers
+ * @param {string} userId - The user ID
+ * @returns {Promise<Array>} Array of follower user profiles
+ */
+export const getUserFollowers = async (userId) => {
+  try {
+    const userProfile = await getUserProfile(userId);
+    const followerIds = userProfile?.followers || [];
+
+    if (followerIds.length === 0) return [];
+
+    const followerProfiles = await Promise.all(
+      followerIds.map((id) => getUserProfile(id)),
+    );
+
+    return followerProfiles.filter((profile) => profile !== null);
+  } catch (error) {
+    console.error("Error getting user followers:", error);
+    return [];
+  }
+};
+
+/**
+ * Get user's following list
+ * @param {string} userId - The user ID
+ * @returns {Promise<Array>} Array of following user profiles
+ */
+export const getUserFollowing = async (userId) => {
+  try {
+    const userProfile = await getUserProfile(userId);
+    const followingIds = userProfile?.following || [];
+
+    if (followingIds.length === 0) return [];
+
+    const followingProfiles = await Promise.all(
+      followingIds.map((id) => getUserProfile(id)),
+    );
+
+    return followingProfiles.filter((profile) => profile !== null);
+  } catch (error) {
+    console.error("Error getting user following:", error);
+    return [];
+  }
 };

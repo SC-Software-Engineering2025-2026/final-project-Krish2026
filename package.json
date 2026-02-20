@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "emulators": "firebase emulators:start --import=./firebase-data --export-on-exit",
-    "emulators:ui": "firebase emulators:start --import=./firebase-data --export-on-exit"
+    "emulators:ui": "firebase emulators:start --import=./firebase-data --export-on-exit",
+    "kill": "lsof -ti:8080,9099,9199,4000,4400,3000,3001 2>/dev/null | xargs kill -9 2>/dev/null; sleep 2 && echo 'Ports cleared'"
   },
   "dependencies": {
     "@heroicons/react": "^2.1.1",

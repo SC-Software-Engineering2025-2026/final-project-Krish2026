@@ -1156,6 +1156,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
           aspectRatio={4 / 3}
+          allowRatioChange={true}
         />
       )}
     </div>

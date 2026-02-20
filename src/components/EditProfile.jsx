@@ -417,7 +417,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 htmlFor="firstName"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                First Name
+                First Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -425,6 +425,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="First name"
               />
@@ -436,7 +437,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 htmlFor="lastName"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Last Name
+                Last Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -444,6 +445,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Last name"
               />

@@ -8,6 +8,8 @@ function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -26,6 +28,10 @@ function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!firstName || !lastName) {
+      return setError("First name and last name are required");
+    }
+
     if (password !== confirmPassword) {
       return setError("Passwords do not match");
     }
@@ -41,6 +47,8 @@ function Signup() {
       // Initialize user profile
       await initializeUserProfile(userCredential.user, {
         username: username || email.split("@")[0],
+        firstName,
+        lastName,
       });
       navigate("/profile");
     } catch (err) {
@@ -174,6 +182,42 @@ function Signup() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label
+              htmlFor="firstName"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              First Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="firstName"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Enter your first name"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="lastName"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Last Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="lastName"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Enter your last name"
+            />
+          </div>
+
           <div>
             <label
               htmlFor="username"

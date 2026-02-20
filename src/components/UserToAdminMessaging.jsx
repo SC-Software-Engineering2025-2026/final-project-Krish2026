@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   sendUserToAdminMessage,
   subscribeToUserToAdminMessages,
 } from "../services/communityChatService";
+import { getUserProfile } from "../services/profileService";
 
 const UserToAdminMessaging = ({ communityId, userRole }) => {
   const { currentUser } = useAuth();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userProfiles, setUserProfiles] = useState({});
+  const navigate = useNavigate();
 
   const isAdmin = userRole === "admin";
 
@@ -17,10 +21,27 @@ const UserToAdminMessaging = ({ communityId, userRole }) => {
     // Subscribe to user-to-admin messages
     const unsubscribe = subscribeToUserToAdminMessages(
       communityId,
-      (newMessages) => {
+      async (newMessages) => {
         if (isAdmin) {
           // Admins see all messages
           setMessages(newMessages);
+
+          // Fetch user profiles for all message senders
+          const userIds = [...new Set(newMessages.map((msg) => msg.userId))];
+          const profiles = {};
+          await Promise.all(
+            userIds.map(async (userId) => {
+              if (!userProfiles[userId]) {
+                try {
+                  const profile = await getUserProfile(userId);
+                  profiles[userId] = profile;
+                } catch (error) {
+                  console.error(`Error fetching profile for ${userId}:`, error);
+                }
+              }
+            }),
+          );
+          setUserProfiles((prev) => ({ ...prev, ...profiles }));
         } else {
           // Users only see their own messages
           const userMessages = newMessages.filter(
@@ -128,6 +149,8 @@ const UserToAdminMessaging = ({ communityId, userRole }) => {
                 message={message}
                 isAdmin={isAdmin}
                 isOwn={message.userId === currentUser.uid}
+                userProfile={userProfiles[message.userId]}
+                navigate={navigate}
               />
             ))
           )}
@@ -161,31 +184,43 @@ const UserToAdminMessaging = ({ communityId, userRole }) => {
 };
 
 // Message Card Component
-const MessageCard = ({ message, isAdmin, isOwn }) => {
+const MessageCard = ({ message, isAdmin, isOwn, userProfile, navigate }) => {
   return (
     <div
       className={`p-4 hover:bg-gray-50 ${!message.read && isAdmin ? "bg-blue-50" : ""}`}
     >
       <div className="flex items-start space-x-3">
-        <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-          <svg
-            className="w-6 h-6 text-gray-600"
-            fill="currentColor"
-            viewBox="0 0 20 20"
+        {userProfile?.profileImage ? (
+          <img
+            src={userProfile.profileImage}
+            alt={userProfile.displayName}
+            onClick={() => navigate(`/profile/${message.userId}`)}
+            className="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+            title={`View ${userProfile.displayName || "user"}'s profile`}
+          />
+        ) : (
+          <div
+            onClick={() => navigate(`/profile/${message.userId}`)}
+            className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+            title={`View ${userProfile?.displayName || "user"}'s profile`}
           >
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </div>
+            <span className="text-gray-600 font-medium">
+              {userProfile?.displayName?.[0]?.toUpperCase() || "U"}
+            </span>
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <p className="font-semibold text-gray-900">
+            <p
+              onClick={() => navigate(`/profile/${message.userId}`)}
+              className="font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+              title={`View ${userProfile?.displayName || "user"}'s profile`}
+            >
               {isAdmin ? (
                 <>
-                  User {message.userId.slice(0, 8)}
+                  {userProfile?.displayName ||
+                    userProfile?.username ||
+                    `User ${message.userId.slice(0, 8)}`}
                   {!message.read && (
                     <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded">
                       New

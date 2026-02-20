@@ -8,6 +8,7 @@ const ImageCropper = ({
   onCancel,
   aspectRatio = 4 / 3,
   cropShape = "rect",
+  allowRatioChange = false,
 }) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -62,45 +63,49 @@ const ImageCropper = ({
 
       {/* Controls */}
       <div className="bg-black p-6 space-y-4">
-        {/* Aspect Ratio Selector */}
-        <div className="flex flex-col items-center">
-          <label className="text-white text-sm mb-3 block">Aspect Ratio</label>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setSelectedRatio(1 / 1)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedRatio === 1 / 1
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-              }`}
-            >
-              1:1
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedRatio(4 / 3)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedRatio === 4 / 3
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-              }`}
-            >
-              4:3
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedRatio(3 / 4)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedRatio === 3 / 4
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-              }`}
-            >
-              3:4
-            </button>
+        {/* Aspect Ratio Selector - Only show if allowed */}
+        {allowRatioChange && (
+          <div className="flex flex-col items-center">
+            <label className="text-white text-sm mb-3 block">
+              Aspect Ratio
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedRatio(1 / 1)}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  selectedRatio === 1 / 1
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                1:1
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRatio(4 / 3)}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  selectedRatio === 4 / 3
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                4:3
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRatio(3 / 4)}
+                className={`px-4 py-2 rounded-lg font-medium transition ${
+                  selectedRatio === 3 / 4
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                }`}
+              >
+                3:4
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex flex-col items-center">
           <label className="text-white text-sm mb-2 block">Zoom</label>

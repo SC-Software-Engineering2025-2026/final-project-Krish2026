@@ -5,9 +5,18 @@ import {
   getUserProfile,
   toggleProfilePrivacy,
   subscribeToUserProfile,
+  followUser,
+  unfollowUser,
+  isFollowing,
+  getUserFollowers,
+  getUserFollowing,
+  uploadProfileImage,
+  uploadBannerImage,
 } from "../services/profileService";
 import { getCommunitiesByIds } from "../services/communityService";
 import EditProfile from "../components/EditProfile";
+import ImageCropper from "../components/ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
 import {
   UserCircleIcon,
   Cog6ToothIcon,
@@ -18,6 +27,10 @@ import {
   ArrowRightOnRectangleIcon,
   EllipsisVerticalIcon,
   PencilIcon,
+  UserPlusIcon,
+  UserMinusIcon,
+  XMarkIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 
 const ProfilePage = () => {
@@ -32,6 +45,21 @@ const ProfilePage = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("about");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isFollowingUser, setIsFollowingUser] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
+  const [showCommunitiesModal, setShowCommunitiesModal] = useState(false);
+  const [followersList, setFollowersList] = useState([]);
+  const [followingList, setFollowingList] = useState([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [followersSearchQuery, setFollowersSearchQuery] = useState("");
+  const [followingSearchQuery, setFollowingSearchQuery] = useState("");
+  const [communitiesSearchQuery, setCommunitiesSearchQuery] = useState("");
+  const [cropperImage, setCropperImage] = useState(null);
+  const [cropperType, setCropperType] = useState(null); // 'banner' or 'profile'
+  const [cropperLoading, setCropperLoading] = useState(false);
   const dropdownRef = useRef(null);
 
   // Determine if viewing own profile
@@ -71,6 +99,22 @@ const ProfilePage = () => {
 
     return () => unsubscribe();
   }, [profileId, isOwnProfile, navigate]);
+
+  // Check if current user is following this profile
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!isOwnProfile && currentUser && profileId) {
+        try {
+          const following = await isFollowing(currentUser.uid, profileId);
+          setIsFollowingUser(following);
+        } catch (error) {
+          console.error("Error checking follow status:", error);
+        }
+      }
+    };
+
+    checkFollowStatus();
+  }, [isOwnProfile, currentUser, profileId]);
 
   // Fetch communities when communities tab is active or joinedCommunities changes
   useEffect(() => {
@@ -125,9 +169,130 @@ const ProfilePage = () => {
     }
   };
 
+  const handleFollowToggle = async () => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+      if (isFollowingUser) {
+        await unfollowUser(currentUser.uid, profileId);
+        setIsFollowingUser(false);
+        // Update local profile state
+        setProfile({
+          ...profile,
+          followersCount: Math.max((profile.followersCount || 0) - 1, 0),
+        });
+      } else {
+        await followUser(currentUser.uid, profileId);
+        setIsFollowingUser(true);
+        // Update local profile state
+        setProfile({
+          ...profile,
+          followersCount: (profile.followersCount || 0) + 1,
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling follow:", error);
+      alert("Failed to update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   const handleProfileUpdate = async () => {
     // Profile will be updated via subscription
     setIsEditMode(false);
+  };
+
+  const handleOpenFollowersModal = async () => {
+    setShowFollowersModal(true);
+    setLoadingFollowers(true);
+    try {
+      const followers = await getUserFollowers(profileId);
+      setFollowersList(followers);
+    } catch (error) {
+      console.error("Error loading followers:", error);
+    } finally {
+      setLoadingFollowers(false);
+    }
+  };
+
+  const handleOpenFollowingModal = async () => {
+    setShowFollowingModal(true);
+    setLoadingFollowing(true);
+    try {
+      const following = await getUserFollowing(profileId);
+      setFollowingList(following);
+    } catch (error) {
+      console.error("Error loading following:", error);
+    } finally {
+      setLoadingFollowing(false);
+    }
+  };
+
+  const handleOpenCommunitiesModal = async () => {
+    setShowCommunitiesModal(true);
+    if (profile?.joinedCommunities && profile.joinedCommunities.length > 0) {
+      setCommunitiesLoading(true);
+      try {
+        const communityDetails = await getCommunitiesByIds(
+          profile.joinedCommunities,
+        );
+        setCommunities(communityDetails);
+      } catch (error) {
+        console.error("Error fetching communities:", error);
+      } finally {
+        setCommunitiesLoading(false);
+      }
+    }
+  };
+
+  const handleBannerImageClick = () => {
+    if (!isOwnProfile || !profile.bannerImage) return;
+    setCropperImage(profile.bannerImage);
+    setCropperType("banner");
+  };
+
+  const handleProfileImageClick = () => {
+    if (!isOwnProfile || !profile.profileImage) return;
+    setCropperImage(profile.profileImage);
+    setCropperType("profile");
+  };
+
+  const handleCropComplete = async (croppedAreaPixels) => {
+    try {
+      setCropperLoading(true);
+      const croppedImage = await getCroppedImg(cropperImage, croppedAreaPixels);
+
+      // Convert blob to file
+      const file = new File([croppedImage], `${cropperType}-image.jpg`, {
+        type: "image/jpeg",
+      });
+
+      // Upload the cropped image
+      if (cropperType === "banner") {
+        await uploadBannerImage(currentUser.uid, file);
+      } else if (cropperType === "profile") {
+        await uploadProfileImage(currentUser.uid, file);
+      }
+
+      // Close cropper
+      setCropperImage(null);
+      setCropperType(null);
+    } catch (error) {
+      console.error("Error cropping and uploading image:", error);
+      alert("Failed to update image. Please try again.");
+    } finally {
+      setCropperLoading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setCropperImage(null);
+    setCropperType(null);
   };
 
   const handleLogout = async () => {
@@ -188,12 +353,24 @@ const ProfilePage = () => {
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         {/* Banner Image */}
         {profile.bannerImage && (
-          <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-200">
+          <div
+            className={`w-full h-48 rounded-lg overflow-hidden bg-gray-200 relative group ${
+              isOwnProfile ? "cursor-pointer" : ""
+            }`}
+            onClick={handleBannerImageClick}
+          >
             <img
               src={profile.bannerImage}
               alt="Banner"
               className="w-full h-full object-cover"
             />
+            {isOwnProfile && (
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <PencilIcon className="h-10 w-10 text-white" />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -201,11 +378,25 @@ const ProfilePage = () => {
           {/* Profile Image */}
           <div className="flex-shrink-0">
             {profile.profileImage ? (
-              <img
-                src={profile.profileImage}
-                alt={profile.displayName}
-                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-              />
+              <div
+                className={`relative group ${
+                  isOwnProfile ? "cursor-pointer" : ""
+                }`}
+                onClick={handleProfileImageClick}
+              >
+                <img
+                  src={profile.profileImage}
+                  alt={profile.displayName}
+                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+                {isOwnProfile && (
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity rounded-full flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <PencilIcon className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <UserCircleIcon className="w-32 h-32 text-gray-400" />
             )}
@@ -214,44 +405,50 @@ const ProfilePage = () => {
           {/* Profile Info */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {profile.displayName || "Anonymous User"}
-              </h1>
-              {isOwnProfile && (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
-                    title="More options"
-                  >
-                    <EllipsisVerticalIcon className="h-6 w-6" />
-                  </button>
-                  {showDropdown && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                      <button
-                        onClick={() => {
-                          setShowDropdown(false);
-                          setIsEditMode(true);
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                        <span>Edit Profile</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowDropdown(false);
-                          navigate("/settings");
-                        }}
-                        className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
-                      >
-                        <Cog6ToothIcon className="h-5 w-5" />
-                        <span>Settings</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {profile.firstName && profile.lastName
+                    ? `${profile.firstName} ${profile.lastName}`
+                    : profile.displayName || "Anonymous User"}
+                </h1>
+              </div>
+              <div className="flex items-center gap-2">
+                {isOwnProfile && (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
+                      title="More options"
+                    >
+                      <EllipsisVerticalIcon className="h-6 w-6" />
+                    </button>
+                    {showDropdown && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                        <button
+                          onClick={() => {
+                            setShowDropdown(false);
+                            setIsEditMode(true);
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                          <span>Edit Profile</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowDropdown(false);
+                            navigate("/settings");
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 text-gray-700"
+                        >
+                          <Cog6ToothIcon className="h-5 w-5" />
+                          <span>Settings</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {profile.username && (
@@ -262,25 +459,66 @@ const ProfilePage = () => {
 
             {/* Stats */}
             <div className="flex gap-6 mb-4">
-              <div className="text-center">
+              <div
+                className="text-center cursor-pointer hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+                onClick={handleOpenCommunitiesModal}
+                title="View communities"
+              >
                 <p className="font-bold text-xl text-gray-900">
-                  {profile.postsCount || 0}
+                  {profile.joinedCommunities?.length || 0}
                 </p>
-                <p className="text-gray-600 text-sm">Posts</p>
+                <p className="text-gray-600 text-sm">Communities</p>
               </div>
-              <div className="text-center">
+              <div
+                className="text-center cursor-pointer hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+                onClick={handleOpenFollowersModal}
+                title="View followers"
+              >
                 <p className="font-bold text-xl text-gray-900">
                   {profile.followersCount || 0}
                 </p>
                 <p className="text-gray-600 text-sm">Followers</p>
               </div>
-              <div className="text-center">
+              <div
+                className="text-center cursor-pointer hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+                onClick={handleOpenFollowingModal}
+                title="View following"
+              >
                 <p className="font-bold text-xl text-gray-900">
                   {profile.followingCount || 0}
                 </p>
                 <p className="text-gray-600 text-sm">Following</p>
               </div>
             </div>
+
+            {/* Follow Button - positioned under stats */}
+            {!isOwnProfile && (
+              <div className="mb-4">
+                <button
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md font-medium ${
+                    isFollowingUser
+                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {followLoading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : isFollowingUser ? (
+                    <>
+                      <UserMinusIcon className="h-5 w-5" />
+                      <span>Unfollow</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlusIcon className="h-5 w-5" />
+                      <span>Follow</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* Links */}
             {profile.links && profile.links.length > 0 && (
@@ -315,17 +553,6 @@ const ProfilePage = () => {
           >
             <PhotoIcon className="h-5 w-5" />
             <span>About Me</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("communities")}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition ${
-              activeTab === "communities"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <UserGroupIcon className="h-5 w-5" />
-            <span>Communities</span>
           </button>
         </div>
       </div>
@@ -364,71 +591,404 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {activeTab === "communities" && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          {communitiesLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      {/* Followers Modal */}
+      {showFollowersModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowFollowersModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Followers</h2>
+              <button
+                onClick={() => setShowFollowersModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition"
+              >
+                <XMarkIcon className="h-6 w-6 text-gray-600" />
+              </button>
             </div>
-          ) : communities.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {communities.map((community) => (
-                <Link
-                  key={community.id}
-                  to={`/community/${community.id}`}
-                  className="p-4 border rounded-lg hover:bg-gray-50 hover:shadow-md transition"
-                >
-                  <div className="flex items-start gap-3">
-                    {community.imageUrl ? (
-                      <img
-                        src={community.imageUrl}
-                        alt={community.name}
-                        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <UserGroupIcon className="h-8 w-8 text-blue-600" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate mb-1">
-                        {community.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                        {community.description || "No description"}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>{community.memberCount} members</span>
-                        <span>•</span>
-                        <span>{community.isPublic ? "Public" : "Private"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+
+            {/* Search Input */}
+            <div className="p-4 border-b">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search followers..."
+                  value={followersSearchQuery}
+                  onChange={(e) => setFollowersSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <UserGroupIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                No communities yet
-              </h3>
-              {isOwnProfile && (
-                <>
-                  <p className="text-gray-600 mb-4">
-                    Join communities to connect with others!
+
+            {/* Modal Content */}
+            <div className="overflow-y-auto max-h-[calc(80vh-160px)]">
+              {loadingFollowers ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                </div>
+              ) : followersList.filter((follower) => {
+                  const searchLower = followersSearchQuery.toLowerCase();
+                  const fullName =
+                    `${follower.firstName || ""} ${follower.lastName || ""}`.toLowerCase();
+                  const displayName = (
+                    follower.displayName || ""
+                  ).toLowerCase();
+                  const username = (follower.username || "").toLowerCase();
+                  return (
+                    fullName.includes(searchLower) ||
+                    displayName.includes(searchLower) ||
+                    username.includes(searchLower)
+                  );
+                }).length > 0 ? (
+                <div className="divide-y">
+                  {followersList
+                    .filter((follower) => {
+                      const searchLower = followersSearchQuery.toLowerCase();
+                      const fullName =
+                        `${follower.firstName || ""} ${follower.lastName || ""}`.toLowerCase();
+                      const displayName = (
+                        follower.displayName || ""
+                      ).toLowerCase();
+                      const username = (follower.username || "").toLowerCase();
+                      return (
+                        fullName.includes(searchLower) ||
+                        displayName.includes(searchLower) ||
+                        username.includes(searchLower)
+                      );
+                    })
+                    .map((follower) => (
+                      <div
+                        key={follower.id}
+                        onClick={() => {
+                          setShowFollowersModal(false);
+                          navigate(`/profile/${follower.id}`);
+                        }}
+                        className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition"
+                      >
+                        {follower.profileImage ? (
+                          <img
+                            src={follower.profileImage}
+                            alt={follower.displayName}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+                            <span className="text-gray-600 font-medium text-lg">
+                              {follower.displayName?.[0]?.toUpperCase() ||
+                                follower.firstName?.[0]?.toUpperCase() ||
+                                "U"}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">
+                            {follower.firstName && follower.lastName
+                              ? `${follower.firstName} ${follower.lastName}`
+                              : follower.displayName || "Anonymous User"}
+                          </p>
+                          {follower.username && (
+                            <p className="text-sm text-gray-600 truncate">
+                              @{follower.username}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600">
+                    {followersSearchQuery
+                      ? "No followers found"
+                      : "No followers yet"}
                   </p>
-                  <Link
-                    to="/communities"
-                    className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Browse Communities
-                  </Link>
-                </>
+                </div>
               )}
             </div>
-          )}
+          </div>
         </div>
+      )}
+
+      {/* Following Modal */}
+      {showFollowingModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowFollowingModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Following</h2>
+              <button
+                onClick={() => setShowFollowingModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition"
+              >
+                <XMarkIcon className="h-6 w-6 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="p-4 border-b">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search following..."
+                  value={followingSearchQuery}
+                  onChange={(e) => setFollowingSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="overflow-y-auto max-h-[calc(80vh-160px)]">
+              {loadingFollowing ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                </div>
+              ) : followingList.filter((followingUser) => {
+                  const searchLower = followingSearchQuery.toLowerCase();
+                  const fullName =
+                    `${followingUser.firstName || ""} ${followingUser.lastName || ""}`.toLowerCase();
+                  const displayName = (
+                    followingUser.displayName || ""
+                  ).toLowerCase();
+                  const username = (followingUser.username || "").toLowerCase();
+                  return (
+                    fullName.includes(searchLower) ||
+                    displayName.includes(searchLower) ||
+                    username.includes(searchLower)
+                  );
+                }).length > 0 ? (
+                <div className="divide-y">
+                  {followingList
+                    .filter((followingUser) => {
+                      const searchLower = followingSearchQuery.toLowerCase();
+                      const fullName =
+                        `${followingUser.firstName || ""} ${followingUser.lastName || ""}`.toLowerCase();
+                      const displayName = (
+                        followingUser.displayName || ""
+                      ).toLowerCase();
+                      const username = (
+                        followingUser.username || ""
+                      ).toLowerCase();
+                      return (
+                        fullName.includes(searchLower) ||
+                        displayName.includes(searchLower) ||
+                        username.includes(searchLower)
+                      );
+                    })
+                    .map((followingUser) => (
+                      <div
+                        key={followingUser.id}
+                        onClick={() => {
+                          setShowFollowingModal(false);
+                          navigate(`/profile/${followingUser.id}`);
+                        }}
+                        className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition"
+                      >
+                        {followingUser.profileImage ? (
+                          <img
+                            src={followingUser.profileImage}
+                            alt={followingUser.displayName}
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+                            <span className="text-gray-600 font-medium text-lg">
+                              {followingUser.displayName?.[0]?.toUpperCase() ||
+                                followingUser.firstName?.[0]?.toUpperCase() ||
+                                "U"}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 truncate">
+                            {followingUser.firstName && followingUser.lastName
+                              ? `${followingUser.firstName} ${followingUser.lastName}`
+                              : followingUser.displayName || "Anonymous User"}
+                          </p>
+                          {followingUser.username && (
+                            <p className="text-sm text-gray-600 truncate">
+                              @{followingUser.username}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600">
+                    {followingSearchQuery
+                      ? "No users found"
+                      : "Not following anyone yet"}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Communities Modal */}
+      {showCommunitiesModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowCommunitiesModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Communities</h2>
+              <button
+                onClick={() => setShowCommunitiesModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition"
+              >
+                <XMarkIcon className="h-6 w-6 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="p-4 border-b">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search communities..."
+                  value={communitiesSearchQuery}
+                  onChange={(e) => setCommunitiesSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="overflow-y-auto max-h-[calc(80vh-160px)] p-6">
+              {communitiesLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                </div>
+              ) : communities.filter((community) => {
+                  const searchLower = communitiesSearchQuery.toLowerCase();
+                  const name = (community.name || "").toLowerCase();
+                  const description = (
+                    community.description || ""
+                  ).toLowerCase();
+                  return (
+                    name.includes(searchLower) ||
+                    description.includes(searchLower)
+                  );
+                }).length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {communities
+                    .filter((community) => {
+                      const searchLower = communitiesSearchQuery.toLowerCase();
+                      const name = (community.name || "").toLowerCase();
+                      const description = (
+                        community.description || ""
+                      ).toLowerCase();
+                      return (
+                        name.includes(searchLower) ||
+                        description.includes(searchLower)
+                      );
+                    })
+                    .map((community) => (
+                      <div
+                        key={community.id}
+                        onClick={() => {
+                          setShowCommunitiesModal(false);
+                          navigate(`/communities/${community.id}`);
+                        }}
+                        className="p-4 border rounded-lg hover:bg-gray-50 hover:shadow-md transition cursor-pointer"
+                      >
+                        <div className="flex items-start gap-3">
+                          {community.imageUrl ? (
+                            <img
+                              src={community.imageUrl}
+                              alt={community.name}
+                              className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <UserGroupIcon className="h-8 w-8 text-blue-600" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate mb-1">
+                              {community.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                              {community.description || "No description"}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>{community.memberCount} members</span>
+                              <span>•</span>
+                              <span>
+                                {community.isPublic ? "Public" : "Private"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <UserGroupIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                    {communitiesSearchQuery
+                      ? "No communities found"
+                      : "No communities yet"}
+                  </h3>
+                  {isOwnProfile && !communitiesSearchQuery && (
+                    <>
+                      <p className="text-gray-600 mb-4">
+                        Join communities to connect with others!
+                      </p>
+                      <button
+                        onClick={() => {
+                          setShowCommunitiesModal(false);
+                          navigate("/communities");
+                        }}
+                        className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      >
+                        Browse Communities
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Cropper Modal */}
+      {cropperImage && (
+        <ImageCropper
+          image={cropperImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={cropperType === "banner" ? 16 / 3 : 1}
+          cropShape={cropperType === "profile" ? "round" : "rect"}
+          allowRatioChange={true}
+        />
       )}
     </div>
   );
