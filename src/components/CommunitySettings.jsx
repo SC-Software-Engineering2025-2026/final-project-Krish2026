@@ -9,13 +9,17 @@ import {
   removeMember,
   promoteToAdmin,
   leaveCommunity,
+  transferOwnership,
+  demoteAdmin,
 } from "../services/communityService";
+import { getUserProfile } from "../services/profileService";
 
 const CommunitySettings = ({ communityId, userRole }) => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [members, setMembers] = useState([]);
+  const [memberProfiles, setMemberProfiles] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general"); // general, members
@@ -37,6 +41,25 @@ const CommunitySettings = ({ communityId, userRole }) => {
       ]);
       setCommunity(communityData);
       setMembers(membersData);
+
+      // Fetch user profiles for all members
+      const profiles = {};
+      await Promise.all(
+        membersData.map(async (member) => {
+          try {
+            const profile = await getUserProfile(member.userId);
+            if (profile) {
+              profiles[member.userId] = profile;
+            }
+          } catch (error) {
+            console.error(
+              `Error fetching profile for ${member.userId}:`,
+              error,
+            );
+          }
+        }),
+      );
+      setMemberProfiles(profiles);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -61,7 +84,7 @@ const CommunitySettings = ({ communityId, userRole }) => {
 
   const handleDeleteCommunity = async () => {
     if (!canDelete) {
-      alert("Only the creator or admin can delete this community");
+      alert("Only the owner or admin can delete this community");
       return;
     }
 
@@ -88,7 +111,7 @@ const CommunitySettings = ({ communityId, userRole }) => {
   const handleLeaveCommunity = async () => {
     if (isCreator) {
       alert(
-        "Creator cannot leave the community. Transfer ownership or delete the community.",
+        "Owner cannot leave the community. Transfer ownership or delete the community.",
       );
       return;
     }
@@ -134,6 +157,41 @@ const CommunitySettings = ({ communityId, userRole }) => {
     } catch (error) {
       console.error("Error promoting member:", error);
       alert(error.message || "Failed to promote member");
+    }
+  };
+
+  const handleTransferOwnership = async (userId) => {
+    if (!isCreator) return;
+
+    const confirmed = confirm(
+      "Are you sure you want to transfer ownership to this admin? You will no longer be the owner of this community.",
+    );
+    if (!confirmed) return;
+
+    try {
+      await transferOwnership(communityId, userId, currentUser.uid);
+      await loadData();
+      alert("Ownership transferred successfully");
+    } catch (error) {
+      console.error("Error transferring ownership:", error);
+      alert(error.message || "Failed to transfer ownership");
+    }
+  };
+
+  const handleDemoteAdmin = async (userId) => {
+    if (!isCreator) return;
+
+    const confirmed = confirm(
+      "Are you sure you want to demote this admin to a regular member?",
+    );
+    if (!confirmed) return;
+
+    try {
+      await demoteAdmin(communityId, userId, currentUser.uid);
+      await loadData();
+    } catch (error) {
+      console.error("Error demoting admin:", error);
+      alert(error.message || "Failed to demote admin");
     }
   };
 
@@ -215,9 +273,12 @@ const CommunitySettings = ({ communityId, userRole }) => {
           {activeTab === "members" && (
             <MembersSettings
               members={members}
+              memberProfiles={memberProfiles}
               community={community}
               onRemove={handleRemoveMember}
               onPromote={handlePromoteToAdmin}
+              onTransferOwnership={handleTransferOwnership}
+              onDemote={handleDemoteAdmin}
               currentUserId={currentUser.uid}
               isCreator={isCreator}
             />
@@ -366,20 +427,182 @@ const GeneralSettings = ({
 // Members Settings Tab
 const MembersSettings = ({
   members,
+  memberProfiles,
   community,
   onRemove,
   onPromote,
+  onTransferOwnership,
+  onDemote,
   currentUserId,
   isCreator,
 }) => {
   const [search, setSearch] = useState("");
+  const [openMenuId, setOpenMenuId] = useState(null);
 
-  const filteredMembers = members.filter((member) =>
-    member.userId.toLowerCase().includes(search.toLowerCase()),
+  const filteredMembers = members.filter((member) => {
+    const profile = memberProfiles[member.userId];
+    const searchLower = search.toLowerCase();
+    return (
+      member.userId.toLowerCase().includes(searchLower) ||
+      profile?.username?.toLowerCase().includes(searchLower) ||
+      profile?.displayName?.toLowerCase().includes(searchLower) ||
+      profile?.email?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Separate members into owner, admins, and regular members
+  const ownerMember = filteredMembers.filter(
+    (member) => member.userId === community?.creatorId,
+  );
+  const adminMembers = filteredMembers.filter(
+    (member) =>
+      member.role === "admin" && member.userId !== community?.creatorId,
+  );
+  const regularMembers = filteredMembers.filter(
+    (member) =>
+      member.role !== "admin" && member.userId !== community?.creatorId,
   );
 
+  const renderMember = (member) => {
+    const isCurrentUser = member.userId === currentUserId;
+    const isCommunityCreator = member.userId === community?.creatorId;
+    const isMemberAdmin = member.role === "admin";
+    const profile = memberProfiles[member.userId];
+
+    return (
+      <div
+        key={member.id}
+        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+      >
+        <div className="flex items-center space-x-3">
+          {profile?.profileImage ? (
+            <img
+              src={profile.profileImage}
+              alt={profile.username || "User"}
+              className="w-12 h-12 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+              <span className="text-gray-600 font-medium text-lg">
+                {profile?.username?.[0]?.toUpperCase() || "U"}
+              </span>
+            </div>
+          )}
+          <div>
+            <div className="flex items-center space-x-2">
+              <p className="font-medium">
+                {isCurrentUser
+                  ? "You"
+                  : profile?.firstName && profile?.lastName
+                    ? `${profile.firstName} ${profile.lastName}`
+                    : profile?.displayName ||
+                      profile?.username ||
+                      `User ${member.userId.slice(0, 8)}`}
+              </p>
+              {isCommunityCreator && (
+                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
+                  Owner
+                </span>
+              )}
+              {isMemberAdmin && (
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded">
+                  Admin
+                </span>
+              )}
+            </div>
+            <div className="text-sm text-gray-500">
+              {!isCurrentUser && profile?.username && (
+                <p className="truncate max-w-xs">@{profile.username}</p>
+              )}
+              <p>
+                Joined{" "}
+                {member.joinedAt?.toDate?.().toLocaleDateString() || "Recently"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        {!isCurrentUser && !isCommunityCreator && (
+          <div className="relative">
+            <button
+              onClick={() =>
+                setOpenMenuId(openMenuId === member.id ? null : member.id)
+              }
+              className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+            >
+              <svg
+                className="w-5 h-5 text-gray-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+
+            {openMenuId === member.id && (
+              <>
+                {/* Backdrop to close menu when clicking outside */}
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setOpenMenuId(null)}
+                />
+
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                  {!isMemberAdmin && (
+                    <button
+                      onClick={() => {
+                        onPromote(member.userId);
+                        setOpenMenuId(null);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      Promote to Admin
+                    </button>
+                  )}
+                  {isMemberAdmin && isCreator && (
+                    <>
+                      <button
+                        onClick={() => {
+                          onDemote(member.userId);
+                          setOpenMenuId(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700"
+                      >
+                        Demote to Member
+                      </button>
+                      <button
+                        onClick={() => {
+                          onTransferOwnership(member.userId);
+                          setOpenMenuId(null);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700"
+                      >
+                        Transfer Ownership
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      onRemove(member.userId);
+                      setOpenMenuId(null);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 border-t border-gray-200"
+                  >
+                    Remove Member
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-visible pb-[100px]">
       {/* Search */}
       <div>
         <input
@@ -391,81 +614,39 @@ const MembersSettings = ({
         />
       </div>
 
-      {/* Members List */}
-      <div className="space-y-2">
-        {filteredMembers.map((member) => {
-          const isCurrentUser = member.userId === currentUserId;
-          const isCommunityCreator = member.userId === community?.creatorId;
-          const isMemberAdmin = member.role === "admin";
+      {/* Owner Section */}
+      {ownerMember.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900">Owner</h3>
+          <div className="space-y-2 overflow-visible">
+            {ownerMember.map(renderMember)}
+          </div>
+        </div>
+      )}
 
-          return (
-            <div
-              key={member.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-gray-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <p className="font-medium">
-                      {isCurrentUser
-                        ? "You"
-                        : `User ${member.userId.slice(0, 8)}`}
-                    </p>
-                    {isCommunityCreator && (
-                      <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
-                        Creator
-                      </span>
-                    )}
-                    {isMemberAdmin && (
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-medium rounded">
-                        Admin
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Joined{" "}
-                    {member.joinedAt?.toDate?.().toLocaleDateString() ||
-                      "Recently"}
-                  </p>
-                </div>
-              </div>
+      {/* Admins Section */}
+      {adminMembers.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Admins ({adminMembers.length})
+          </h3>
+          <div className="space-y-2 overflow-visible">
+            {adminMembers.map(renderMember)}
+          </div>
+        </div>
+      )}
 
-              {/* Actions */}
-              {!isCurrentUser && !isCommunityCreator && (
-                <div className="flex items-center space-x-2">
-                  {!isMemberAdmin && (
-                    <button
-                      onClick={() => onPromote(member.userId)}
-                      className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                    >
-                      Promote to Admin
-                    </button>
-                  )}
-                  <button
-                    onClick={() => onRemove(member.userId)}
-                    className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* Regular Members Section */}
+      {regularMembers.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Members ({regularMembers.length})
+          </h3>
+          <div className="space-y-2 overflow-visible">
+            {regularMembers.map(renderMember)}
+          </div>
+        </div>
+      )}
 
       {filteredMembers.length === 0 && (
         <div className="text-center py-12">

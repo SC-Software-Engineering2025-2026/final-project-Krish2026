@@ -296,9 +296,15 @@ export const hasLikedPost = async (postId, userId) => {
  * @param {string} postId - The post ID
  * @param {string} userId - The user ID
  * @param {string} text - Comment text
+ * @param {string} parentCommentId - Optional parent comment ID for replies
  * @returns {Promise<string>} Comment ID
  */
-export const addComment = async (postId, userId, text) => {
+export const addComment = async (
+  postId,
+  userId,
+  text,
+  parentCommentId = null,
+) => {
   try {
     const commentsRef = collection(db, "postComments");
     const comment = {
@@ -306,6 +312,7 @@ export const addComment = async (postId, userId, text) => {
       userId,
       text,
       createdAt: serverTimestamp(),
+      ...(parentCommentId && { parentCommentId }),
     };
 
     const docRef = await addDoc(commentsRef, comment);
@@ -370,6 +377,62 @@ export const deleteComment = async (commentId, postId) => {
     });
   } catch (error) {
     console.error("Error deleting comment:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update a comment
+ * @param {string} commentId - The comment ID
+ * @param {string} text - Updated comment text
+ * @returns {Promise<void>}
+ */
+export const updateComment = async (commentId, text) => {
+  try {
+    const commentRef = doc(db, "postComments", commentId);
+    await updateDoc(commentRef, {
+      text,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating comment:", error);
+    throw error;
+  }
+};
+
+/**
+ * Like/unlike a comment
+ * @param {string} commentId - The comment ID
+ * @param {string} userId - The user ID
+ * @returns {Promise<void>}
+ */
+export const likeComment = async (commentId, userId) => {
+  try {
+    const commentRef = doc(db, "postComments", commentId);
+    const commentDoc = await getDoc(commentRef);
+
+    if (!commentDoc.exists()) {
+      throw new Error("Comment not found");
+    }
+
+    const likes = commentDoc.data().likes || [];
+    const isLiked = likes.includes(userId);
+
+    if (isLiked) {
+      // Unlike
+      await updateDoc(commentRef, {
+        likes: arrayRemove(userId),
+        likesCount: increment(-1),
+      });
+    } else {
+      // Like
+      await updateDoc(commentRef, {
+        likes: arrayUnion(userId),
+        likesCount: increment(1),
+      });
+    }
+  } catch (error) {
+    console.error("Error liking comment:", error);
     throw error;
   }
 };

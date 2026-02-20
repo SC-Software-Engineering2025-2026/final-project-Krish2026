@@ -136,9 +136,15 @@ export const likeCommunityPost = async (postId, userId) => {
  * @param {string} postId - Post ID
  * @param {string} userId - User ID
  * @param {string} text - Comment text
+ * @param {string} parentCommentId - Optional parent comment ID for replies
  * @returns {Promise<string>} Comment ID
  */
-export const addCommentToCommunityPost = async (postId, userId, text) => {
+export const addCommentToCommunityPost = async (
+  postId,
+  userId,
+  text,
+  parentCommentId = null,
+) => {
   try {
     const commentsRef = collection(
       db,
@@ -148,6 +154,7 @@ export const addCommentToCommunityPost = async (postId, userId, text) => {
       userId,
       text,
       createdAt: serverTimestamp(),
+      ...(parentCommentId && { parentCommentId }),
     };
 
     const docRef = await addDoc(commentsRef, comment);
@@ -191,6 +198,104 @@ export const getCommunityPostComments = async (postId) => {
     }));
   } catch (error) {
     console.error("Error getting comments:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update a comment on a community post
+ * @param {string} postId - Post ID (format: communityId/posts/postId)
+ * @param {string} commentId - Comment ID
+ * @param {string} text - Updated comment text
+ * @returns {Promise<void>}
+ */
+export const updateCommunityPostComment = async (postId, commentId, text) => {
+  try {
+    const commentRef = doc(
+      db,
+      `communities/${postId.split("/")[0]}/posts/${postId.split("/")[2] || postId}/comments`,
+      commentId,
+    );
+    await updateDoc(commentRef, {
+      text,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating comment:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a comment from a community post
+ * @param {string} postId - Post ID (format: communityId/posts/postId)
+ * @param {string} commentId - Comment ID
+ * @returns {Promise<void>}
+ */
+export const deleteCommunityPostComment = async (postId, commentId) => {
+  try {
+    const commentRef = doc(
+      db,
+      `communities/${postId.split("/")[0]}/posts/${postId.split("/")[2] || postId}/comments`,
+      commentId,
+    );
+    await deleteDoc(commentRef);
+
+    // Decrement comment count
+    const postRef = doc(
+      db,
+      "communities",
+      postId.split("/")[0],
+      "posts",
+      postId.split("/")[2] || postId,
+    );
+    await updateDoc(postRef, {
+      commentsCount: increment(-1),
+    });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    throw error;
+  }
+};
+
+/**
+ * Like/unlike a comment on a community post
+ * @param {string} postId - Post ID (format: communityId/posts/postId)
+ * @param {string} commentId - Comment ID
+ * @param {string} userId - User ID
+ * @returns {Promise<void>}
+ */
+export const likeCommunityPostComment = async (postId, commentId, userId) => {
+  try {
+    const commentRef = doc(
+      db,
+      `communities/${postId.split("/")[0]}/posts/${postId.split("/")[2] || postId}/comments`,
+      commentId,
+    );
+    const commentDoc = await getDoc(commentRef);
+
+    if (!commentDoc.exists()) {
+      throw new Error("Comment not found");
+    }
+
+    const likes = commentDoc.data().likes || [];
+    const isLiked = likes.includes(userId);
+
+    if (isLiked) {
+      // Unlike
+      await updateDoc(commentRef, {
+        likes: arrayRemove(userId),
+        likesCount: increment(-1),
+      });
+    } else {
+      // Like
+      await updateDoc(commentRef, {
+        likes: arrayUnion(userId),
+        likesCount: increment(1),
+      });
+    }
+  } catch (error) {
+    console.error("Error liking comment:", error);
     throw error;
   }
 };

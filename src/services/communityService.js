@@ -678,6 +678,59 @@ export const promoteToAdmin = async (communityId, userId, promoterId) => {
 };
 
 /**
+ * Demote admin to regular member
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID to demote
+ * @param {string} ownerId - ID of owner performing the demotion
+ */
+export const demoteAdmin = async (communityId, userId, ownerId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if the person demoting is the owner
+    if (communityData.creatorId !== ownerId) {
+      throw new Error("Only the owner can demote admins");
+    }
+
+    // Prevent demoting the owner themselves
+    if (userId === communityData.creatorId) {
+      throw new Error("Cannot demote the owner");
+    }
+
+    // Remove user from admins array
+    await updateDoc(communityRef, {
+      admins: arrayRemove(userId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update role in members subcollection
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userId),
+    );
+    const membersSnapshot = await getDocs(membersQuery);
+
+    if (!membersSnapshot.empty) {
+      await updateDoc(membersSnapshot.docs[0].ref, {
+        role: "member",
+      });
+    }
+
+    console.log(`Admin ${userId} demoted to member`);
+  } catch (error) {
+    console.error("Error demoting admin:", error);
+    throw error;
+  }
+};
+
+/**
  * Remove user from community (kick)
  * @param {string} communityId - Community ID
  * @param {string} userIdToRemove - User ID to remove
@@ -747,6 +800,54 @@ export const getCommunityMembers = async (communityId) => {
     }));
   } catch (error) {
     console.error("Error getting community members:", error);
+    throw error;
+  }
+};
+
+/**
+ * Transfer community ownership to another admin
+ * @param {string} communityId - Community ID
+ * @param {string} newOwnerId - User ID of the new owner (must be an admin)
+ * @param {string} currentOwnerId - User ID of the current owner
+ */
+export const transferOwnership = async (
+  communityId,
+  newOwnerId,
+  currentOwnerId,
+) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Verify current user is the owner
+    if (communityData.creatorId !== currentOwnerId) {
+      throw new Error("Only the owner can transfer ownership");
+    }
+
+    const admins = communityData.admins || [];
+
+    // Verify new owner is an admin
+    if (!admins.includes(newOwnerId)) {
+      throw new Error("New owner must be an admin");
+    }
+
+    // Update the creatorId to the new owner
+    await updateDoc(communityRef, {
+      creatorId: newOwnerId,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(
+      `Ownership transferred from ${currentOwnerId} to ${newOwnerId}`,
+    );
+  } catch (error) {
+    console.error("Error transferring ownership:", error);
     throw error;
   }
 };

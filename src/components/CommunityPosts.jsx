@@ -8,6 +8,9 @@ import {
   getCommunityPostComments,
   subscribeToCommunityPosts,
   deleteCommunityPost,
+  updateCommunityPostComment,
+  deleteCommunityPostComment,
+  likeCommunityPostComment,
 } from "../services/communityPostService";
 import { getUserProfile } from "../services/profileService";
 import ImageCropper from "./ImageCropper";
@@ -1170,9 +1173,13 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
   const [contextMenuPosition, setContextMenuPosition] = useState(null);
   const [editingComment, setEditingComment] = useState(null);
   const [editText, setEditText] = useState("");
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [collapsedReplies, setCollapsedReplies] = useState({});
   const commentsEndRef = useRef(null);
   const inputRef = useRef(null);
   const editInputRef = useRef(null);
+  const replyInputRef = useRef(null);
 
   useEffect(() => {
     loadComments();
@@ -1203,7 +1210,28 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
         }),
       );
 
-      setComments(commentsWithProfiles);
+      // Organize comments into parent-child structure
+      const topLevelComments = commentsWithProfiles.filter(
+        (c) => !c.parentCommentId,
+      );
+      const repliesMap = {};
+
+      commentsWithProfiles.forEach((comment) => {
+        if (comment.parentCommentId) {
+          if (!repliesMap[comment.parentCommentId]) {
+            repliesMap[comment.parentCommentId] = [];
+          }
+          repliesMap[comment.parentCommentId].push(comment);
+        }
+      });
+
+      // Attach replies to their parent comments
+      const commentsWithReplies = topLevelComments.map((comment) => ({
+        ...comment,
+        replies: repliesMap[comment.id] || [],
+      }));
+
+      setComments(commentsWithReplies);
     } catch (error) {
       console.error("Error loading comments:", error);
     } finally {
@@ -1222,6 +1250,17 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
     });
   };
 
+  const handleReplyDoubleClick = (reply, event) => {
+    if (reply.userId !== currentUser.uid) return;
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    setSelectedComment(reply);
+    setContextMenuPosition({
+      x: event.clientX,
+      y: rect.bottom + 5,
+    });
+  };
+
   const handleEditComment = () => {
     if (!selectedComment) return;
     setEditingComment(selectedComment);
@@ -1234,8 +1273,9 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
     if (!selectedComment) return;
     if (window.confirm("Are you sure you want to delete this comment?")) {
       try {
-        // Note: You'll need to implement deleteComment function in the service
-        alert("Delete functionality needs to be implemented in the service");
+        const postPath = `${communityId}/posts/${post.id}`;
+        await deleteCommunityPostComment(postPath, selectedComment.id);
+        await loadComments();
         setContextMenuPosition(null);
         setSelectedComment(null);
       } catch (error) {
@@ -1248,8 +1288,9 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
   const handleSaveEdit = async () => {
     if (!editText.trim() || !editingComment) return;
     try {
-      // Note: You'll need to implement updateComment function in the service
-      alert("Edit functionality needs to be implemented in the service");
+      const postPath = `${communityId}/posts/${post.id}`;
+      await updateCommunityPostComment(postPath, editingComment.id, editText);
+      await loadComments();
       setEditingComment(null);
       setEditText("");
     } catch (error) {
@@ -1261,6 +1302,61 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
   const handleCancelEdit = () => {
     setEditingComment(null);
     setEditText("");
+  };
+
+  const handleReply = (comment) => {
+    setReplyingTo(comment);
+    setReplyText("");
+    setTimeout(() => replyInputRef.current?.focus(), 100);
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+    setReplyText("");
+  };
+
+  const handleSubmitReply = async (e) => {
+    e.preventDefault();
+    if (!replyText.trim() || !replyingTo) return;
+
+    const commentText = replyText.trim();
+    setLoading(true);
+
+    try {
+      const postPath = `${communityId}/posts/${post.id}`;
+      await addCommentToCommunityPost(
+        postPath,
+        currentUser.uid,
+        commentText,
+        replyingTo.id,
+      );
+      await loadComments();
+      onCommentAdded();
+      setReplyingTo(null);
+      setReplyText("");
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      alert("Failed to post reply. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleReplies = (commentId) => {
+    setCollapsedReplies((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  };
+
+  const handleCommentLike = async (commentId) => {
+    try {
+      const postPath = `${communityId}/posts/${post.id}`;
+      await likeCommunityPostComment(postPath, commentId, currentUser.uid);
+      await loadComments();
+    } catch (error) {
+      console.error("Error liking comment:", error);
+    }
   };
 
   // Close context menu when clicking outside
@@ -1315,7 +1411,12 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
 
     try {
       const postPath = `${communityId}/posts/${post.id}`;
-      await addCommentToCommunityPost(postPath, currentUser.uid, commentText);
+      await addCommentToCommunityPost(
+        postPath,
+        currentUser.uid,
+        commentText,
+        null,
+      );
 
       // Reload comments from server to ensure data consistency
       await loadComments();
@@ -1386,64 +1487,263 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
           ) : (
             <>
               {comments.map((comment) => (
-                <div key={comment.id} className="flex space-x-3">
-                  {comment.userProfile?.profileImage ? (
-                    <img
-                      src={comment.userProfile.profileImage}
-                      alt={comment.userProfile.username}
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                      <span className="text-gray-600 font-medium">
-                        {comment.userProfile?.username?.[0]?.toUpperCase() ||
-                          "U"}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">
-                      {comment.userProfile?.username || "User"}
-                    </p>
-                    {editingComment?.id === comment.id ? (
-                      <div className="mt-1">
-                        <input
-                          ref={editInputRef}
-                          type="text"
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          autoFocus
-                        />
-                        <div className="flex space-x-2 mt-2">
-                          <button
-                            onClick={handleSaveEdit}
-                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
+                <div key={comment.id}>
+                  <div className="flex space-x-3">
+                    {comment.userProfile?.profileImage ? (
+                      <img
+                        src={comment.userProfile.profileImage}
+                        alt={comment.userProfile.username}
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      />
                     ) : (
-                      <p
-                        className="text-gray-900 mt-1 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
-                        onDoubleClick={(e) =>
-                          handleCommentDoubleClick(comment, e)
-                        }
-                      >
-                        {comment.text}
-                      </p>
+                      <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+                        <span className="text-gray-600 font-medium">
+                          {comment.userProfile?.username?.[0]?.toUpperCase() ||
+                            "U"}
+                        </span>
+                      </div>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      {comment.createdAt?.toDate?.()?.toLocaleDateString() ||
-                        "Just now"}
-                    </p>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">
+                        {comment.userProfile?.username || "User"}
+                      </p>
+                      {editingComment?.id === comment.id ? (
+                        <div className="mt-1">
+                          <input
+                            ref={editInputRef}
+                            type="text"
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="w-full px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            autoFocus
+                          />
+                          <div className="flex space-x-2 mt-2">
+                            <button
+                              onClick={handleSaveEdit}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p
+                          className="text-gray-900 mt-1 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                          onDoubleClick={(e) =>
+                            handleCommentDoubleClick(comment, e)
+                          }
+                        >
+                          {comment.text}
+                        </p>
+                      )}
+                      <div className="flex items-center space-x-3 mt-1">
+                        <p className="text-xs text-gray-500">
+                          {comment.createdAt
+                            ?.toDate?.()
+                            ?.toLocaleDateString() || "Just now"}
+                          {comment.updatedAt && (
+                            <span className="italic ml-2">(edited)</span>
+                          )}
+                        </p>
+                        <button
+                          onClick={() => handleCommentLike(comment.id)}
+                          className="flex items-center space-x-1 text-xs text-gray-600 hover:text-red-600 font-medium"
+                        >
+                          <svg
+                            className={`w-3.5 h-3.5 ${
+                              comment.likes?.includes(currentUser.uid)
+                                ? "fill-red-600 text-red-600"
+                                : "fill-none"
+                            }`}
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                          <span>{comment.likesCount || 0}</span>
+                        </button>
+                        <button
+                          onClick={() => handleReply(comment)}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Reply
+                        </button>
+                      </div>
+
+                      {/* Reply Form */}
+                      {replyingTo?.id === comment.id && (
+                        <form onSubmit={handleSubmitReply} className="mt-2">
+                          <div className="flex space-x-2">
+                            <input
+                              ref={replyInputRef}
+                              type="text"
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder={`Reply to ${comment.userProfile?.username || "User"}...`}
+                              className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              disabled={loading}
+                            />
+                            <button
+                              type="submit"
+                              disabled={loading || !replyText.trim()}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            >
+                              {loading ? "..." : "Reply"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelReply}
+                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      {/* Replies Section */}
+                      {comment.replies && comment.replies.length > 0 && (
+                        <div className="mt-2">
+                          <button
+                            onClick={() => toggleReplies(comment.id)}
+                            className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-800 font-medium"
+                          >
+                            <svg
+                              className={`w-4 h-4 transition-transform ${collapsedReplies[comment.id] ? "" : "rotate-90"}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5l7 7-7 7"
+                              />
+                            </svg>
+                            <span>
+                              {collapsedReplies[comment.id] ? "Show" : "Hide"}{" "}
+                              {comment.replies.length}{" "}
+                              {comment.replies.length === 1
+                                ? "reply"
+                                : "replies"}
+                            </span>
+                          </button>
+
+                          {!collapsedReplies[comment.id] && (
+                            <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 pl-3">
+                              {comment.replies.map((reply) => (
+                                <div key={reply.id} className="flex space-x-2">
+                                  {reply.userProfile?.profileImage ? (
+                                    <img
+                                      src={reply.userProfile.profileImage}
+                                      alt={reply.userProfile.username}
+                                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
+                                      <span className="text-gray-600 text-xs font-medium">
+                                        {reply.userProfile?.username?.[0]?.toUpperCase() ||
+                                          "U"}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-xs">
+                                      {reply.userProfile?.username || "User"}
+                                    </p>
+                                    {editingComment?.id === reply.id ? (
+                                      <div className="mt-1">
+                                        <input
+                                          ref={editInputRef}
+                                          type="text"
+                                          value={editText}
+                                          onChange={(e) =>
+                                            setEditText(e.target.value)
+                                          }
+                                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          autoFocus
+                                        />
+                                        <div className="flex space-x-2 mt-1">
+                                          <button
+                                            onClick={handleSaveEdit}
+                                            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                                          >
+                                            Save
+                                          </button>
+                                          <button
+                                            onClick={handleCancelEdit}
+                                            className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <p
+                                        className="text-gray-900 text-sm mt-0.5 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                                        onDoubleClick={(e) =>
+                                          handleReplyDoubleClick(reply, e)
+                                        }
+                                      >
+                                        {reply.text}
+                                      </p>
+                                    )}
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                      {reply.createdAt
+                                        ?.toDate?.()
+                                        ?.toLocaleDateString() || "Just now"}
+                                      {reply.updatedAt && (
+                                        <span className="italic ml-2">
+                                          (edited)
+                                        </span>
+                                      )}
+                                      <button
+                                        onClick={() =>
+                                          handleCommentLike(reply.id)
+                                        }
+                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 hover:text-red-600 font-medium"
+                                      >
+                                        <svg
+                                          className={`w-3 h-3 ${
+                                            reply.likes?.includes(
+                                              currentUser.uid,
+                                            )
+                                              ? "fill-red-600 text-red-600"
+                                              : "fill-none"
+                                          }`}
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                          />
+                                        </svg>
+                                        <span>{reply.likesCount || 0}</span>
+                                      </button>
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
