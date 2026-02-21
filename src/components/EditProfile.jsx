@@ -17,6 +17,7 @@ import {
   PlusIcon,
   TrashIcon,
   CheckIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
@@ -49,6 +50,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
   const [error, setError] = useState(null);
   const [usernameError, setUsernameError] = useState(null);
   const [usernameChecking, setUsernameChecking] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [cropperImage, setCropperImage] = useState(null);
   const [cropperFile, setCropperFile] = useState(null);
   const [cropperType, setCropperType] = useState(null); // 'banner' or 'cover'
@@ -57,6 +59,11 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     const { name, value } = e.target;
 
     setFormData({ ...formData, [name]: value });
+
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors({ ...fieldErrors, [name]: false });
+    }
 
     // Check username availability
     if (name === "username") {
@@ -95,6 +102,16 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     }
   };
 
+  const handleEditProfileImage = () => {
+    if (profileImagePreview) {
+      // Edit existing profile image
+      setCropperImage(profileImagePreview);
+      setCropperType("profile");
+      // Create a placeholder file name for existing images
+      setCropperFile({ name: "profile-image.jpg" });
+    }
+  };
+
   const handleBannerImageChange = (e) => {
     const file = e.target.files[0];
 
@@ -109,6 +126,16 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     setCropperFile(file);
     setCropperImage(URL.createObjectURL(file));
     setCropperType("banner");
+  };
+
+  const handleEditBannerImage = () => {
+    if (bannerImagePreview) {
+      // Edit existing banner image
+      setCropperImage(bannerImagePreview);
+      setCropperType("banner");
+      // Create a placeholder file name for existing images
+      setCropperFile({ name: "banner-image.jpg" });
+    }
   };
 
   const handleRemoveBannerImage = async () => {
@@ -237,6 +264,20 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate required fields
+    const errors = {};
+    if (!formData.displayName.trim()) errors.displayName = true;
+    if (!formData.username.trim()) errors.username = true;
+    if (!formData.email.trim()) errors.email = true;
+    if (!formData.firstName.trim()) errors.firstName = true;
+    if (!formData.lastName.trim()) errors.lastName = true;
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Please fill in all required fields.");
+      return;
+    }
+
     if (usernameError) {
       alert("Please fix the username error before saving");
       return;
@@ -244,6 +285,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
 
     setLoading(true);
     setError(null);
+    setFieldErrors({});
 
     try {
       // Upload profile image if changed
@@ -335,7 +377,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 Profile Picture
               </label>
               <div className="flex items-center gap-4">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                <div className="relative group w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer">
                   {profileImagePreview ? (
                     <img
                       src={profileImagePreview}
@@ -346,6 +388,29 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     <div className="w-full h-full flex items-center justify-center">
                       <PhotoIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                     </div>
+                  )}
+                  {profileImagePreview ? (
+                    <button
+                      type="button"
+                      onClick={handleEditProfileImage}
+                      className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer"
+                    >
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PencilIcon className="h-8 w-8 text-white" />
+                      </div>
+                    </button>
+                  ) : (
+                    <label className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className="hidden"
+                      />
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PencilIcon className="h-8 w-8 text-white" />
+                      </div>
+                    </label>
                   )}
                 </div>
                 <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition">
@@ -375,8 +440,17 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     />
                     <button
                       type="button"
+                      onClick={handleEditBannerImage}
+                      className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer"
+                    >
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PencilIcon className="h-10 w-10 text-white" />
+                      </div>
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleRemoveBannerImage}
-                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition z-10"
                     >
                       <XMarkIcon className="h-4 w-4" />
                     </button>
@@ -400,7 +474,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 htmlFor="displayName"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                Display Name
+                Display Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -408,9 +482,19 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 name="displayName"
                 value={formData.displayName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.displayName
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
                 placeholder="Your name"
               />
+              {fieldErrors.displayName && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Display name is required
+                </p>
+              )}
             </div>
 
             {/* First Name */}
@@ -428,9 +512,18 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.firstName
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
                 placeholder="First name"
               />
+              {fieldErrors.firstName && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  First name is required
+                </p>
+              )}
             </div>
 
             {/* Last Name */}
@@ -448,9 +541,18 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 value={formData.lastName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.lastName
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
                 placeholder="Last name"
               />
+              {fieldErrors.lastName && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Last name is required
+                </p>
+              )}
             </div>
 
             {/* Username */}
@@ -459,7 +561,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 htmlFor="username"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                Username
+                Username <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -468,8 +570,9 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
+                  required
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
-                    usernameError
+                    usernameError || fieldErrors.username
                       ? "border-red-500"
                       : "border-gray-300 dark:border-gray-600"
                   }`}
@@ -492,6 +595,11 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                   {usernameError}
                 </p>
               )}
+              {fieldErrors.username && !usernameError && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Username is required
+                </p>
+              )}
             </div>
 
             {/* Email */}
@@ -500,7 +608,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                Email
+                Email <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -508,9 +616,19 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.email
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
                 placeholder="email@example.com"
               />
+              {fieldErrors.email && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Email is required
+                </p>
+              )}
             </div>
 
             {/* Bio */}

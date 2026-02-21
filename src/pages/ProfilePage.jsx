@@ -10,13 +10,9 @@ import {
   isFollowing,
   getUserFollowers,
   getUserFollowing,
-  uploadProfileImage,
-  uploadBannerImage,
 } from "../services/profileService";
 import { getCommunitiesByIds } from "../services/communityService";
 import EditProfile from "../components/EditProfile";
-import ImageCropper from "../components/ImageCropper";
-import { getCroppedImg } from "../utils/cropImage";
 import {
   UserCircleIcon,
   Cog6ToothIcon,
@@ -57,9 +53,6 @@ const ProfilePage = () => {
   const [followersSearchQuery, setFollowersSearchQuery] = useState("");
   const [followingSearchQuery, setFollowingSearchQuery] = useState("");
   const [communitiesSearchQuery, setCommunitiesSearchQuery] = useState("");
-  const [cropperImage, setCropperImage] = useState(null);
-  const [cropperType, setCropperType] = useState(null); // 'banner' or 'profile'
-  const [cropperLoading, setCropperLoading] = useState(false);
   const dropdownRef = useRef(null);
 
   // Determine if viewing own profile
@@ -250,96 +243,6 @@ const ProfilePage = () => {
     }
   };
 
-  const handleBannerImageClick = () => {
-    if (!isOwnProfile || !profile.bannerImage) return;
-    // Use the direct URL - the cropper handles Firebase Storage URLs properly
-    setCropperImage(profile.bannerImage);
-    setCropperType("banner");
-  };
-
-  const handleProfileImageClick = () => {
-    if (!isOwnProfile || !profile.profileImage) return;
-    // Use the direct URL - the cropper handles Firebase Storage URLs properly
-    setCropperImage(profile.profileImage);
-    setCropperType("profile");
-  };
-
-  const handleCropComplete = async (croppedAreaPixels) => {
-    try {
-      setCropperLoading(true);
-
-      // Validate inputs
-      if (!cropperImage) {
-        throw new Error("No image to crop");
-      }
-
-      if (!croppedAreaPixels) {
-        throw new Error("No crop area selected");
-      }
-
-      // Get cropped image blob
-      const croppedImage = await getCroppedImg(cropperImage, croppedAreaPixels);
-
-      if (!croppedImage) {
-        throw new Error("Failed to crop image");
-      }
-
-      // Validate blob
-      if (croppedImage.size === 0) {
-        throw new Error("Cropped image is empty");
-      }
-
-      console.log(
-        `Cropped image size: ${croppedImage.size} bytes, type: ${croppedImage.type}`,
-      );
-
-      // Convert blob to file
-      const file = new File([croppedImage], `${cropperType}-image.jpg`, {
-        type: "image/jpeg",
-        lastModified: Date.now(),
-      });
-
-      console.log(`File created: ${file.name}, size: ${file.size} bytes`);
-
-      // Upload the cropped image
-      if (cropperType === "banner") {
-        console.log("Uploading banner image...");
-        await uploadBannerImage(currentUser.uid, file);
-      } else if (cropperType === "profile") {
-        console.log("Uploading profile image...");
-        await uploadProfileImage(currentUser.uid, file);
-      }
-
-      console.log("Upload successful!");
-
-      // Clean up blob URL if it was created
-      if (cropperImage && cropperImage.startsWith("blob:")) {
-        URL.revokeObjectURL(cropperImage);
-      }
-
-      // Close cropper
-      setCropperImage(null);
-      setCropperType(null);
-    } catch (error) {
-      console.error("Error cropping and uploading image:", error);
-      console.error("Error details:", error.message, error.stack);
-      alert(
-        `Failed to update image: ${error.message || "Unknown error"}. Please try again.`,
-      );
-    } finally {
-      setCropperLoading(false);
-    }
-  };
-
-  const handleCropCancel = () => {
-    // Clean up blob URL if it was created
-    if (cropperImage && cropperImage.startsWith("blob:")) {
-      URL.revokeObjectURL(cropperImage);
-    }
-    setCropperImage(null);
-    setCropperType(null);
-  };
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -398,24 +301,12 @@ const ProfilePage = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         {/* Banner Image */}
         {profile.bannerImage && (
-          <div
-            className={`w-full h-48 rounded-lg overflow-hidden bg-gray-200 relative group ${
-              isOwnProfile ? "cursor-pointer" : ""
-            }`}
-            onClick={handleBannerImageClick}
-          >
+          <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-200">
             <img
               src={profile.bannerImage}
               alt="Banner"
               className="w-full h-full object-cover"
             />
-            {isOwnProfile && (
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <PencilIcon className="h-10 w-10 text-white" />
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -423,25 +314,11 @@ const ProfilePage = () => {
           {/* Profile Image */}
           <div className="flex-shrink-0">
             {profile.profileImage ? (
-              <div
-                className={`relative group ${
-                  isOwnProfile ? "cursor-pointer" : ""
-                }`}
-                onClick={handleProfileImageClick}
-              >
-                <img
-                  src={profile.profileImage}
-                  alt={profile.displayName}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-                {isOwnProfile && (
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity rounded-full flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <PencilIcon className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                )}
-              </div>
+              <img
+                src={profile.profileImage}
+                alt={profile.displayName}
+                className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+              />
             ) : (
               <UserCircleIcon className="w-32 h-32 text-gray-400" />
             )}
@@ -1031,18 +908,6 @@ const ProfilePage = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Image Cropper Modal */}
-      {cropperImage && (
-        <ImageCropper
-          image={cropperImage}
-          onCropComplete={handleCropComplete}
-          onCancel={handleCropCancel}
-          aspectRatio={cropperType === "banner" ? 16 / 3 : 1}
-          cropShape={cropperType === "profile" ? "round" : "rect"}
-          allowRatioChange={false}
-        />
       )}
     </div>
   );
