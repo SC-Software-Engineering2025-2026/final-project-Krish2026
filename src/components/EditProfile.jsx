@@ -308,20 +308,22 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
       )}
 
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Edit Profile</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Edit Profile
+            </h2>
             <button
               onClick={onCancel}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
               {error}
             </div>
           )}
@@ -329,11 +331,11 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Profile Image */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Profile Picture
               </label>
               <div className="flex items-center gap-4">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
+                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
                   {profileImagePreview ? (
                     <img
                       src={profileImagePreview}
@@ -342,11 +344,11 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <PhotoIcon className="h-12 w-12 text-gray-400" />
+                      <PhotoIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
-                <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition">
                   <input
                     type="file"
                     accept="image/*"
@@ -360,12 +362,12 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
 
             {/* Banner Image */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Banner Image
               </label>
               <div className="space-y-4">
                 {bannerImagePreview && (
-                  <div className="relative group w-full h-48 rounded-lg overflow-hidden bg-gray-200">
+                  <div className="relative group w-full h-48 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
                     <img
                       src={bannerImagePreview}
                       alt="Banner"
@@ -380,7 +382,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     </button>
                   </div>
                 )}
-                <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition inline-block">
+                <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition inline-block">
                   <input
                     type="file"
                     accept="image/*"
@@ -396,7 +398,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
             <div>
               <label
                 htmlFor="displayName"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Display Name
               </label>
@@ -406,7 +408,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 name="displayName"
                 value={formData.displayName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Your name"
               />
             </div>
@@ -415,7 +417,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
             <div>
               <label
                 htmlFor="firstName"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 First Name <span className="text-red-500">*</span>
               </label>
@@ -426,7 +428,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="First name"
               />
             </div>
@@ -435,7 +437,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
             <div>
               <label
                 htmlFor="lastName"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Last Name <span className="text-red-500">*</span>
               </label>
@@ -446,7 +448,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 value={formData.lastName}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="Last name"
               />
             </div>
@@ -455,7 +457,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Username
               </label>
@@ -466,8 +468,10 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    usernameError ? "border-red-500" : "border-gray-300"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                    usernameError
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-600"
                   }`}
                   placeholder="username"
                 />
@@ -484,7 +488,9 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                   )}
               </div>
               {usernameError && (
-                <p className="text-red-500 text-sm mt-1">{usernameError}</p>
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  {usernameError}
+                </p>
               )}
             </div>
 
@@ -492,7 +498,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Email
               </label>
@@ -502,7 +508,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 placeholder="email@example.com"
               />
             </div>
@@ -511,7 +517,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
             <div>
               <label
                 htmlFor="bio"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
                 Bio
               </label>
@@ -521,24 +527,24 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 value={formData.bio}
                 onChange={handleInputChange}
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white"
                 placeholder="Tell us about yourself..."
                 maxLength={150}
               />
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {formData.bio.length}/150 characters
               </p>
             </div>
 
             {/* Cover Images */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Cover Images (Max 5)
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 {coverImagePreviews.map((preview, index) => (
                   <div key={index} className="relative group">
-                    <div className="rounded-lg overflow-hidden bg-gray-200 aspect-[3/4]">
+                    <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[3/4]">
                       <img
                         src={preview}
                         alt={`Cover ${index + 1}`}
@@ -556,7 +562,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 ))}
               </div>
               {coverImagePreviews.length < 5 && (
-                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition">
                   <input
                     type="file"
                     accept="image/*"
@@ -571,22 +577,24 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
 
             {/* Links */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Links
               </label>
               <div className="space-y-2 mb-4">
                 {links.map((link, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <div className="flex-1 p-3 bg-gray-50 rounded-lg">
-                      <p className="font-medium text-gray-900">{link.title}</p>
-                      <p className="text-sm text-gray-600 truncate">
+                    <div className="flex-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {link.title}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                         {link.url}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveLink(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                     >
                       <TrashIcon className="h-5 w-5" />
                     </button>
@@ -603,7 +611,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     setNewLink({ ...newLink, title: e.target.value })
                   }
                   placeholder="Link title (e.g., Website, Instagram)"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
                 <div className="flex gap-2">
                   <input
@@ -613,12 +621,12 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                       setNewLink({ ...newLink, url: e.target.value })
                     }
                     placeholder="https://example.com"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
                   <button
                     type="button"
                     onClick={handleAddLink}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
                   >
                     <PlusIcon className="h-5 w-5" />
                   </button>
@@ -631,7 +639,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
               <button
                 type="submit"
                 disabled={loading || usernameError}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
               >
                 {loading ? "Saving..." : "Save Changes"}
               </button>
@@ -639,7 +647,7 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
               >
                 Cancel
               </button>

@@ -606,7 +606,7 @@ const ProfilePage = () => {
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-stone-200">
                 Followers
               </h2>
               <button
@@ -626,7 +626,7 @@ const ProfilePage = () => {
                   placeholder="Search followers..."
                   value={followersSearchQuery}
                   onChange={(e) => setFollowersSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-stone-200 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -692,13 +692,13 @@ const ProfilePage = () => {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 dark:text-white truncate">
+                          <p className="font-semibold text-gray-900 dark:text-stone-200 truncate">
                             {follower.firstName && follower.lastName
                               ? `${follower.firstName} ${follower.lastName}`
                               : follower.displayName || "Anonymous User"}
                           </p>
                           {follower.username && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            <p className="text-sm text-gray-600 dark:text-stone-300 truncate">
                               @{follower.username}
                             </p>
                           )}
@@ -708,8 +708,8 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">
+                  <UserGroupIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                  <p className="text-gray-600 dark:text-stone-300">
                     {followersSearchQuery
                       ? "No followers found"
                       : "No followers yet"}
@@ -733,7 +733,7 @@ const ProfilePage = () => {
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-stone-200">
                 Following
               </h2>
               <button
@@ -753,7 +753,7 @@ const ProfilePage = () => {
                   placeholder="Search following..."
                   value={followingSearchQuery}
                   onChange={(e) => setFollowingSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-stone-200 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -778,7 +778,7 @@ const ProfilePage = () => {
                     username.includes(searchLower)
                   );
                 }).length > 0 ? (
-                <div className="divide-y">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {followingList
                     .filter((followingUser) => {
                       const searchLower = followingSearchQuery.toLowerCase();
@@ -803,7 +803,7 @@ const ProfilePage = () => {
                           setShowFollowingModal(false);
                           navigate(`/profile/${followingUser.id}`);
                         }}
-                        className="flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition"
+                        className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition"
                       >
                         {followingUser.profileImage ? (
                           <img
@@ -812,8 +812,8 @@ const ProfilePage = () => {
                             className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                            <span className="text-gray-600 font-medium text-lg">
+                          <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                            <span className="text-gray-600 dark:text-gray-300 font-medium text-lg">
                               {followingUser.displayName?.[0]?.toUpperCase() ||
                                 followingUser.firstName?.[0]?.toUpperCase() ||
                                 "U"}
@@ -821,13 +821,13 @@ const ProfilePage = () => {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 truncate">
+                          <p className="font-semibold text-gray-900 dark:text-stone-200 truncate">
                             {followingUser.firstName && followingUser.lastName
                               ? `${followingUser.firstName} ${followingUser.lastName}`
                               : followingUser.displayName || "Anonymous User"}
                           </p>
                           {followingUser.username && (
-                            <p className="text-sm text-gray-600 truncate">
+                            <p className="text-sm text-gray-600 dark:text-stone-300 truncate">
                               @{followingUser.username}
                             </p>
                           )}
@@ -837,8 +837,8 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">
+                  <UserGroupIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                  <p className="text-gray-600 dark:text-stone-300">
                     {followingSearchQuery
                       ? "No users found"
                       : "Not following anyone yet"}
@@ -862,7 +862,7 @@ const ProfilePage = () => {
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-stone-200">
                 Communities
               </h2>
               <button
@@ -882,7 +882,7 @@ const ProfilePage = () => {
                   placeholder="Search communities..."
                   value={communitiesSearchQuery}
                   onChange={(e) => setCommunitiesSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-stone-200 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -924,7 +924,7 @@ const ProfilePage = () => {
                           setShowCommunitiesModal(false);
                           navigate(`/communities/${community.id}`);
                         }}
-                        className="p-4 border rounded-lg hover:bg-gray-50 hover:shadow-md transition cursor-pointer"
+                        className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition cursor-pointer"
                       >
                         <div className="flex items-start gap-3">
                           {community.imageUrl ? (
@@ -934,18 +934,18 @@ const ProfilePage = () => {
                               className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                             />
                           ) : (
-                            <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <UserGroupIcon className="h-8 w-8 text-blue-600" />
+                            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <UserGroupIcon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate mb-1">
+                            <h3 className="font-semibold text-gray-900 dark:text-stone-200 truncate mb-1">
                               {community.name}
                             </h3>
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                            <p className="text-sm text-gray-600 dark:text-stone-300 mb-2 line-clamp-2">
                               {community.description || "No description"}
                             </p>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-stone-400">
                               <span>{community.memberCount} members</span>
                               <span>•</span>
                               <span>
@@ -959,15 +959,15 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <UserGroupIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  <UserGroupIcon className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-stone-200 mb-2">
                     {communitiesSearchQuery
                       ? "No communities found"
                       : "No communities yet"}
                   </h3>
                   {isOwnProfile && !communitiesSearchQuery && (
                     <>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-gray-600 dark:text-stone-300 mb-4">
                         Join communities to connect with others!
                       </p>
                       <button

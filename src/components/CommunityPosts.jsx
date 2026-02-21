@@ -1711,7 +1711,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </button>
                         <button
                           onClick={() => handleReply(comment)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                          className="text-xs text-blue-600 dark:text-stone-300 hover:text-blue-700 dark:hover:text-stone-200 font-medium"
                         >
                           Reply
                         </button>

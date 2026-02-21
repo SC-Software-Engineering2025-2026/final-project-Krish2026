@@ -901,7 +901,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                         </button>
                         <button
                           onClick={() => handleReply(comment)}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                          className="text-xs text-[#EDE8DD] hover:text-[#d4cfc0] dark:text-[#EDE8DD] dark:hover:text-[#f5f1e8] font-medium"
                         >
                           Reply
                         </button>
@@ -917,7 +917,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                               value={replyText}
                               onChange={(e) => setReplyText(e.target.value)}
                               placeholder={`Reply to ${comment.userProfile?.username || "User"}...`}
-                              className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="flex-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                               disabled={loading}
                             />
                             <button
@@ -930,7 +930,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                             <button
                               type="button"
                               onClick={handleCancelReply}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300"
+                              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
@@ -943,7 +943,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                         <div className="mt-2">
                           <button
                             onClick={() => toggleReplies(comment.id)}
-                            className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-800 font-medium"
+                            className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
                           >
                             <svg
                               className={`w-4 h-4 transition-transform ${collapsedReplies[comment.id] ? "" : "rotate-90"}`}
@@ -968,7 +968,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                           </button>
 
                           {!collapsedReplies[comment.id] && (
-                            <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 pl-3">
+                            <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                               {comment.replies.map((reply) => (
                                 <div key={reply.id} className="flex space-x-2">
                                   {reply.userProfile?.profileImage ? (
@@ -978,15 +978,15 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     />
                                   ) : (
-                                    <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center">
-                                      <span className="text-gray-600 text-xs font-medium">
+                                    <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                                      <span className="text-gray-600 dark:text-gray-300 text-xs font-medium">
                                         {reply.userProfile?.username?.[0]?.toUpperCase() ||
                                           "U"}
                                       </span>
                                     </div>
                                   )}
                                   <div className="flex-1">
-                                    <p className="font-semibold text-xs">
+                                    <p className="font-semibold text-xs text-gray-900 dark:text-white">
                                       {reply.userProfile?.username || "User"}
                                     </p>
                                     {editingComment?.id === reply.id ? (
@@ -998,7 +998,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                                           onChange={(e) =>
                                             setEditText(e.target.value)
                                           }
-                                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                           autoFocus
                                         />
                                         <div className="flex space-x-2 mt-1">
@@ -1010,7 +1010,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                                           </button>
                                           <button
                                             onClick={handleCancelEdit}
-                                            className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+                                            className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-gray-600"
                                           >
                                             Cancel
                                           </button>
@@ -1018,7 +1018,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                                       </div>
                                     ) : (
                                       <p
-                                        className="text-gray-900 text-sm mt-0.5 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                                        className="text-gray-900 dark:text-gray-100 text-sm mt-0.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded p-1 -ml-1"
                                         onDoubleClick={(e) =>
                                           handleReplyDoubleClick(reply, e)
                                         }
@@ -1039,7 +1039,7 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                                         onClick={() =>
                                           handleCommentLike(reply.id)
                                         }
-                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 hover:text-red-600 font-medium"
+                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium"
                                       >
                                         <svg
                                           className={`w-3 h-3 ${

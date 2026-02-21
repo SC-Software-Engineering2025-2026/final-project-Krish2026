@@ -454,7 +454,7 @@ const CommunityChat = ({ communityId }) => {
 
       {/* Members Sidebar */}
       {showMembers && (
-        <div className="w-64 border-l dark:border-gray-700 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
+        <div className="w-64 border-l dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto">
           <div className="p-4">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
               Members
@@ -474,7 +474,7 @@ const CommunityChat = ({ communityId }) => {
                         <div
                           key={member.id}
                           onClick={() => navigate(`/profile/${member.userId}`)}
-                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors"
                         >
                           {profile?.profileImage ? (
                             <img
@@ -532,7 +532,7 @@ const CommunityChat = ({ communityId }) => {
                         <div
                           key={member.id}
                           onClick={() => navigate(`/profile/${member.userId}`)}
-                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors"
                         >
                           {profile?.profileImage ? (
                             <img
