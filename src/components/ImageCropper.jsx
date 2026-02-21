@@ -110,6 +110,26 @@ const ImageCropper = ({
         <div className="flex flex-col items-center">
           <label className="text-white text-sm mb-2 block">Zoom</label>
           <div className="relative w-[500px]">
+            <style>
+              {`
+                .image-cropper-range::-webkit-slider-thumb {
+                  appearance: none;
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  background: #54524d;
+                  cursor: pointer;
+                }
+                .image-cropper-range::-moz-range-thumb {
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  background: #54524d;
+                  cursor: pointer;
+                  border: none;
+                }
+              `}
+            </style>
             <input
               type="range"
               min={1}
@@ -117,30 +137,12 @@ const ImageCropper = ({
               step={0.1}
               value={zoom}
               onChange={(e) => setZoom(parseFloat(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer"
+              className="image-cropper-range w-full h-2 rounded-full appearance-none cursor-pointer"
               style={{
                 background: `linear-gradient(to right, #EDE8DD 0%, #EDE8DD ${((zoom - 1) / 2) * 100}%, white ${((zoom - 1) / 2) * 100}%, white 100%)`,
                 outline: "none",
               }}
             />
-            <style jsx>{`
-              input[type="range"]::-webkit-slider-thumb {
-                appearance: none;
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background: #54524d;
-                cursor: pointer;
-              }
-              input[type="range"]::-moz-range-thumb {
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background: #54524d;
-                cursor: pointer;
-                border: none;
-              }
-            `}</style>
           </div>
         </div>
         <div className="flex gap-3 justify-end">

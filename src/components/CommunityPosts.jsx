@@ -431,26 +431,6 @@ const PostCard = ({
         </div>
       )}
 
-      {/* Post Content */}
-      {post.content && (
-        <div className="px-4 pb-3 pt-3">
-          <p className="text-gray-900 dark:text-white pl-2.5">{post.content}</p>
-          {/* Hashtags */}
-          {post.hashtags && post.hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2 pl-2.5">
-              {post.hashtags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline cursor-pointer"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Post Videos */}
       {post.videos && post.videos.length > 0 && (
         <div className="relative">

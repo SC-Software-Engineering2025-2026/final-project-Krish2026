@@ -6,7 +6,14 @@ const createImage = (url) =>
     const image = new Image();
     image.addEventListener("load", () => resolve(image));
     image.addEventListener("error", (error) => reject(error));
-    image.setAttribute("crossOrigin", "anonymous");
+    // Only set crossOrigin for external URLs (not blob or data URLs)
+    if (
+      url.startsWith("http") &&
+      !url.startsWith("blob:") &&
+      !url.startsWith("data:")
+    ) {
+      image.setAttribute("crossOrigin", "anonymous");
+    }
     image.src = url;
   });
 
@@ -91,12 +98,16 @@ export const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
 
   // Return as blob
   return new Promise((resolve, reject) => {
-    croppedCanvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error("Canvas is empty"));
-        return;
-      }
-      resolve(blob);
-    }, "image/jpeg");
+    croppedCanvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Canvas is empty"));
+          return;
+        }
+        resolve(blob);
+      },
+      "image/jpeg",
+      0.95, // Quality parameter (0-1)
+    );
   });
 };

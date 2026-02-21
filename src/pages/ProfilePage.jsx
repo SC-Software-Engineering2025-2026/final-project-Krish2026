@@ -252,12 +252,14 @@ const ProfilePage = () => {
 
   const handleBannerImageClick = () => {
     if (!isOwnProfile || !profile.bannerImage) return;
+    // Use the direct URL - the cropper handles Firebase Storage URLs properly
     setCropperImage(profile.bannerImage);
     setCropperType("banner");
   };
 
   const handleProfileImageClick = () => {
     if (!isOwnProfile || !profile.profileImage) return;
+    // Use the direct URL - the cropper handles Firebase Storage URLs properly
     setCropperImage(profile.profileImage);
     setCropperType("profile");
   };
@@ -265,18 +267,54 @@ const ProfilePage = () => {
   const handleCropComplete = async (croppedAreaPixels) => {
     try {
       setCropperLoading(true);
+
+      // Validate inputs
+      if (!cropperImage) {
+        throw new Error("No image to crop");
+      }
+
+      if (!croppedAreaPixels) {
+        throw new Error("No crop area selected");
+      }
+
+      // Get cropped image blob
       const croppedImage = await getCroppedImg(cropperImage, croppedAreaPixels);
+
+      if (!croppedImage) {
+        throw new Error("Failed to crop image");
+      }
+
+      // Validate blob
+      if (croppedImage.size === 0) {
+        throw new Error("Cropped image is empty");
+      }
+
+      console.log(
+        `Cropped image size: ${croppedImage.size} bytes, type: ${croppedImage.type}`,
+      );
 
       // Convert blob to file
       const file = new File([croppedImage], `${cropperType}-image.jpg`, {
         type: "image/jpeg",
+        lastModified: Date.now(),
       });
+
+      console.log(`File created: ${file.name}, size: ${file.size} bytes`);
 
       // Upload the cropped image
       if (cropperType === "banner") {
+        console.log("Uploading banner image...");
         await uploadBannerImage(currentUser.uid, file);
       } else if (cropperType === "profile") {
+        console.log("Uploading profile image...");
         await uploadProfileImage(currentUser.uid, file);
+      }
+
+      console.log("Upload successful!");
+
+      // Clean up blob URL if it was created
+      if (cropperImage && cropperImage.startsWith("blob:")) {
+        URL.revokeObjectURL(cropperImage);
       }
 
       // Close cropper
@@ -284,13 +322,20 @@ const ProfilePage = () => {
       setCropperType(null);
     } catch (error) {
       console.error("Error cropping and uploading image:", error);
-      alert("Failed to update image. Please try again.");
+      console.error("Error details:", error.message, error.stack);
+      alert(
+        `Failed to update image: ${error.message || "Unknown error"}. Please try again.`,
+      );
     } finally {
       setCropperLoading(false);
     }
   };
 
   const handleCropCancel = () => {
+    // Clean up blob URL if it was created
+    if (cropperImage && cropperImage.startsWith("blob:")) {
+      URL.revokeObjectURL(cropperImage);
+    }
     setCropperImage(null);
     setCropperType(null);
   };
