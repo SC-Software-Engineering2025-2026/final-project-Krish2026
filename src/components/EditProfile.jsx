@@ -33,10 +33,13 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     email: profile.email || currentUser?.email || "",
   });
   const [profileImageFile, setProfileImageFile] = useState(null);
+  const [profileImageOriginalFile, setProfileImageOriginalFile] =
+    useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState(
     profile.profileImage,
   );
   const [bannerImageFile, setBannerImageFile] = useState(null);
+  const [bannerImageOriginalFile, setBannerImageOriginalFile] = useState(null);
   const [bannerImagePreview, setBannerImagePreview] = useState(
     profile.bannerImage,
   );
@@ -53,7 +56,17 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [cropperImage, setCropperImage] = useState(null);
   const [cropperFile, setCropperFile] = useState(null);
-  const [cropperType, setCropperType] = useState(null); // 'banner' or 'cover'
+  const [cropperType, setCropperType] = useState(null); // 'profile', 'banner', or 'cover'
+  const [cropperInitialCrop, setCropperInitialCrop] = useState({ x: 0, y: 0 });
+  const [cropperInitialZoom, setCropperInitialZoom] = useState(1);
+
+  // Store crop/zoom data for images
+  const [profileImageCropData, setProfileImageCropData] = useState(
+    profile.profileImageCropData || null,
+  );
+  const [bannerImageCropData, setBannerImageCropData] = useState(
+    profile.bannerImageCropData || null,
+  );
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -95,6 +108,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
         alert("Image size should be less than 5MB");
         return;
       }
+      // Store the original file for future editing
+      setProfileImageOriginalFile(file);
       // Show cropper for profile
       setCropperFile(file);
       setCropperImage(URL.createObjectURL(file));
@@ -102,13 +117,38 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     }
   };
 
-  const handleEditProfileImage = () => {
-    if (profileImagePreview) {
-      // Edit existing profile image
-      setCropperImage(profileImagePreview);
+  const handleEditProfileImage = async () => {
+    // Use the original image if available, otherwise use the current preview
+    const imageToEdit = profile.profileImageOriginal || profileImagePreview;
+    if (imageToEdit) {
+      // Set saved crop/zoom values if they exist
+      if (profile.profileImageCropData) {
+        setCropperInitialCrop(
+          profile.profileImageCropData.crop || { x: 0, y: 0 },
+        );
+        setCropperInitialZoom(profile.profileImageCropData.zoom || 1);
+      } else {
+        setCropperInitialCrop({ x: 0, y: 0 });
+        setCropperInitialZoom(1);
+      }
+
+      // Edit existing profile image - use original if available
+      setCropperImage(imageToEdit);
       setCropperType("profile");
       // Create a placeholder file name for existing images
       setCropperFile({ name: "profile-image.jpg" });
+
+      // Fetch the original image as a file for re-uploading
+      try {
+        const response = await fetch(imageToEdit);
+        const blob = await response.blob();
+        const file = new File([blob], "profile-image-original.jpg", {
+          type: blob.type,
+        });
+        setProfileImageOriginalFile(file);
+      } catch (error) {
+        console.error("Error fetching original image:", error);
+      }
     }
   };
 
@@ -122,19 +162,46 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
       return;
     }
 
+    // Store the original file for future editing
+    setBannerImageOriginalFile(file);
     // Show cropper for banner
     setCropperFile(file);
     setCropperImage(URL.createObjectURL(file));
     setCropperType("banner");
   };
 
-  const handleEditBannerImage = () => {
-    if (bannerImagePreview) {
-      // Edit existing banner image
-      setCropperImage(bannerImagePreview);
+  const handleEditBannerImage = async () => {
+    // Use the original image if available, otherwise use the current preview
+    const imageToEdit = profile.bannerImageOriginal || bannerImagePreview;
+    if (imageToEdit) {
+      // Set saved crop/zoom values if they exist
+      if (profile.bannerImageCropData) {
+        setCropperInitialCrop(
+          profile.bannerImageCropData.crop || { x: 0, y: 0 },
+        );
+        setCropperInitialZoom(profile.bannerImageCropData.zoom || 1);
+      } else {
+        setCropperInitialCrop({ x: 0, y: 0 });
+        setCropperInitialZoom(1);
+      }
+
+      // Edit existing banner image - use original if available
+      setCropperImage(imageToEdit);
       setCropperType("banner");
       // Create a placeholder file name for existing images
       setCropperFile({ name: "banner-image.jpg" });
+
+      // Fetch the original image as a file for re-uploading
+      try {
+        const response = await fetch(imageToEdit);
+        const blob = await response.blob();
+        const file = new File([blob], "banner-image-original.jpg", {
+          type: blob.type,
+        });
+        setBannerImageOriginalFile(file);
+      } catch (error) {
+        console.error("Error fetching original banner:", error);
+      }
     }
   };
 
@@ -175,19 +242,24 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     setCropperType("cover");
   };
 
-  const handleCropComplete = async (croppedAreaPixels) => {
+  const handleCropComplete = async (croppedAreaPixels, crop, zoom) => {
     try {
       const croppedBlob = await getCroppedImg(cropperImage, croppedAreaPixels);
       const croppedFile = new File([croppedBlob], cropperFile.name, {
         type: "image/jpeg",
       });
 
+      // Save crop and zoom data
+      const cropData = { crop, zoom };
+
       if (cropperType === "profile") {
         setProfileImageFile(croppedFile);
         setProfileImagePreview(URL.createObjectURL(croppedFile));
+        setProfileImageCropData(cropData);
       } else if (cropperType === "banner") {
         setBannerImageFile(croppedFile);
         setBannerImagePreview(URL.createObjectURL(croppedFile));
+        setBannerImageCropData(cropData);
       } else if (cropperType === "cover") {
         setCoverImageFiles([...coverImageFiles, croppedFile]);
         setCoverImagePreviews([
@@ -200,6 +272,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
       setCropperImage(null);
       setCropperFile(null);
       setCropperType(null);
+      setCropperInitialCrop({ x: 0, y: 0 });
+      setCropperInitialZoom(1);
     } catch (err) {
       console.error("Error cropping image:", err);
       alert("Failed to crop image");
@@ -210,6 +284,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     setCropperImage(null);
     setCropperFile(null);
     setCropperType(null);
+    setCropperInitialCrop({ x: 0, y: 0 });
+    setCropperInitialZoom(1);
   };
 
   const handleRemoveCoverImage = async (index) => {
@@ -290,12 +366,22 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
     try {
       // Upload profile image if changed
       if (profileImageFile) {
-        await uploadProfileImage(currentUser.uid, profileImageFile);
+        await uploadProfileImage(
+          currentUser.uid,
+          profileImageFile,
+          profileImageOriginalFile,
+          profileImageCropData,
+        );
       }
 
       // Upload banner image if changed
       if (bannerImageFile) {
-        await uploadBannerImage(currentUser.uid, bannerImageFile);
+        await uploadBannerImage(
+          currentUser.uid,
+          bannerImageFile,
+          bannerImageOriginalFile,
+          bannerImageCropData,
+        );
       }
 
       // Upload new cover images
@@ -346,6 +432,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 : 3 / 4
           }
           cropShape={cropperType === "profile" ? "round" : "rect"}
+          initialCrop={cropperInitialCrop}
+          initialZoom={cropperInitialZoom}
         />
       )}
 

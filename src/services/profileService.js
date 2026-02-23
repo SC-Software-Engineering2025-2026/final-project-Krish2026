@@ -101,31 +101,83 @@ export const updateUserProfile = async (userId, data) => {
 /**
  * Upload profile image
  * @param {string} userId - The user ID
- * @param {File} file - Image file
- * @returns {Promise<string>} Download URL of uploaded image
+ * @param {File} croppedFile - Cropped image file (for display)
+ * @param {File} originalFile - Original uncropped image file (for future editing)
+ * @param {Object} cropData - Crop position and zoom data {crop: {x, y}, zoom: number}
+ * @returns {Promise<string>} Download URL of uploaded cropped image
  */
-export const uploadProfileImage = async (userId, file) => {
+export const uploadProfileImage = async (
+  userId,
+  croppedFile,
+  originalFile = null,
+  cropData = null,
+) => {
   try {
-    // Delete old profile image if exists
+    // Delete old profile images if they exist
     const userProfile = await getUserProfile(userId);
     if (userProfile?.profileImage) {
       try {
-        const oldImageRef = ref(storage, `profiles/${userId}/profile-image`);
-        await deleteObject(oldImageRef);
+        // Delete old cropped image
+        const oldImageUrl = userProfile.profileImage;
+        const oldImagePath = decodeURIComponent(
+          oldImageUrl.split("/o/")[1]?.split("?")[0],
+        );
+        if (oldImagePath) {
+          const oldImageRef = ref(storage, oldImagePath);
+          await deleteObject(oldImageRef);
+        }
       } catch (error) {
-        console.log("No old image to delete or error:", error);
+        console.log("No old cropped image to delete or error:", error);
       }
     }
 
-    // Upload new image
-    const storageRef = ref(storage, `profiles/${userId}/profile-image`);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
+    if (userProfile?.profileImageOriginal) {
+      try {
+        // Delete old original image
+        const oldOriginalUrl = userProfile.profileImageOriginal;
+        const oldOriginalPath = decodeURIComponent(
+          oldOriginalUrl.split("/o/")[1]?.split("?")[0],
+        );
+        if (oldOriginalPath) {
+          const oldOriginalRef = ref(storage, oldOriginalPath);
+          await deleteObject(oldOriginalRef);
+        }
+      } catch (error) {
+        console.log("No old original image to delete or error:", error);
+      }
+    }
 
-    // Update user profile with new image URL
-    await updateUserProfile(userId, { profileImage: downloadURL });
+    // Upload cropped image with unique timestamp
+    const timestamp = Date.now();
+    const croppedRef = ref(
+      storage,
+      `profiles/${userId}/profile-image-cropped-${timestamp}`,
+    );
+    await uploadBytes(croppedRef, croppedFile);
+    const croppedURL = await getDownloadURL(croppedRef);
 
-    return downloadURL;
+    const updateData = { profileImage: croppedURL };
+
+    // Upload original image if provided
+    if (originalFile) {
+      const originalRef = ref(
+        storage,
+        `profiles/${userId}/profile-image-original-${timestamp}`,
+      );
+      await uploadBytes(originalRef, originalFile);
+      const originalURL = await getDownloadURL(originalRef);
+      updateData.profileImageOriginal = originalURL;
+    }
+
+    // Save crop and zoom data if provided
+    if (cropData) {
+      updateData.profileImageCropData = cropData;
+    }
+
+    // Update user profile with new image URLs
+    await updateUserProfile(userId, updateData);
+
+    return croppedURL;
   } catch (error) {
     console.error("Error uploading profile image:", error);
     throw error;
@@ -166,31 +218,83 @@ export const uploadCoverImages = async (userId, files) => {
 /**
  * Upload banner image (single)
  * @param {string} userId - The user ID
- * @param {File} file - Image file
- * @returns {Promise<string>} Download URL of uploaded image
+ * @param {File} croppedFile - Cropped image file (for display)
+ * @param {File} originalFile - Original uncropped image file (for future editing)
+ * @param {Object} cropData - Crop position and zoom data {crop: {x, y}, zoom: number}
+ * @returns {Promise<string>} Download URL of uploaded cropped image
  */
-export const uploadBannerImage = async (userId, file) => {
+export const uploadBannerImage = async (
+  userId,
+  croppedFile,
+  originalFile = null,
+  cropData = null,
+) => {
   try {
-    // Delete old banner image if exists
+    // Delete old banner images if they exist
     const userProfile = await getUserProfile(userId);
     if (userProfile?.bannerImage) {
       try {
-        const oldImageRef = ref(storage, `profiles/${userId}/banner-image`);
-        await deleteObject(oldImageRef);
+        // Delete old cropped banner
+        const oldImageUrl = userProfile.bannerImage;
+        const oldImagePath = decodeURIComponent(
+          oldImageUrl.split("/o/")[1]?.split("?")[0],
+        );
+        if (oldImagePath) {
+          const oldImageRef = ref(storage, oldImagePath);
+          await deleteObject(oldImageRef);
+        }
       } catch (error) {
         console.log("No old banner image to delete or error:", error);
       }
     }
 
-    // Upload new banner image
-    const storageRef = ref(storage, `profiles/${userId}/banner-image`);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
+    if (userProfile?.bannerImageOriginal) {
+      try {
+        // Delete old original banner
+        const oldOriginalUrl = userProfile.bannerImageOriginal;
+        const oldOriginalPath = decodeURIComponent(
+          oldOriginalUrl.split("/o/")[1]?.split("?")[0],
+        );
+        if (oldOriginalPath) {
+          const oldOriginalRef = ref(storage, oldOriginalPath);
+          await deleteObject(oldOriginalRef);
+        }
+      } catch (error) {
+        console.log("No old original banner to delete or error:", error);
+      }
+    }
 
-    // Update user profile with new banner image URL
-    await updateUserProfile(userId, { bannerImage: downloadURL });
+    // Upload cropped banner with unique timestamp
+    const timestamp = Date.now();
+    const croppedRef = ref(
+      storage,
+      `profiles/${userId}/banner-image-cropped-${timestamp}`,
+    );
+    await uploadBytes(croppedRef, croppedFile);
+    const croppedURL = await getDownloadURL(croppedRef);
 
-    return downloadURL;
+    const updateData = { bannerImage: croppedURL };
+
+    // Upload original banner if provided
+    if (originalFile) {
+      const originalRef = ref(
+        storage,
+        `profiles/${userId}/banner-image-original-${timestamp}`,
+      );
+      await uploadBytes(originalRef, originalFile);
+      const originalURL = await getDownloadURL(originalRef);
+      updateData.bannerImageOriginal = originalURL;
+    }
+
+    // Save crop and zoom data if provided
+    if (cropData) {
+      updateData.bannerImageCropData = cropData;
+    }
+
+    // Update user profile with new banner URLs
+    await updateUserProfile(userId, updateData);
+
+    return croppedURL;
   } catch (error) {
     console.error("Error uploading banner image:", error);
     throw error;

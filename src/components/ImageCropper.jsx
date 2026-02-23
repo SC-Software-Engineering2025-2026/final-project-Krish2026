@@ -9,9 +9,11 @@ const ImageCropper = ({
   aspectRatio = 4 / 3,
   cropShape = "rect",
   allowRatioChange = false,
+  initialCrop = { x: 0, y: 0 },
+  initialZoom = 1,
 }) => {
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+  const [crop, setCrop] = useState(initialCrop);
+  const [zoom, setZoom] = useState(initialZoom);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [selectedRatio, setSelectedRatio] = useState(aspectRatio);
 
@@ -31,7 +33,7 @@ const ImageCropper = ({
   );
 
   const handleDone = () => {
-    onCropComplete(croppedAreaPixels);
+    onCropComplete(croppedAreaPixels, crop, zoom);
   };
 
   return (
