@@ -14,6 +14,7 @@ import Communities from "./pages/Communities";
 import CommunityPage from "./pages/CommunityPage";
 import Discover from "./pages/Discover";
 import Messages from "./pages/Messages";
+import Inbox from "./pages/Inbox";
 import Settings from "./pages/Settings";
 
 // Temporary utility component
@@ -44,6 +45,7 @@ function App() {
                   element={<CommunityPage />}
                 />
                 <Route path="/discover" element={<Discover />} />
+                <Route path="/inbox" element={<Inbox />} />
                 <Route path="/messages" element={<Messages />} />
 
                 {/* Temporary utility route - remove after use */}

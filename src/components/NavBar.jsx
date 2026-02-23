@@ -100,6 +100,24 @@ const NavBar = () => {
                   Discover
                 </Link>
                 <Link
+                  to="/inbox"
+                  className="px-4 py-2 text-base font-medium transition-all duration-200"
+                  style={{
+                    fontFamily: "Times New Roman, serif",
+                    color: isActive("/inbox")
+                      ? "#EDE8DD"
+                      : isDark
+                        ? "#EDE8DD"
+                        : "#54524D",
+                    backgroundColor: isActive("/inbox")
+                      ? "#54524D"
+                      : "transparent",
+                    borderRadius: isActive("/inbox") ? "20px" : "0",
+                  }}
+                >
+                  Inbox
+                </Link>
+                <Link
                   to={`/profile/${currentUser.uid}`}
                   className="px-4 py-2 text-base font-medium transition-all duration-200"
                   style={{

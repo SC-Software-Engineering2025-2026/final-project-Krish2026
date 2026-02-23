@@ -13,6 +13,9 @@ import {
   demoteAdmin,
 } from "../services/communityService";
 import { getUserProfile } from "../services/profileService";
+import { PhotoIcon, PencilIcon } from "@heroicons/react/24/outline";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
 
 const CommunitySettings = ({ communityId, userRole }) => {
   const { currentUser } = useAuth();
@@ -67,12 +70,12 @@ const CommunitySettings = ({ communityId, userRole }) => {
     }
   };
 
-  const handleUpdateCommunity = async (updates) => {
+  const handleUpdateCommunity = async (updates, imageFile = null) => {
     if (!isAdmin) return;
 
     setSaving(true);
     try {
-      await updateCommunity(communityId, updates);
+      await updateCommunity(communityId, updates, imageFile);
       await loadData();
     } catch (error) {
       console.error("Error updating community:", error);
@@ -306,131 +309,244 @@ const GeneralSettings = ({
     description: community?.description || "",
     isPublic: community?.isPublic ?? true,
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(community?.imageUrl || null);
+  const [imageToCrop, setImageToCrop] = useState(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size should be less than 5MB");
+        return;
+      }
+      // Show cropper
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageToCrop(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditCurrentImage = () => {
+    if (imagePreview) {
+      // Open cropper with current image
+      setImageToCrop(imagePreview);
+    }
+  };
+
+  const handleCropComplete = async (croppedAreaPixels) => {
+    try {
+      const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+
+      // Convert blob to file
+      const file = new File([croppedImage], "community-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(croppedImage));
+      setImageToCrop(null);
+    } catch (error) {
+      console.error("Error cropping image:", error);
+      alert("Failed to crop image");
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onUpdate(formData);
+    onUpdate(formData, imageFile);
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Community Name */}
-        <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Community Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            required
-            maxLength={50}
-          />
-        </div>
+    <>
+      {/* Image Cropper Modal */}
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setImageToCrop(null)}
+          aspect={1}
+          lockAspectRatio={true}
+        />
+      )}
 
-        {/* Description */}
-        <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Description
-          </label>
-          <textarea
-            id="description"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white"
-            rows={4}
-            maxLength={500}
-          />
-        </div>
-
-        {/* Privacy Setting */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+      <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Community Picture */}
           <div>
-            <h3 className="font-medium text-gray-900 dark:text-white">
-              Public Community
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {formData.isPublic
-                ? "Anyone can find and join this community"
-                : "Only invited members can join"}
-            </p>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Community Picture
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="relative group w-24 h-24 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Community"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <PhotoIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
+                  </div>
+                )}
+                {imagePreview ? (
+                  <button
+                    type="button"
+                    onClick={handleEditCurrentImage}
+                    className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer"
+                  >
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <PencilIcon className="h-8 w-8 text-white" />
+                    </div>
+                  </button>
+                ) : (
+                  <label className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <PencilIcon className="h-8 w-8 text-white" />
+                    </div>
+                  </label>
+                )}
+              </div>
+              <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                {imagePreview ? "Change Picture" : "Add Picture"}
+              </label>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              setFormData({ ...formData, isPublic: !formData.isPublic })
-            }
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isPublic ? "bg-blue-600" : "bg-gray-300"
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                formData.isPublic ? "translate-x-6" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </div>
 
-        {/* Community Type (Read-only) */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <h3 className="font-medium text-gray-900 dark:text-white">
-            Community Type
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {community?.isCollaborative ? "Collaborative" : "Informational"}
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Community type cannot be changed after creation
-          </p>
-        </div>
-
-        {/* Save Button */}
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </form>
-
-      {/* Danger Zone */}
-      {canDelete && (
-        <div className="pt-6 border-t dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">
-            Danger Zone
-          </h3>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <h4 className="font-medium text-red-900 dark:text-red-400">
-              Delete Community
-            </h4>
-            <p className="text-sm text-red-700 dark:text-red-300 mt-1 mb-4">
-              Once you delete a community, there is no going back. This will
-              permanently delete all posts, comments, messages, media, and
-              member data.
-            </p>
-            <button
-              onClick={onDelete}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+          {/* Community Name */}
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
-              Delete Community
+              Community Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              required
+              maxLength={50}
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Description
+            </label>
+            <textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white"
+              rows={4}
+              maxLength={500}
+            />
+          </div>
+
+          {/* Privacy Setting */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">
+                Public Community
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {formData.isPublic
+                  ? "Anyone can find and join this community"
+                  : "Only invited members can join"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData({ ...formData, isPublic: !formData.isPublic })
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.isPublic ? "bg-blue-600" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  formData.isPublic ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
             </button>
           </div>
-        </div>
-      )}
-    </div>
+
+          {/* Community Type (Read-only) */}
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <h3 className="font-medium text-gray-900 dark:text-white">
+              Community Type
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {community?.isCollaborative ? "Collaborative" : "Informational"}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Community type cannot be changed after creation
+            </p>
+          </div>
+
+          {/* Save Button */}
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+
+        {/* Danger Zone */}
+        {canDelete && (
+          <div className="pt-6 border-t dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">
+              Danger Zone
+            </h3>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <h4 className="font-medium text-red-900 dark:text-red-400">
+                Delete Community
+              </h4>
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1 mb-4">
+                Once you delete a community, there is no going back. This will
+                permanently delete all posts, comments, messages, media, and
+                member data.
+              </p>
+              <button
+                onClick={onDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+              >
+                Delete Community
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
