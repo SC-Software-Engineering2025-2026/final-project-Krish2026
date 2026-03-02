@@ -17,7 +17,102 @@ const CreateCommunity = ({ onClose }) => {
     isPublic: true,
     isCollaborative: true,
     image: null,
+    categories: [""],
   });
+
+  // Comprehensive category list (should match settings page)
+  const CATEGORY_OPTIONS = [
+    "Sports",
+    "Discussion",
+    "School",
+    "Theater",
+    "Fashion",
+    "Design",
+    "Gaming",
+    "Music",
+    "Networking",
+    "Scientific interests",
+    "Math",
+    "Computer Science",
+    "Economics",
+    "Educational",
+    "Creative",
+    "Influencer",
+    "Emotions",
+    "Animals",
+    "Marine life",
+    "Beach",
+    "Travel",
+    "City life",
+    "Nature",
+    "Environmentalists",
+    "Photography",
+    "Videography",
+    "Filmmaking",
+    "Films",
+    "TV Shows",
+    "Cars",
+    "Racing",
+    "Show Cars",
+    // Additional categories
+    "Technology",
+    "Art",
+    "Books",
+    "Writing",
+    "Fitness",
+    "Health",
+    "Food",
+    "Cooking",
+    "Politics",
+    "History",
+    "Parenting",
+    "Relationships",
+    "Science",
+    "Space",
+    "DIY",
+    "Crafts",
+    "Finance",
+    "Investing",
+    "Startups",
+    "Entrepreneurship",
+    "Memes",
+    "Podcasts",
+    "Board Games",
+    "Card Games",
+    "Outdoors",
+    "Hiking",
+    "Camping",
+    "Wellness",
+    "Mindfulness",
+    "Language Learning",
+    "News",
+    "Events",
+  ];
+
+  // Handle dropdown change for a specific slot
+  const handleCategoryDropdownChange = (idx, value) => {
+    setFormData((prev) => {
+      const updated = [...prev.categories];
+      updated[idx] = value;
+      // If last slot and not empty, add another slot (up to 3)
+      if (idx === updated.length - 1 && value && updated.length < 3) {
+        updated.push("");
+      }
+      // Remove empty slots after the last filled one
+      while (
+        updated.length > 1 &&
+        updated[updated.length - 1] === "" &&
+        updated[updated.length - 2] === ""
+      ) {
+        updated.pop();
+      }
+      // Remove duplicates
+      const deduped = updated.filter(
+        (cat, i) => cat === "" || updated.indexOf(cat) === i,
+      );
+      return { ...prev, categories: deduped };
+    });
+  };
 
   const [imagePreview, setImagePreview] = useState(null);
   const [imageToCrop, setImageToCrop] = useState(null);
@@ -101,6 +196,7 @@ const CreateCommunity = ({ onClose }) => {
           description: formData.description.trim(),
           isPublic: formData.isPublic,
           isCollaborative: formData.isCollaborative,
+          categories: formData.categories,
         },
         formData.image,
       );
@@ -243,6 +339,50 @@ const CreateCommunity = ({ onClose }) => {
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {formData.description.length}/500 characters
+            </p>
+          </div>
+
+          {/* Categories Section (Dropdowns) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Categories{" "}
+              <span className="text-xs text-gray-500">(Choose up to 3)</span>
+            </label>
+            <div className="flex flex-col gap-2">
+              {formData.categories.map((selected, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <select
+                    value={selected}
+                    onChange={(e) =>
+                      handleCategoryDropdownChange(idx, e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    disabled={loading}
+                  >
+                    <option value="">Select category...</option>
+                    {CATEGORY_OPTIONS.filter(
+                      (cat) =>
+                        !formData.categories.includes(cat) || cat === selected,
+                    ).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    aria-label="Remove category"
+                    className="ml-1 px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-200 dark:hover:bg-red-700 hover:text-red-700 dark:hover:text-red-400 transition"
+                    onClick={() => handleCategoryDropdownChange(idx, "")}
+                    disabled={loading}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.categories.filter((c) => c).length} selected
             </p>
           </div>
 

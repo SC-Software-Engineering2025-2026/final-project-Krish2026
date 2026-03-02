@@ -161,6 +161,21 @@ const CommunityHome = ({
                 <span>{community?.memberCount} members</span>
                 <span>•</span>
                 <span>{community?.isPublic ? "Public" : "Private"}</span>
+                {community?.categories?.some((cat) => cat) && (
+                  <span className="flex flex-wrap gap-2">
+                    {community.categories
+                      .slice(0, 3)
+                      .filter((cat) => cat)
+                      .map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-2 py-0.5 bg-gray-800 dark:bg-beige-700 text-gray-100 dark:text-beige-100 text-xs font-medium rounded-full border border-gray-900 dark:border-beige-800"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                  </span>
+                )}
               </div>
             </div>
           </div>

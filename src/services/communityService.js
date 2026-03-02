@@ -58,6 +58,7 @@ export const createCommunity = async (
       imageUrl,
       isPublic: communityData.isPublic,
       isCollaborative: communityData.isCollaborative,
+      categories: communityData.categories || [],
       creatorId: userId,
       admins: [userId],
       members: [userId],
@@ -342,6 +343,10 @@ export const updateCommunity = async (
 ) => {
   try {
     const updateData = { ...updates };
+    // Ensure categories is always an array if present
+    if (updateData.categories && !Array.isArray(updateData.categories)) {
+      updateData.categories = [updateData.categories];
+    }
 
     // Upload new image if provided
     if (newImage) {
