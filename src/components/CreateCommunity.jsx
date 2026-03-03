@@ -4,6 +4,7 @@ import { createCommunity } from "../services/communityService";
 import { useNavigate } from "react-router-dom";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
+import COLORS from "../theme/colors";
 
 const CreateCommunity = ({ onClose }) => {
   const { currentUser } = useAuth();
@@ -369,15 +370,17 @@ const CreateCommunity = ({ onClose }) => {
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
-                    aria-label="Remove category"
-                    className="ml-1 px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-200 dark:hover:bg-red-700 hover:text-red-700 dark:hover:text-red-400 transition"
-                    onClick={() => handleCategoryDropdownChange(idx, "")}
-                    disabled={loading}
-                  >
-                    ×
-                  </button>
+                  {selected && (
+                    <button
+                      type="button"
+                      aria-label="Remove category"
+                      className="ml-1 px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-200 dark:hover:bg-red-700 hover:text-red-700 dark:hover:text-red-400 transition"
+                      onClick={() => handleCategoryDropdownChange(idx, "")}
+                      disabled={loading}
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -478,7 +481,8 @@ const CreateCommunity = ({ onClose }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 rounded-lg font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
               disabled={loading}
             >
               {loading ? "Creating..." : "Create Community"}

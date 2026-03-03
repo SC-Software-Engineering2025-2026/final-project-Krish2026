@@ -327,7 +327,11 @@ function Login() {
                 <button
                   onClick={handlePhoneSignIn}
                   disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
                 >
                   {loading ? "Sending Code..." : "Send Verification Code"}
                 </button>
@@ -344,7 +348,11 @@ function Login() {
                 <button
                   onClick={handleVerifyCode}
                   disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
                 >
                   {loading ? "Verifying..." : "Verify Code"}
                 </button>

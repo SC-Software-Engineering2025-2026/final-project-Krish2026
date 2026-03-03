@@ -326,7 +326,13 @@ const PostCard = ({
               <p className="font-semibold text-gray-900 dark:text-white">
                 {post.userProfile?.username || "Admin"}
               </p>
-              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded">
+              <span
+                className="px-2 py-0.5 text-xs font-medium rounded"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
+              >
                 Admin
               </span>
             </div>

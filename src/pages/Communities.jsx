@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getCommunities } from "../services/communityService";
 import CreateCommunity from "../components/CreateCommunity";
+import { COLORS } from "../theme/colors";
 
 function Communities() {
   const { currentUser } = useAuth();
@@ -50,7 +51,8 @@ function Communities() {
           {currentUser && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 font-medium"
+              className="px-6 py-3 rounded-lg flex items-center space-x-2 font-medium"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
             >
               <svg
                 className="w-5 h-5"
@@ -96,7 +98,11 @@ function Communities() {
                 </p>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="mt-6 px-6 py-2 rounded-lg"
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
                 >
                   Create Your First Community
                 </button>
@@ -138,7 +144,7 @@ const CommunityCard = ({ community, onClick }) => {
           className="w-full h-48 object-cover"
         />
       )}
-      <div className="p-6">
+      <div className="p-6 flex flex-col gap-2">
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
           {community.name}
         </h3>
@@ -157,26 +163,27 @@ const CommunityCard = ({ community, onClick }) => {
             <span className="capitalize">
               {community.isPublic ? "Public" : "Private"}
             </span>
-            {community.categories?.some((cat) => cat) && (
-              <span className="flex flex-wrap gap-2">
-                {community.categories
-                  .slice(0, 3)
-                  .filter((cat) => cat)
-                  .map((cat) => (
-                    <span
-                      key={cat}
-                      className="px-2 py-0.5 bg-gray-800 dark:bg-beige-700 text-gray-100 dark:text-beige-100 text-xs font-medium rounded-full border border-gray-900 dark:border-beige-800"
-                    >
-                      {cat}
-                    </span>
-                  ))}
-              </span>
-            )}
           </div>
           <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded">
             {community.isCollaborative ? "Collaborative" : "Informational"}
           </span>
         </div>
+        {/* Category bubbles horizontal list at bottom */}
+        {community.categories?.some((cat) => cat) && (
+          <div className="flex flex-row flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            {community.categories
+              .slice(0, 3)
+              .filter((cat) => cat)
+              .map((cat) => (
+                <span
+                  key={cat}
+                  className="px-2 py-0.5 bg-gray-800 dark:bg-beige-700 text-gray-100 dark:text-beige-100 text-xs font-medium rounded-full border border-gray-900 dark:border-beige-800"
+                >
+                  {cat}
+                </span>
+              ))}
+          </div>
+        )}
       </div>
     </div>
   );

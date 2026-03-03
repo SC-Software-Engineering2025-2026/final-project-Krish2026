@@ -269,7 +269,8 @@ const ProfilePage = () => {
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => navigate(-1)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-2 rounded-lg"
+            style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
           >
             Go Back
           </button>
@@ -897,7 +898,11 @@ const ProfilePage = () => {
                           setShowCommunitiesModal(false);
                           navigate("/communities");
                         }}
-                        className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        className="inline-block px-6 py-2 rounded-lg transition"
+                        style={{
+                          backgroundColor: COLORS.Dark_Gray,
+                          color: COLORS.Beige,
+                        }}
                       >
                         Browse Communities
                       </button>

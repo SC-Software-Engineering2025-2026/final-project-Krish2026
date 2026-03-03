@@ -143,7 +143,13 @@ const PostUpload = ({ onClose, onPostCreated }) => {
                       <XMarkIcon className="h-4 w-4" />
                     </button>
                     {index === 0 && (
-                      <div className="absolute bottom-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+                      <div
+                        className="absolute bottom-2 left-2 px-2 py-1 text-xs rounded-full"
+                        style={{
+                          backgroundColor: COLORS.Dark_Gray,
+                          color: COLORS.Beige,
+                        }}
+                      >
                         Cover
                       </div>
                     )}

@@ -18,6 +18,8 @@ import LocationPicker from "./LocationPicker";
 import { getCroppedImg } from "../utils/cropImage";
 import { shortenLocation } from "../utils/locationUtils";
 
+import { COLORS } from "../theme/colors";
+
 const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
@@ -103,41 +105,45 @@ const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
           <div className="flex space-x-2">
             <button
               onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "all"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "all" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "all" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               All
             </button>
             <button
               onClick={() => setFilter("images")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "images"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "images" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "images" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Images
             </button>
             <button
               onClick={() => setFilter("videos")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "videos"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "videos" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "videos" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Videos
             </button>
             <button
               onClick={() => setFilter("text")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "text"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "text" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "text" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Text
             </button>
@@ -146,7 +152,8 @@ const CommunityPosts = ({ communityId, userRole, isCollaborative }) => {
           {canPost && (
             <button
               onClick={() => setShowCreatePost(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+              className="px-4 py-2 rounded-lg flex items-center space-x-2"
             >
               <svg
                 className="w-5 h-5"
@@ -882,7 +889,15 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
               <button
                 type="submit"
                 disabled={loading || !content.trim()}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: !content.trim()
+                    ? "#d1d5db"
+                    : COLORS.Dark_Gray,
+                  color: !content.trim() ? "#888" : COLORS.Beige,
+                  cursor:
+                    loading || !content.trim() ? "not-allowed" : "pointer",
+                }}
+                className="px-6 py-2 rounded-lg transition"
               >
                 {loading ? "Posting..." : "Post"}
               </button>
@@ -969,7 +984,11 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                     <button
                       type="button"
                       onClick={() => handleRemoveMedia(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                      style={{
+                        backgroundColor: COLORS.Dark_Gray,
+                        color: COLORS.Beige,
+                      }}
+                      className="absolute top-2 right-2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition"
                     >
                       <svg
                         className="w-4 h-4"
@@ -997,7 +1016,13 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
 
             {/* Upload Button */}
             {mediaPreviews.length < 20 && (
-              <label className="cursor-pointer w-full flex flex-col items-center justify-center gap-2 px-6 py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition">
+              <label
+                style={{
+                  backgroundColor: COLORS.Beige,
+                  color: COLORS.Dark_Gray,
+                }}
+                className="cursor-pointer w-full flex flex-col items-center justify-center gap-2 px-6 py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg transition"
+              >
                 <input
                   type="file"
                   accept="image/*,video/*"
@@ -1112,7 +1137,11 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                   type="button"
                   onClick={() => setLocation(null)}
                   disabled={loading}
-                  className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
+                  className="px-3 py-2 rounded-lg transition"
                 >
                   Remove
                 </button>
@@ -1122,7 +1151,11 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                 type="button"
                 onClick={() => setShowLocationPicker(true)}
                 disabled={loading}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition text-left flex items-center gap-2 text-gray-500 dark:text-gray-400"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg transition text-left flex items-center gap-2"
               >
                 <svg
                   className="w-5 h-5"
@@ -1239,7 +1272,21 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
             <button
               type="submit"
               disabled={loading || (mediaFiles.length === 0 && !content.trim())}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+              style={{
+                backgroundColor:
+                  mediaFiles.length === 0 && !content.trim()
+                    ? "#d1d5db"
+                    : COLORS.Dark_Gray,
+                color:
+                  mediaFiles.length === 0 && !content.trim()
+                    ? "#888"
+                    : COLORS.Beige,
+                cursor:
+                  loading || (mediaFiles.length === 0 && !content.trim())
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+              className="flex-1 px-6 py-3 rounded-lg transition font-medium"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -1713,7 +1760,11 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             <button
                               type="submit"
                               disabled={loading || !replyText.trim()}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                              style={{
+                                backgroundColor: COLORS.Dark_Gray,
+                                color: COLORS.Beige,
+                              }}
+                              className="px-3 py-1 rounded text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
                             >
                               {loading ? "..." : "Reply"}
                             </button>
@@ -1935,7 +1986,8 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
             <button
               type="submit"
               disabled={loading || !newComment.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+              className="px-6 py-2 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition"
             >
               {loading ? "Posting..." : "Post"}
             </button>

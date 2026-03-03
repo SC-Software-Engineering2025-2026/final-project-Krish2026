@@ -16,6 +16,7 @@ import { getUserProfile } from "../services/profileService";
 import { PhotoIcon, PencilIcon } from "@heroicons/react/24/outline";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
+import { COLORS } from "../theme/colors";
 
 const CommunitySettings = ({ communityId, userRole }) => {
   const { currentUser } = useAuth();
@@ -512,7 +513,13 @@ const GeneralSettings = ({
                   </label>
                 )}
               </div>
-              <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition">
+              <label
+                className="cursor-pointer px-4 py-2 rounded-lg transition"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
+              >
                 <input
                   type="file"
                   accept="image/*"
@@ -592,15 +599,17 @@ const GeneralSettings = ({
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
-                    aria-label="Remove category"
-                    className="ml-1 px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-200 dark:hover:bg-red-700 hover:text-red-700 dark:hover:text-red-400 transition"
-                    onClick={() => handleCategoryDropdownChange(idx, "")}
-                    disabled={saving}
-                  >
-                    ×
-                  </button>
+                  {selected && (
+                    <button
+                      type="button"
+                      aria-label="Remove category"
+                      className="ml-1 px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-200 dark:hover:bg-red-700 hover:text-red-700 dark:hover:text-red-400 transition"
+                      onClick={() => handleCategoryDropdownChange(idx, "")}
+                      disabled={saving}
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -655,7 +664,8 @@ const GeneralSettings = ({
           <button
             type="submit"
             disabled={saving}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+            className="w-full px-4 py-2 rounded-lg disabled:bg-gray-300"
+            style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
           >
             {saving ? "Saving..." : "Save Changes"}
           </button>
@@ -775,7 +785,13 @@ const MembersSettings = ({
                 </span>
               )}
               {isMemberAdmin && (
-                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium rounded">
+                <span
+                  className="px-2 py-0.5 text-xs font-medium rounded"
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
+                >
                   Admin
                 </span>
               )}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllCommunities, joinCommunity } from "../services/communityService";
 import { useAuth } from "../context/AuthContext";
+import COLORS from "../theme/colors";
 
 function Discover() {
   const [communities, setCommunities] = useState([]);
@@ -214,7 +215,11 @@ function Discover() {
                   {/* Action Button */}
                   <button
                     onClick={() => handleViewCommunity(community.id)}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="w-full px-4 py-2 rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                    }}
                   >
                     Open
                   </button>

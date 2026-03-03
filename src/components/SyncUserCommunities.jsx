@@ -90,7 +90,8 @@ const SyncUserCommunities = () => {
         <button
           onClick={() => syncCommunities("yX3O6vZ1KYO2LBIIQjtIAlzbQMr1")}
           disabled={syncing}
-          className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-medium"
+          className="w-full px-6 py-3 rounded-lg disabled:bg-gray-400 font-medium"
+          style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
         >
           {syncing ? "Syncing..." : "Sync Communities"}
         </button>

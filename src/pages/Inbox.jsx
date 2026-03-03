@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import COLORS from "../theme/colors";
 
 const Inbox = () => {
   const { currentUser } = useAuth();
@@ -78,7 +79,10 @@ const Inbox = () => {
         </div>
 
         {/* Future features note */}
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div
+          className="mt-6 p-4 rounded-lg border"
+          style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+        >
           <div className="flex items-start">
             <svg
               className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3"

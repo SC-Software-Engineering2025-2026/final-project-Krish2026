@@ -34,6 +34,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
+import { COLORS } from "../theme/colors";
 
 const Home = () => {
   const { currentUser } = useAuth();
@@ -282,7 +283,8 @@ const Home = () => {
           <div className="flex justify-center gap-4">
             <button
               onClick={() => navigate("/login")}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              className="px-8 py-3 rounded-lg transition font-medium"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
             >
               Log In
             </button>
@@ -368,7 +370,11 @@ const Home = () => {
               </p>
               <button
                 onClick={() => navigate("/communities")}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                className="px-6 py-3 rounded-lg transition font-medium"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
               >
                 Explore Communities
               </button>
@@ -846,7 +852,11 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                           <div className="flex space-x-2 mt-2">
                             <button
                               onClick={handleSaveEdit}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                              className="px-3 py-1 rounded text-sm"
+                              style={{
+                                backgroundColor: COLORS.Dark_Gray,
+                                color: COLORS.Beige,
+                              }}
                             >
                               Save
                             </button>
@@ -923,7 +933,11 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                             <button
                               type="submit"
                               disabled={loading || !replyText.trim()}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                              className="px-3 py-1 rounded text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
+                              style={{
+                                backgroundColor: COLORS.Dark_Gray,
+                                color: COLORS.Beige,
+                              }}
                             >
                               {loading ? "..." : "Reply"}
                             </button>
@@ -1004,7 +1018,11 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
                                         <div className="flex space-x-2 mt-1">
                                           <button
                                             onClick={handleSaveEdit}
-                                            className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                                            className="px-2 py-1 rounded text-xs"
+                                            style={{
+                                              backgroundColor: COLORS.Dark_Gray,
+                                              color: COLORS.Beige,
+                                            }}
                                           >
                                             Save
                                           </button>
@@ -1142,7 +1160,8 @@ const CommentsModal = ({ post, onClose, onCommentAdded }) => {
             <button
               type="submit"
               disabled={loading || !newComment.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              className="px-6 py-2 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
             >
               {loading ? "Posting..." : "Post"}
             </button>

@@ -21,6 +21,7 @@ import {
 } from "@heroicons/react/24/outline";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
+import { COLORS } from "../theme/colors";
 
 const EditProfile = ({ profile, onSave, onCancel }) => {
   const { currentUser } = useAuth();
@@ -446,7 +447,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
             </h2>
             <button
               onClick={onCancel}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+              className="p-2 rounded-full transition"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -501,14 +503,24 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     </label>
                   )}
                 </div>
-                <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition">
+                <label className="cursor-pointer transition">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleProfileImageChange}
                     className="hidden"
                   />
-                  Change Photo
+                  <span
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      display: "inline-block",
+                    }}
+                  >
+                    Change Photo
+                  </span>
                 </label>
               </div>
             </div>
@@ -544,14 +556,24 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     </button>
                   </div>
                 )}
-                <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition inline-block">
+                <label className="cursor-pointer transition inline-block">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleBannerImageChange}
                     className="hidden"
                   />
-                  {bannerImagePreview ? "Change Banner" : "Add Banner"}
+                  <span
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      display: "inline-block",
+                    }}
+                  >
+                    {bannerImagePreview ? "Change Banner" : "Add Banner"}
+                  </span>
                 </label>
               </div>
             </div>
@@ -800,7 +822,11 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                     <button
                       type="button"
                       onClick={() => handleRemoveLink(index)}
-                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                      style={{
+                        backgroundColor: COLORS.Dark_Gray,
+                        color: COLORS.Beige,
+                      }}
+                      className="p-2 rounded-lg transition"
                     >
                       <TrashIcon className="h-5 w-5" />
                     </button>
@@ -832,7 +858,11 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                   <button
                     type="button"
                     onClick={handleAddLink}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition"
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                    }}
+                    className="px-4 py-2 rounded-lg transition"
                   >
                     <PlusIcon className="h-5 w-5" />
                   </button>
@@ -845,7 +875,11 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
               <button
                 type="submit"
                 disabled={loading || usernameError}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
+                className="flex-1 px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
               >
                 {loading ? "Saving..." : "Save Changes"}
               </button>

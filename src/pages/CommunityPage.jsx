@@ -16,6 +16,7 @@ import AdminChat from "../components/AdminChat";
 import UserToAdminMessaging from "../components/UserToAdminMessaging";
 import MediaLibrary from "../components/MediaLibrary";
 import CommunitySettings from "../components/CommunitySettings";
+import { COLORS } from "../theme/colors";
 
 const CommunityPage = () => {
   const { communityId } = useParams();
@@ -87,7 +88,8 @@ const CommunityPage = () => {
         </p>
         <button
           onClick={() => navigate("/communities")}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-6 py-2 rounded-lg"
+          style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
         >
           Browse Communities
         </button>
@@ -124,7 +126,8 @@ const CommunityPage = () => {
           </p>
           <button
             onClick={() => navigate("/communities")}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-2 rounded-lg"
+            style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
           >
             Browse Other Communities
           </button>

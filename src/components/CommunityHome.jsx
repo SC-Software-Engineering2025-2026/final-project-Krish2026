@@ -8,6 +8,7 @@ import {
 } from "../services/communityService";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import COLORS from "../theme/colors";
 
 const CommunityHome = ({
   communityId,
@@ -132,7 +133,8 @@ const CommunityHome = ({
           <button
             onClick={onJoin}
             disabled={joining}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+            className="px-8 py-3 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+            style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
           >
             {joining ? "Joining..." : "Join Community"}
           </button>
@@ -184,7 +186,11 @@ const CommunityHome = ({
             {isAdmin && !isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                className="px-4 py-2 rounded-lg flex items-center space-x-2"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
               >
                 <svg
                   className="w-5 h-5"
@@ -282,7 +288,11 @@ const CommunityHome = ({
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                className="px-6 py-2 rounded-lg disabled:bg-gray-300"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
