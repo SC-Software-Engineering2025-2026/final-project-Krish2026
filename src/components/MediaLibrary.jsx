@@ -5,6 +5,7 @@ import {
   uploadCommunityMedia,
   deleteCommunityMedia,
 } from "../services/communityMediaService";
+import { COLORS } from "../theme/colors";
 
 const MediaLibrary = ({ communityId, userRole }) => {
   const { currentUser } = useAuth();
@@ -83,40 +84,49 @@ const MediaLibrary = ({ communityId, userRole }) => {
           <div className="flex space-x-2">
             <button
               onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "all"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "all" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "all" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               All Media
             </button>
             <button
               onClick={() => setFilter("photos")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "photos"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "photos" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "photos" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Photos
             </button>
             <button
               onClick={() => setFilter("videos")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "videos"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "videos" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "videos" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Videos
             </button>
           </div>
 
-          <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+          <label
+            style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+            className="cursor-pointer px-4 py-2 rounded-lg flex items-center space-x-2"
+          >
             {uploading ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div
+                  className="animate-spin rounded-full h-5 w-5 border-b-2"
+                  style={{ borderColor: COLORS.Beige }}
+                ></div>
                 <span>Uploading...</span>
               </>
             ) : (

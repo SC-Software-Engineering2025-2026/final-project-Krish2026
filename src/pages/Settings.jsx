@@ -6,6 +6,7 @@ import {
   getUserProfile,
   toggleProfilePrivacy,
   subscribeToUserProfile,
+  deleteCompleteUserAccount,
 } from "../services/profileService";
 import {
   LockClosedIcon,
@@ -14,6 +15,8 @@ import {
   ArrowLeftIcon,
   SunIcon,
   MoonIcon,
+  TrashIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 const Settings = () => {
@@ -22,6 +25,9 @@ const Settings = () => {
   const { theme, toggleTheme, isDark } = useTheme();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!currentUser) {
@@ -63,6 +69,26 @@ const Settings = () => {
     } catch (err) {
       console.error("Error logging out:", err);
       alert("Failed to log out");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      alert('Please type "DELETE" to confirm');
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await deleteCompleteUserAccount(currentUser.uid);
+      // User will be automatically logged out when auth account is deleted
+      navigate("/login");
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      alert(
+        "Failed to delete account. Please try again or contact support if the problem persists.",
+      );
+      setDeleting(false);
     }
   };
 
@@ -182,7 +208,9 @@ const Settings = () => {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Account Actions
             </h3>
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800">
+
+            {/* Log Out */}
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-6 border border-red-200 dark:border-red-800 mb-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -204,9 +232,114 @@ const Settings = () => {
                 </div>
               </div>
             </div>
+
+            {/* Delete Account */}
+            <div className="bg-red-100 dark:bg-red-900/30 rounded-lg p-6 border-2 border-red-300 dark:border-red-700">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrashIcon className="h-6 w-6 text-red-700 dark:text-red-400" />
+                    <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                      Delete Account
+                    </h4>
+                  </div>
+                  <div className="flex items-start gap-2 bg-red-200 dark:bg-red-900/50 rounded-lg p-3 mb-4">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-red-700 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-red-900 dark:text-red-200 text-sm">
+                      <strong>Warning:</strong> This action is permanent and
+                      cannot be undone. All your data will be permanently
+                      deleted, including:
+                    </p>
+                  </div>
+                  <ul className="text-gray-700 dark:text-gray-300 text-sm mb-4 ml-8 list-disc space-y-1">
+                    <li>Your profile and all personal information</li>
+                    <li>All your posts, comments, and likes</li>
+                    <li>
+                      All communities you created (they will be deleted for all
+                      members)
+                    </li>
+                    <li>Your membership in all communities</li>
+                    <li>All your messages and media uploads</li>
+                    <li>Your Firebase authentication account</li>
+                  </ul>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={deleting}
+                    className="px-6 py-3 bg-red-700 hover:bg-red-800 dark:bg-red-800 dark:hover:bg-red-900 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                    <span>Delete My Account</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <ExclamationTriangleIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Confirm Account Deletion
+              </h3>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Are you absolutely sure you want to delete your account? This
+                action cannot be undone.
+              </p>
+
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
+                Type <strong>DELETE</strong> to confirm:
+              </p>
+
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                disabled={deleting}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText("");
+                }}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting || deleteConfirmText !== "DELETE"}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <TrashIcon className="h-5 w-5" />
+                    <span>Delete Forever</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

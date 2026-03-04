@@ -12,6 +12,7 @@ import {
   getUserFollowing,
 } from "../services/profileService";
 import { getCommunitiesByIds } from "../services/communityService";
+import COLORS from "../theme/colors";
 import EditProfile from "../components/EditProfile";
 import {
   UserCircleIcon,
@@ -432,14 +433,21 @@ const ProfilePage = () => {
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md font-medium ${
-                    isFollowingUser
-                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  style={{
+                    backgroundColor: isFollowingUser
+                      ? "#d1d5db"
+                      : COLORS.Dark_Gray,
+                    color: isFollowingUser ? "#374151" : COLORS.Beige,
+                  }}
+                  className="flex items-center gap-2 px-6 py-2 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {followLoading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <div
+                      className="animate-spin rounded-full h-5 w-5 border-b-2"
+                      style={{
+                        borderColor: isFollowingUser ? "#374151" : COLORS.Beige,
+                      }}
+                    ></div>
                   ) : isFollowingUser ? (
                     <>
                       <UserMinusIcon className="h-5 w-5" />

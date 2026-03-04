@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { createCommunity } from "../services/communityService";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ const CreateCommunity = ({ onClose }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const formContainerRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -174,16 +175,25 @@ const CreateCommunity = ({ onClose }) => {
     // Validation
     if (!formData.name.trim()) {
       setError("Community name is required");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     if (formData.name.length < 3) {
       setError("Community name must be at least 3 characters");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!formData.image) {
+      setError("Community image is required");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     if (formData.description.length > 500) {
       setError("Description must be less than 500 characters");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -208,6 +218,7 @@ const CreateCommunity = ({ onClose }) => {
     } catch (err) {
       console.error("Error creating community:", err);
       setError(err.message || "Failed to create community");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
     }
@@ -215,7 +226,10 @@ const CreateCommunity = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div
+        ref={formContainerRef}
+        className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -253,7 +267,7 @@ const CreateCommunity = ({ onClose }) => {
           {/* Community Image */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Community Image
+              Community Image *
             </label>
             <div className="flex items-center space-x-4">
               <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
