@@ -10,6 +10,7 @@ This document outlines the complete Firestore database structure for the Sfera a
 ├── 📝 userPosts/                # User posts
 ├── 💬 postComments/             # Comments on posts
 ├── ❤️ postLikes/                # Likes on posts
+├── 🔔 notifications/            # User notifications
 └── 🏘️ communities/              # Communities
     ├── 📄 posts/                # Community posts (subcollection)
     ├── 🖼️ media/                 # Community media library (subcollection)
@@ -126,7 +127,45 @@ This document outlines the complete Firestore database structure for the Sfera a
 
 ---
 
-### 5. `communities/` - Communities
+### 5. `notifications/` - User Notifications
+
+**Document ID:** Auto-generated
+
+**Structure:**
+
+```javascript
+{
+  userId: string,                // Recipient user ID
+  type: string,                  // Notification type: 'follow', 'like', 'community_joined', 'message'
+  actorId: string,               // User who triggered the notification
+  actorName: string,             // Display name of actor
+  actorProfileImage: string,     // Profile image URL of actor
+  postId: string,                // (Optional) Post ID for like notifications
+  communityId: string,           // (Optional) Community ID
+  communityName: string,         // (Optional) Community name
+  message: string,               // Notification message text
+  read: boolean,                 // Whether notification has been read
+  createdAt: timestamp           // Notification creation date
+}
+```
+
+**Notification Types:**
+
+- `follow` - User followed notification recipient
+- `like` - User liked a post by notification recipient
+- `community_joined` - User joined a community managed by recipient
+- `message` - User sent a message in a community (optional/future feature)
+
+**Security:**
+
+- Rea6: Notification owner only
+- Create: Any authenticated user (via service)
+- Update: Notification owner only (for marking as read)
+- Delete: Notification owner only
+
+---
+
+### 6. `communities/` - Communities
 
 **Document ID:** Auto-generated
 
@@ -183,7 +222,7 @@ This document outlines the complete Firestore database structure for the Sfera a
 
 ---
 
-#### 5.2 `communities/{communityId}/media/` - Community Media (Subcollection)
+#### 6.2 `communities/{communityId}/media/` - Community Media (Subcollection)
 
 **Document ID:** Auto-generated
 
@@ -207,7 +246,7 @@ This document outlines the complete Firestore database structure for the Sfera a
 
 ---
 
-#### 5.3 `communities/{communityId}/chat/` - Community Chat (Subcollection)
+#### 6.3 `communities/{communityId}/chat/` - Community Chat (Subcollection)
 
 **Document ID:** Auto-generated
 
@@ -274,6 +313,22 @@ Add these to `firestore.indexes.json`:
       "fields": [
         { "fieldPath": "postId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "read", "order": "ASCENDING" }
       ]
     },
     {

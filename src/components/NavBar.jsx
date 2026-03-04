@@ -3,12 +3,14 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getUserProfile } from "../services/profileService";
+import { subscribeToUnreadCount } from "../services/notificationService";
 
 const NavBar = () => {
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
   const location = useLocation();
   const [userProfile, setUserProfile] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -22,6 +24,16 @@ const NavBar = () => {
       }
     };
     loadUserProfile();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const unsubscribe = subscribeToUnreadCount(currentUser.uid, (count) => {
+      setUnreadCount(count);
+    });
+
+    return () => unsubscribe();
   }, [currentUser]);
 
   const isActive = (path) => location.pathname === path;
@@ -101,7 +113,7 @@ const NavBar = () => {
                 </Link>
                 <Link
                   to="/inbox"
-                  className="px-4 py-2 text-base font-medium transition-all duration-200"
+                  className="px-4 py-2 text-base font-medium transition-all duration-200 relative"
                   style={{
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/inbox")
@@ -116,6 +128,11 @@ const NavBar = () => {
                   }}
                 >
                   Inbox
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-600 rounded-full">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   to={`/profile/${currentUser.uid}`}

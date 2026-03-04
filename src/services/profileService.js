@@ -24,6 +24,7 @@ import {
 } from "firebase/storage";
 import { db, storage, auth } from "./firebase";
 import { deleteUser } from "firebase/auth";
+import { createFollowNotification } from "./notificationService";
 
 /**
  * Get user profile by userId
@@ -506,8 +507,12 @@ export const followUser = async (currentUserId, targetUserId) => {
       throw new Error("Cannot follow yourself");
     }
 
-    // Add to current user's following list
+    // Get current user profile for notification
     const currentUserRef = doc(db, "users", currentUserId);
+    const currentUserDoc = await getDoc(currentUserRef);
+    const currentUserData = currentUserDoc.data();
+
+    // Add to current user's following list
     await updateDoc(currentUserRef, {
       following: arrayUnion(targetUserId),
       updatedAt: serverTimestamp(),
@@ -515,18 +520,29 @@ export const followUser = async (currentUserId, targetUserId) => {
 
     // Add to target user's followers list
     const targetUserRef = doc(db, "users", targetUserId);
+    const targetUserDoc = await getDoc(targetUserRef);
     await updateDoc(targetUserRef, {
       followers: arrayUnion(currentUserId),
-      followersCount:
-        (await getDoc(targetUserRef)).data().followersCount + 1 || 1,
+      followersCount: (targetUserDoc.data().followersCount || 0) + 1,
       updatedAt: serverTimestamp(),
     });
 
     // Increment current user's following count
-    const currentUserDoc = await getDoc(currentUserRef);
     await updateDoc(currentUserRef, {
-      followingCount: (currentUserDoc.data().followingCount || 0) + 1,
+      followingCount: (currentUserData.followingCount || 0) + 1,
     });
+
+    // Create follow notification
+    try {
+      await createFollowNotification(
+        currentUserId,
+        targetUserId,
+        currentUserData,
+      );
+    } catch (notifError) {
+      console.error("Error creating follow notification:", notifError);
+      // Don't throw error, follow action was successful
+    }
   } catch (error) {
     console.error("Error following user:", error);
     throw error;

@@ -24,6 +24,8 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
+import { createCommunityJoinNotification } from "./notificationService";
+import { getUserProfile } from "./profileService";
 
 /**
  * Create a new community
@@ -263,6 +265,28 @@ export const joinCommunity = async (communityId, userId) => {
         joinedAt: serverTimestamp(),
       },
     );
+
+    // Create notifications for all admins
+    try {
+      const userProfile = await getUserProfile(userId);
+      if (userProfile) {
+        const admins = communityData.admins || [communityData.createdBy];
+
+        // Notify each admin
+        for (const adminId of admins) {
+          await createCommunityJoinNotification(
+            userId,
+            communityId,
+            adminId,
+            userProfile,
+            communityData,
+          );
+        }
+      }
+    } catch (notifError) {
+      console.error("Error creating join notifications:", notifError);
+      // Don't throw error, join action was successful
+    }
   } catch (error) {
     console.error("Error joining community:", error);
     throw error;

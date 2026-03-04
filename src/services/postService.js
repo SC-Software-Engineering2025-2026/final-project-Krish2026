@@ -25,6 +25,8 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
+import { createLikeNotification } from "./notificationService";
+import { getUserProfile } from "./profileService";
 
 /**
  * Create a new post
@@ -227,6 +229,14 @@ export const likePost = async (postId, userId) => {
       return; // Already liked, do nothing
     }
 
+    // Get post data to get post owner
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      throw new Error("Post not found");
+    }
+    const postData = postSnap.data();
+    const postOwnerId = postData.userId;
+
     // Add like document with specific ID
     await setDoc(likeRef, {
       postId,
@@ -238,6 +248,17 @@ export const likePost = async (postId, userId) => {
     await updateDoc(postRef, {
       likesCount: increment(1),
     });
+
+    // Create like notification
+    try {
+      const likerProfile = await getUserProfile(userId);
+      if (likerProfile) {
+        await createLikeNotification(userId, postOwnerId, postId, likerProfile);
+      }
+    } catch (notifError) {
+      console.error("Error creating like notification:", notifError);
+      // Don't throw error, like action was successful
+    }
   } catch (error) {
     console.error("Error liking post:", error);
     throw error;
