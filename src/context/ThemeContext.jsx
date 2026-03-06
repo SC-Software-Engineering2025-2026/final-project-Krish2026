@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { getUserProfile, updateUserTheme } from "../services/profileService";
+import { useAuth } from "./AuthContext";
 
 const ThemeContext = createContext();
 
@@ -11,53 +13,74 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => {
-    // Check localStorage first, then system preference
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      return savedTheme;
-    }
+  const { currentUser } = useAuth();
+  const [theme, setTheme] = useState("light"); // Default to light mode
+  const [loading, setLoading] = useState(true);
 
-    // Check system preference
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      return "dark";
-    }
+  // Load theme from user profile when user logs in
+  useEffect(() => {
+    const loadUserTheme = async () => {
+      if (currentUser) {
+        try {
+          const profile = await getUserProfile(currentUser.uid);
+          if (profile && profile.theme) {
+            setTheme(profile.theme);
+          } else {
+            // If user doesn't have a theme set, default to light
+            setTheme("light");
+          }
+        } catch (error) {
+          console.error("Error loading user theme:", error);
+          setTheme("light");
+        }
+      } else {
+        // No user logged in, default to light
+        setTheme("light");
+      }
+      setLoading(false);
+    };
 
-    return "light";
-  });
+    loadUserTheme();
+  }, [currentUser]);
 
   useEffect(() => {
-    // Apply initial theme immediately on mount
+    // Apply theme to DOM
     const root = document.documentElement;
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prevTheme) => {
-      const newTheme = prevTheme === "light" ? "dark" : "light";
-      // Update DOM immediately for instant visual feedback
-      const root = document.documentElement;
-      if (newTheme === "dark") {
-        root.classList.add("dark");
-      } else {
-        root.classList.remove("dark");
+  const toggleTheme = async () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+
+    // Update DOM immediately for instant visual feedback
+    const root = document.documentElement;
+    if (newTheme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+
+    setTheme(newTheme);
+
+    // Save to Firestore if user is logged in
+    if (currentUser) {
+      try {
+        await updateUserTheme(currentUser.uid, newTheme);
+      } catch (error) {
+        console.error("Error saving theme preference:", error);
       }
-      return newTheme;
-    });
+    }
   };
 
   const value = {
     theme,
     toggleTheme,
     isDark: theme === "dark",
+    loading,
   };
 
   return (

@@ -74,6 +74,7 @@ export const createUserProfile = async (userId, profileData) => {
       following: [],
       sentFollowRequests: [],
       pendingFollowRequests: [],
+      theme: "light", // Default theme
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       ...profileData,
@@ -102,6 +103,25 @@ export const updateUserProfile = async (userId, data) => {
     });
   } catch (error) {
     console.error("Error updating user profile:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update user theme preference
+ * @param {string} userId - The user ID
+ * @param {string} theme - Theme preference ("light" or "dark")
+ * @returns {Promise<void>}
+ */
+export const updateUserTheme = async (userId, theme) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      theme: theme,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating user theme:", error);
     throw error;
   }
 };

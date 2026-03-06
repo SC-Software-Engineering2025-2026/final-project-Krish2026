@@ -33,6 +33,7 @@ export const initializeUserProfile = async (user, additionalData = {}) => {
       followingCount: 0,
       followers: [],
       following: [],
+      theme: "light", // Default theme
     };
 
     await createUserProfile(user.uid, profileData);

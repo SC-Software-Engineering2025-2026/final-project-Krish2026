@@ -22,8 +22,8 @@ import SyncUserCommunities from "./components/SyncUserCommunities";
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
             <NavBar />
@@ -57,8 +57,8 @@ function App() {
             </div>
           </div>
         </Router>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
