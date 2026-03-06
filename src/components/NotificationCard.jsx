@@ -5,11 +5,18 @@ import {
   markNotificationAsUnread,
   deleteNotification,
 } from "../services/notificationService";
+import {
+  acceptFollowRequest,
+  rejectFollowRequest,
+} from "../services/profileService";
+import { useAuth } from "../context/AuthContext";
 
 const NotificationCard = ({ notification }) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [processingRequest, setProcessingRequest] = useState(false);
   const menuRef = useRef(null);
   const cardRef = useRef(null);
 
@@ -46,8 +53,11 @@ const NotificationCard = ({ notification }) => {
   };
 
   const handleClick = async (e) => {
-    // Don't navigate if clicking on the menu
-    if (showMenu) return;
+    // Don't navigate if clicking on the menu or buttons
+    if (showMenu || processingRequest) return;
+
+    // Don't navigate if clicking on a button element
+    if (e.target.tagName === "BUTTON" || e.target.closest("button")) return;
 
     try {
       // Mark as read
@@ -57,6 +67,10 @@ const NotificationCard = ({ notification }) => {
 
       // Navigate based on notification type
       if (notification.type === "follow") {
+        navigate(`/profile/${notification.actorId}`);
+      } else if (notification.type === "follow_request") {
+        navigate(`/profile/${notification.actorId}`);
+      } else if (notification.type === "follow_request_accepted") {
         navigate(`/profile/${notification.actorId}`);
       } else if (notification.type === "like" && notification.postId) {
         navigate(`/post/${notification.postId}`);
@@ -69,6 +83,42 @@ const NotificationCard = ({ notification }) => {
       }
     } catch (error) {
       console.error("Error handling notification click:", error);
+    }
+  };
+
+  const handleAcceptRequest = async (e) => {
+    e.stopPropagation();
+    if (!currentUser) return;
+
+    try {
+      setProcessingRequest(true);
+      await acceptFollowRequest(currentUser.uid, notification.actorId);
+      // Mark notification as read
+      await markNotificationAsRead(notification.id);
+      // Optionally delete the notification after accepting
+      await deleteNotification(notification.id);
+    } catch (error) {
+      console.error("Error accepting follow request:", error);
+      alert("Failed to accept follow request");
+    } finally {
+      setProcessingRequest(false);
+    }
+  };
+
+  const handleDeclineRequest = async (e) => {
+    e.stopPropagation();
+    if (!currentUser) return;
+
+    try {
+      setProcessingRequest(true);
+      await rejectFollowRequest(currentUser.uid, notification.actorId);
+      // Delete the notification after declining
+      await deleteNotification(notification.id);
+    } catch (error) {
+      console.error("Error declining follow request:", error);
+      alert("Failed to decline follow request");
+    } finally {
+      setProcessingRequest(false);
     }
   };
 
@@ -132,6 +182,33 @@ const NotificationCard = ({ notification }) => {
             viewBox="0 0 20 20"
           >
             <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+          </svg>
+        );
+      case "follow_request":
+        return (
+          <svg
+            className="w-5 h-5 text-amber-600 dark:text-amber-400"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6z" />
+            <path d="M16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+            <circle cx="16" cy="4" r="1" className="text-amber-300" />
+          </svg>
+        );
+      case "follow_request_accepted":
+        return (
+          <svg
+            className="w-5 h-5 text-green-600 dark:text-green-400"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6z" />
+            <path
+              fillRule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-3 3a1 1 0 01-1.414 0l-1.5-1.5a1 1 0 111.414-1.414L13 7.586l2.293-2.293a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
           </svg>
         );
       case "like":
@@ -221,6 +298,10 @@ const NotificationCard = ({ notification }) => {
               <p className="text-sm text-gray-900 dark:text-white">
                 <span className="font-semibold">{notification.actorName}</span>{" "}
                 {notification.type === "follow" && "started following you"}
+                {notification.type === "follow_request" &&
+                  "requested to follow you"}
+                {notification.type === "follow_request_accepted" &&
+                  "accepted your follow request"}
                 {notification.type === "like" && "liked your post"}
                 {notification.type === "community_joined" &&
                   `joined ${notification.communityName}`}
@@ -235,6 +316,26 @@ const NotificationCard = ({ notification }) => {
             {/* Icon */}
             <div className="flex-shrink-0 ml-2">{getNotificationIcon()}</div>
           </div>
+
+          {/* Follow Request Action Buttons */}
+          {notification.type === "follow_request" && (
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAcceptRequest}
+                disabled={processingRequest}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {processingRequest ? "Processing..." : "Accept"}
+              </button>
+              <button
+                onClick={handleDeclineRequest}
+                disabled={processingRequest}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {processingRequest ? "Processing..." : "Decline"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Unread Indicator */}

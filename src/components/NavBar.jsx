@@ -12,6 +12,10 @@ const NavBar = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Check if we're on login or signup pages
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/signup";
+
   useEffect(() => {
     const loadUserProfile = async () => {
       if (currentUser) {
@@ -39,7 +43,9 @@ const NavBar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 shadow-md">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 bg-white shadow-md ${!isAuthPage ? "dark:bg-gray-800" : ""}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo and Navigation */}
@@ -49,7 +55,7 @@ const NavBar = () => {
                 className="text-4xl font-bold"
                 style={{
                   fontFamily: "UnifrakturMaguntia, cursive",
-                  color: isDark ? "#EDE8DD" : "#54524D",
+                  color: !isAuthPage && isDark ? "#EDE8DD" : "#54524D",
                 }}
               >
                 Sfera
@@ -66,7 +72,7 @@ const NavBar = () => {
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/")
                       ? "#EDE8DD"
-                      : isDark
+                      : !isAuthPage && isDark
                         ? "#EDE8DD"
                         : "#54524D",
                     backgroundColor: isActive("/") ? "#54524D" : "transparent",
@@ -82,7 +88,7 @@ const NavBar = () => {
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/communities")
                       ? "#EDE8DD"
-                      : isDark
+                      : !isAuthPage && isDark
                         ? "#EDE8DD"
                         : "#54524D",
                     backgroundColor: isActive("/communities")
@@ -100,7 +106,7 @@ const NavBar = () => {
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/discover")
                       ? "#EDE8DD"
-                      : isDark
+                      : !isAuthPage && isDark
                         ? "#EDE8DD"
                         : "#54524D",
                     backgroundColor: isActive("/discover")
@@ -118,7 +124,7 @@ const NavBar = () => {
                     fontFamily: "Times New Roman, serif",
                     color: isActive("/inbox")
                       ? "#EDE8DD"
-                      : isDark
+                      : !isAuthPage && isDark
                         ? "#EDE8DD"
                         : "#54524D",
                     backgroundColor: isActive("/inbox")
@@ -143,7 +149,7 @@ const NavBar = () => {
                       isActive(`/profile/${currentUser.uid}`) ||
                       location.pathname === "/profile"
                         ? "#EDE8DD"
-                        : isDark
+                        : !isAuthPage && isDark
                           ? "#EDE8DD"
                           : "#54524D",
                     backgroundColor:
@@ -174,13 +180,17 @@ const NavBar = () => {
                 <img
                   src={userProfile.profileImage}
                   alt="Profile"
-                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                  className={`w-12 h-12 rounded-full object-cover border-2 border-gray-200 hover:border-gray-400 transition-colors ${!isAuthPage ? "dark:border-gray-700 dark:hover:border-gray-500" : ""}`}
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0 flex items-center justify-center border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                <div
+                  className={`w-12 h-12 rounded-full bg-gray-300 flex-shrink-0 flex items-center justify-center border-2 border-gray-200 hover:border-gray-400 transition-colors ${!isAuthPage ? "dark:bg-gray-600 dark:border-gray-700 dark:hover:border-gray-500" : ""}`}
+                >
                   <span
                     className="font-semibold text-lg"
-                    style={{ color: isDark ? "#EDE8DD" : "#54524D" }}
+                    style={{
+                      color: !isAuthPage && isDark ? "#EDE8DD" : "#54524D",
+                    }}
                   >
                     {currentUser.email?.[0].toUpperCase() || "U"}
                   </span>

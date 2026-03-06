@@ -72,6 +72,8 @@ export const createUserProfile = async (userId, profileData) => {
       followingCount: 0,
       followers: [],
       following: [],
+      sentFollowRequests: [],
+      pendingFollowRequests: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       ...profileData,
@@ -650,6 +652,183 @@ export const getUserFollowing = async (userId) => {
   } catch (error) {
     console.error("Error getting user following:", error);
     return [];
+  }
+};
+
+/**
+ * Send a follow request to a user with a private profile
+ * @param {string} currentUserId - The ID of the user sending the request
+ * @param {string} targetUserId - The ID of the user to send the request to
+ * @returns {Promise<void>}
+ */
+export const sendFollowRequest = async (currentUserId, targetUserId) => {
+  try {
+    if (currentUserId === targetUserId) {
+      throw new Error("Cannot send follow request to yourself");
+    }
+
+    // Get current user profile for notification
+    const currentUserRef = doc(db, "users", currentUserId);
+    const currentUserDoc = await getDoc(currentUserRef);
+    const currentUserData = currentUserDoc.data();
+
+    // Add to current user's sent follow requests
+    await updateDoc(currentUserRef, {
+      sentFollowRequests: arrayUnion(targetUserId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Add to target user's pending follow requests
+    const targetUserRef = doc(db, "users", targetUserId);
+    await updateDoc(targetUserRef, {
+      pendingFollowRequests: arrayUnion(currentUserId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Create follow request notification
+    const { createFollowRequestNotification } =
+      await import("./notificationService");
+    try {
+      await createFollowRequestNotification(
+        currentUserId,
+        targetUserId,
+        currentUserData,
+      );
+    } catch (notifError) {
+      console.error("Error creating follow request notification:", notifError);
+      // Don't throw error, request was sent successfully
+    }
+  } catch (error) {
+    console.error("Error sending follow request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Accept a follow request from another user
+ * @param {string} currentUserId - The ID of the user accepting the request
+ * @param {string} requesterId - The ID of the user who sent the request
+ * @returns {Promise<void>}
+ */
+export const acceptFollowRequest = async (currentUserId, requesterId) => {
+  try {
+    const currentUserRef = doc(db, "users", currentUserId);
+    const requesterRef = doc(db, "users", requesterId);
+
+    const currentUserDoc = await getDoc(currentUserRef);
+    const requesterDoc = await getDoc(requesterRef);
+    const currentUserData = currentUserDoc.data();
+
+    // Remove from current user's pending requests
+    await updateDoc(currentUserRef, {
+      pendingFollowRequests: arrayRemove(requesterId),
+      followers: arrayUnion(requesterId),
+      followersCount: (currentUserData.followersCount || 0) + 1,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Remove from requester's sent requests and add to following
+    const requesterData = requesterDoc.data();
+    await updateDoc(requesterRef, {
+      sentFollowRequests: arrayRemove(currentUserId),
+      following: arrayUnion(currentUserId),
+      followingCount: (requesterData.followingCount || 0) + 1,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Create follow request accepted notification
+    const { createFollowRequestAcceptedNotification } =
+      await import("./notificationService");
+    try {
+      await createFollowRequestAcceptedNotification(
+        currentUserId,
+        requesterId,
+        currentUserData,
+      );
+    } catch (notifError) {
+      console.error(
+        "Error creating follow request accepted notification:",
+        notifError,
+      );
+      // Don't throw error, accept action was successful
+    }
+  } catch (error) {
+    console.error("Error accepting follow request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Reject a follow request from another user
+ * @param {string} currentUserId - The ID of the user rejecting the request
+ * @param {string} requesterId - The ID of the user who sent the request
+ * @returns {Promise<void>}
+ */
+export const rejectFollowRequest = async (currentUserId, requesterId) => {
+  try {
+    const currentUserRef = doc(db, "users", currentUserId);
+    const requesterRef = doc(db, "users", requesterId);
+
+    // Remove from current user's pending requests
+    await updateDoc(currentUserRef, {
+      pendingFollowRequests: arrayRemove(requesterId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Remove from requester's sent requests
+    await updateDoc(requesterRef, {
+      sentFollowRequests: arrayRemove(currentUserId),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error rejecting follow request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Cancel a follow request that was sent
+ * @param {string} currentUserId - The ID of the user canceling the request
+ * @param {string} targetUserId - The ID of the user the request was sent to
+ * @returns {Promise<void>}
+ */
+export const cancelFollowRequest = async (currentUserId, targetUserId) => {
+  try {
+    const currentUserRef = doc(db, "users", currentUserId);
+    const targetUserRef = doc(db, "users", targetUserId);
+
+    // Remove from current user's sent requests
+    await updateDoc(currentUserRef, {
+      sentFollowRequests: arrayRemove(targetUserId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Remove from target user's pending requests
+    await updateDoc(targetUserRef, {
+      pendingFollowRequests: arrayRemove(currentUserId),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error canceling follow request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if current user has sent a follow request to target user
+ * @param {string} currentUserId - The ID of the current user
+ * @param {string} targetUserId - The ID of the target user
+ * @returns {Promise<boolean>} True if follow request is pending
+ */
+export const hasFollowRequestPending = async (currentUserId, targetUserId) => {
+  try {
+    const currentUserRef = doc(db, "users", currentUserId);
+    const currentUserDoc = await getDoc(currentUserRef);
+    const sentRequests = currentUserDoc.data()?.sentFollowRequests || [];
+    return sentRequests.includes(targetUserId);
+  } catch (error) {
+    console.error("Error checking follow request status:", error);
+    return false;
   }
 };
 

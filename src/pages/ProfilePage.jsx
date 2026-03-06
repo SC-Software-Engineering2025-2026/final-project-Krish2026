@@ -10,6 +10,9 @@ import {
   isFollowing,
   getUserFollowers,
   getUserFollowing,
+  sendFollowRequest,
+  cancelFollowRequest,
+  hasFollowRequestPending,
 } from "../services/profileService";
 import { getCommunitiesByIds } from "../services/communityService";
 import COLORS from "../theme/colors";
@@ -54,6 +57,10 @@ const ProfilePage = () => {
   const [followersSearchQuery, setFollowersSearchQuery] = useState("");
   const [followingSearchQuery, setFollowingSearchQuery] = useState("");
   const [communitiesSearchQuery, setCommunitiesSearchQuery] = useState("");
+  const [hasRequestedFollow, setHasRequestedFollow] = useState(false);
+  const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
+  const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
+  const [privacyPopupMessage, setPrivacyPopupMessage] = useState("");
   const dropdownRef = useRef(null);
 
   // Determine if viewing own profile
@@ -79,13 +86,8 @@ const ProfilePage = () => {
           return;
         }
 
-        // Check privacy settings
-        if (!isOwnProfile && profileData.isPrivate) {
-          setError("This profile is private");
-          setLoading(false);
-          return;
-        }
-
+        // Load profile data regardless of privacy settings
+        // We'll handle the view restrictions in the UI
         setProfile(profileData);
         setLoading(false);
       },
@@ -101,6 +103,15 @@ const ProfilePage = () => {
         try {
           const following = await isFollowing(currentUser.uid, profileId);
           setIsFollowingUser(following);
+
+          // Also check if there's a pending follow request
+          if (!following) {
+            const hasPendingRequest = await hasFollowRequestPending(
+              currentUser.uid,
+              profileId,
+            );
+            setHasRequestedFollow(hasPendingRequest);
+          }
         } catch (error) {
           console.error("Error checking follow status:", error);
         }
@@ -171,26 +182,63 @@ const ProfilePage = () => {
 
     try {
       setFollowLoading(true);
+
       if (isFollowingUser) {
+        // Check if profile is private, require confirmation
+        if (profile.isPrivate) {
+          setShowUnfollowConfirm(true);
+          setFollowLoading(false);
+          return;
+        }
+
+        // Regular unfollow
         await unfollowUser(currentUser.uid, profileId);
         setIsFollowingUser(false);
-        // Update local profile state
         setProfile({
           ...profile,
           followersCount: Math.max((profile.followersCount || 0) - 1, 0),
         });
+      } else if (hasRequestedFollow) {
+        // Cancel pending follow request
+        await cancelFollowRequest(currentUser.uid, profileId);
+        setHasRequestedFollow(false);
       } else {
-        await followUser(currentUser.uid, profileId);
-        setIsFollowingUser(true);
-        // Update local profile state
-        setProfile({
-          ...profile,
-          followersCount: (profile.followersCount || 0) + 1,
-        });
+        // Check if profile is private
+        if (profile.isPrivate) {
+          // Send follow request
+          await sendFollowRequest(currentUser.uid, profileId);
+          setHasRequestedFollow(true);
+        } else {
+          // Regular follow
+          await followUser(currentUser.uid, profileId);
+          setIsFollowingUser(true);
+          setProfile({
+            ...profile,
+            followersCount: (profile.followersCount || 0) + 1,
+          });
+        }
       }
     } catch (error) {
       console.error("Error toggling follow:", error);
       alert("Failed to update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleConfirmUnfollow = async () => {
+    try {
+      setFollowLoading(true);
+      await unfollowUser(currentUser.uid, profileId);
+      setIsFollowingUser(false);
+      setProfile({
+        ...profile,
+        followersCount: Math.max((profile.followersCount || 0) - 1, 0),
+      });
+      setShowUnfollowConfirm(false);
+    } catch (error) {
+      console.error("Error unfollowing user:", error);
+      alert("Failed to unfollow");
     } finally {
       setFollowLoading(false);
     }
@@ -202,6 +250,15 @@ const ProfilePage = () => {
   };
 
   const handleOpenFollowersModal = async () => {
+    // Check if profile is private and user is not following
+    if (!isOwnProfile && profile.isPrivate && !isFollowingUser) {
+      setPrivacyPopupMessage(
+        "You cannot view followers due to privacy settings",
+      );
+      setShowPrivacyPopup(true);
+      return;
+    }
+
     setShowFollowersModal(true);
     setLoadingFollowers(true);
     try {
@@ -215,6 +272,15 @@ const ProfilePage = () => {
   };
 
   const handleOpenFollowingModal = async () => {
+    // Check if profile is private and user is not following
+    if (!isOwnProfile && profile.isPrivate && !isFollowingUser) {
+      setPrivacyPopupMessage(
+        "You cannot view following due to privacy settings",
+      );
+      setShowPrivacyPopup(true);
+      return;
+    }
+
     setShowFollowingModal(true);
     setLoadingFollowing(true);
     try {
@@ -228,6 +294,15 @@ const ProfilePage = () => {
   };
 
   const handleOpenCommunitiesModal = async () => {
+    // Check if profile is private and user is not following
+    if (!isOwnProfile && profile.isPrivate && !isFollowingUser) {
+      setPrivacyPopupMessage(
+        "You cannot view communities due to privacy settings",
+      );
+      setShowPrivacyPopup(true);
+      return;
+    }
+
     setShowCommunitiesModal(true);
     if (profile?.joinedCommunities && profile.joinedCommunities.length > 0) {
       setCommunitiesLoading(true);
@@ -434,10 +509,14 @@ const ProfilePage = () => {
                   onClick={handleFollowToggle}
                   disabled={followLoading}
                   style={{
-                    backgroundColor: isFollowingUser
-                      ? "#d1d5db"
-                      : COLORS.Dark_Gray,
-                    color: isFollowingUser ? "#374151" : COLORS.Beige,
+                    backgroundColor:
+                      isFollowingUser || hasRequestedFollow
+                        ? "#d1d5db"
+                        : COLORS.Dark_Gray,
+                    color:
+                      isFollowingUser || hasRequestedFollow
+                        ? "#374151"
+                        : COLORS.Beige,
                   }}
                   className="flex items-center gap-2 px-6 py-2 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -445,9 +524,17 @@ const ProfilePage = () => {
                     <div
                       className="animate-spin rounded-full h-5 w-5 border-b-2"
                       style={{
-                        borderColor: isFollowingUser ? "#374151" : COLORS.Beige,
+                        borderColor:
+                          isFollowingUser || hasRequestedFollow
+                            ? "#374151"
+                            : COLORS.Beige,
                       }}
                     ></div>
+                  ) : hasRequestedFollow ? (
+                    <>
+                      <XMarkIcon className="h-5 w-5" />
+                      <span>Requested</span>
+                    </>
                   ) : isFollowingUser ? (
                     <>
                       <UserMinusIcon className="h-5 w-5" />
@@ -456,7 +543,7 @@ const ProfilePage = () => {
                   ) : (
                     <>
                       <UserPlusIcon className="h-5 w-5" />
-                      <span>Follow</span>
+                      <span>{profile.isPrivate ? "Request" : "Follow"}</span>
                     </>
                   )}
                 </button>
@@ -495,7 +582,20 @@ const ProfilePage = () => {
 
       {/* Tab Content */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        {profile.coverImages && profile.coverImages.length > 0 ? (
+        {!isOwnProfile && profile.isPrivate && !isFollowingUser ? (
+          // Private profile view for non-followers
+          <div className="text-center py-12">
+            <LockClosedIcon className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              This Account is Private
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              {hasRequestedFollow
+                ? "Your follow request is pending"
+                : "Follow this account to see their photos"}
+            </p>
+          </div>
+        ) : profile.coverImages && profile.coverImages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {profile.coverImages.map((imageUrl, index) => (
               <div
@@ -919,6 +1019,82 @@ const ProfilePage = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unfollow Confirmation Modal */}
+      {showUnfollowConfirm && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowUnfollowConfirm(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <LockClosedIcon className="h-8 w-8 text-amber-500" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Unfollow Private Account?
+              </h2>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to unfollow{" "}
+              <span className="font-semibold">
+                @{profile.username || "this user"}
+              </span>
+              ? This account is private, so you will have to request to follow
+              them again if you want to refollow.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowUnfollowConfirm(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmUnfollow}
+                disabled={followLoading}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium disabled:opacity-50"
+              >
+                {followLoading ? "Unfollowing..." : "Unfollow"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Popup */}
+      {showPrivacyPopup && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPrivacyPopup(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <LockClosedIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Private Profile
+              </h2>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              {privacyPopupMessage}
+            </p>
+            <button
+              onClick={() => setShowPrivacyPopup(false)}
+              className="w-full px-4 py-2 rounded-lg transition font-medium"
+              style={{
+                backgroundColor: COLORS.Dark_Gray,
+                color: COLORS.Beige,
+              }}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

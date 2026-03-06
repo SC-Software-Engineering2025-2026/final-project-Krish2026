@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getUserProfile } from "../services/profileService";
 import { initializeUserProfile } from "../utils/profileUtils";
+import COLORS from "../theme/colors";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -181,13 +182,13 @@ function Login() {
       className="min-h-screen flex items-center justify-center px-4"
       style={{ backgroundColor: "#EDE8DD" }}
     >
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
-        <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
+        <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">
           Welcome to Sfera
         </h2>
 
         {error && (
-          <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 px-4 py-3 rounded mb-4">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
@@ -196,7 +197,7 @@ function Login() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              className="block text-sm font-medium text-gray-700 mb-2"
             >
               Email
             </label>
@@ -206,7 +207,7 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               placeholder="Enter your email"
             />
           </div>
@@ -214,7 +215,7 @@ function Login() {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              className="block text-sm font-medium text-gray-700 mb-2"
             >
               Password
             </label>
@@ -224,7 +225,7 @@ function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               placeholder="Enter your password"
             />
           </div>
@@ -242,10 +243,10 @@ function Login() {
         {/* Divider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+            <span className="px-2 bg-white text-gray-500">
               Or continue with
             </span>
           </div>
@@ -257,7 +258,7 @@ function Login() {
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-3 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -294,7 +295,7 @@ function Login() {
             <button
               onClick={() => setShowPhoneAuth(true)}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-3 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
                 className="w-5 h-5"
@@ -321,7 +322,7 @@ function Login() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="+1234567890"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
                 />
                 <div id="recaptcha-container"></div>
                 <button
@@ -343,7 +344,7 @@ function Login() {
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                   placeholder="Enter 6-digit code"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
                 />
                 <button
                   onClick={handleVerifyCode}
@@ -365,14 +366,14 @@ function Login() {
                 setPhoneNumber("");
                 setVerificationCode("");
               }}
-              className="w-full text-gray-600 dark:text-gray-400 text-sm hover:text-gray-800 dark:hover:text-gray-200"
+              className="w-full text-gray-600 text-sm hover:text-gray-800"
             >
               ← Back to other options
             </button>
           </div>
         )}
 
-        <p className="mt-6 text-center text-gray-600 dark:text-gray-400">
+        <p className="mt-6 text-center text-gray-600">
           Don't have an account?{" "}
           <Link
             to="/signup"

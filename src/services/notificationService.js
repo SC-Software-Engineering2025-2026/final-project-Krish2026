@@ -250,6 +250,50 @@ export const createFollowNotification = async (
 };
 
 /**
+ * Create follow request notification
+ * @param {string} requesterId - User who sent the follow request
+ * @param {string} targetUserId - User receiving the follow request
+ * @param {Object} requesterProfile - Requester profile data
+ * @returns {Promise<string>} Notification ID
+ */
+export const createFollowRequestNotification = async (
+  requesterId,
+  targetUserId,
+  requesterProfile,
+) => {
+  return createNotification({
+    userId: targetUserId,
+    type: "follow_request",
+    actorId: requesterId,
+    actorName: requesterProfile.displayName || requesterProfile.username,
+    actorProfileImage: requesterProfile.profileImage || "",
+    message: `${requesterProfile.displayName || requesterProfile.username} requested to follow you`,
+  });
+};
+
+/**
+ * Create follow request accepted notification
+ * @param {string} acceptorId - User who accepted the follow request
+ * @param {string} requesterId - User whose request was accepted
+ * @param {Object} acceptorProfile - Acceptor profile data
+ * @returns {Promise<string>} Notification ID
+ */
+export const createFollowRequestAcceptedNotification = async (
+  acceptorId,
+  requesterId,
+  acceptorProfile,
+) => {
+  return createNotification({
+    userId: requesterId,
+    type: "follow_request_accepted",
+    actorId: acceptorId,
+    actorName: acceptorProfile.displayName || acceptorProfile.username,
+    actorProfileImage: acceptorProfile.profileImage || "",
+    message: `${acceptorProfile.displayName || acceptorProfile.username} accepted your follow request`,
+  });
+};
+
+/**
  * Create like notification
  * @param {string} likerId - User who liked
  * @param {string} postOwnerId - Post owner
