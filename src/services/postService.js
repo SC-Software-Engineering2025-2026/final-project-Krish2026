@@ -26,7 +26,10 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
-import { createLikeNotification } from "./notificationService";
+import {
+  createLikeNotification,
+  createPostCommentNotification,
+} from "./notificationService";
 import { getUserProfile } from "./profileService";
 
 /**
@@ -350,9 +353,31 @@ export const addComment = async (
 
     // Increment comments count
     const postRef = doc(db, "userPosts", postId);
+    const postDoc = await getDoc(postRef);
     await updateDoc(postRef, {
       commentsCount: increment(1),
     });
+
+    // Create notification for post owner
+    try {
+      if (postDoc.exists()) {
+        const postData = postDoc.data();
+        if (postData.userId && postData.userId !== userId) {
+          const commenterProfile = await getUserProfile(userId);
+          if (commenterProfile) {
+            await createPostCommentNotification(
+              userId,
+              postData.userId,
+              postId,
+              commenterProfile,
+            );
+          }
+        }
+      }
+    } catch (notifError) {
+      console.error("Error creating comment notification:", notifError);
+      // Don't throw error, comment was successful
+    }
 
     return docRef.id;
   } catch (error) {

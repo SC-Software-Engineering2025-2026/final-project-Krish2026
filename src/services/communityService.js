@@ -24,7 +24,11 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
-import { createCommunityJoinNotification } from "./notificationService";
+import {
+  createCommunityMemberJoinedNotification,
+  createCommunityRoleChangedNotification,
+  createCommunityMemberKickedNotification,
+} from "./notificationService";
 import { getUserProfile } from "./profileService";
 
 /**
@@ -270,11 +274,11 @@ export const joinCommunity = async (communityId, userId) => {
     try {
       const userProfile = await getUserProfile(userId);
       if (userProfile) {
-        const admins = communityData.admins || [communityData.createdBy];
+        const admins = communityData.admins || [communityData.creatorId];
 
         // Notify each admin
         for (const adminId of admins) {
-          await createCommunityJoinNotification(
+          await createCommunityMemberJoinedNotification(
             userId,
             communityId,
             adminId,
@@ -675,7 +679,8 @@ export const promoteToAdmin = async (communityId, userId, promoterId) => {
       throw new Error("Community not found");
     }
 
-    const admins = communityDoc.data().admins || [];
+    const communityData = communityDoc.data();
+    const admins = communityData.admins || [];
 
     // Check if promoter is an admin
     if (!admins.includes(promoterId)) {
@@ -699,6 +704,24 @@ export const promoteToAdmin = async (communityId, userId, promoterId) => {
       await updateDoc(membersSnapshot.docs[0].ref, {
         role: "admin",
       });
+    }
+
+    // Send notification to user about role change
+    try {
+      const promoterProfile = await getUserProfile(promoterId);
+      if (promoterProfile) {
+        await createCommunityRoleChangedNotification(
+          userId,
+          communityId,
+          promoterId,
+          "admin",
+          promoterProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating role change notification:", notifError);
+      // Don't throw error, promotion was successful
     }
   } catch (error) {
     console.error("Error promoting user:", error);
@@ -750,6 +773,24 @@ export const demoteAdmin = async (communityId, userId, ownerId) => {
       await updateDoc(membersSnapshot.docs[0].ref, {
         role: "member",
       });
+    }
+
+    // Send notification to user about role change
+    try {
+      const ownerProfile = await getUserProfile(ownerId);
+      if (ownerProfile) {
+        await createCommunityRoleChangedNotification(
+          userId,
+          communityId,
+          ownerId,
+          "member",
+          ownerProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating role change notification:", notifError);
+      // Don't throw error, demotion was successful
     }
 
     console.log(`Admin ${userId} demoted to member`);
@@ -806,6 +847,23 @@ export const removeMember = async (communityId, userIdToRemove, adminId) => {
       batch.delete(doc.ref);
     });
     await batch.commit();
+
+    // Send notification to removed user
+    try {
+      const adminProfile = await getUserProfile(adminId);
+      if (adminProfile) {
+        await createCommunityMemberKickedNotification(
+          userIdToRemove,
+          communityId,
+          adminId,
+          adminProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating kick notification:", notifError);
+      // Don't throw error, removal was successful
+    }
   } catch (error) {
     console.error("Error removing member:", error);
     throw error;

@@ -470,7 +470,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 <div className="relative group w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer">
                   {profileImagePreview ? (
                     <img
-                      src={profileImagePreview}
+                      key={profileImagePreview}
+                      src={`${profileImagePreview}${profileImagePreview.includes("?") ? "&" : "?"}t=${Date.now()}`}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
@@ -534,7 +535,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                 {bannerImagePreview && (
                   <div className="relative group w-full h-48 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
                     <img
-                      src={bannerImagePreview}
+                      key={bannerImagePreview}
+                      src={`${bannerImagePreview}${bannerImagePreview.includes("?") ? "&" : "?"}t=${Date.now()}`}
                       alt="Banner"
                       className="w-full h-full object-cover"
                     />
@@ -774,7 +776,8 @@ const EditProfile = ({ profile, onSave, onCancel }) => {
                   <div key={index} className="relative group">
                     <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[3/4]">
                       <img
-                        src={preview}
+                        key={preview}
+                        src={`${preview}${preview.includes("?") ? "&" : "?"}t=${Date.now()}`}
                         alt={`Cover ${index + 1}`}
                         className="w-full h-full object-cover"
                       />

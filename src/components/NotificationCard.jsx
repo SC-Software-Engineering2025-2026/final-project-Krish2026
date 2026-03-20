@@ -8,6 +8,7 @@ import {
 import {
   acceptFollowRequest,
   rejectFollowRequest,
+  getUserProfile,
 } from "../services/profileService";
 import { useAuth } from "../context/AuthContext";
 
@@ -17,8 +18,30 @@ const NotificationCard = ({ notification }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [processingRequest, setProcessingRequest] = useState(false);
+  const [actorProfileImage, setActorProfileImage] = useState(
+    notification.actorProfileImage || "",
+  );
   const menuRef = useRef(null);
   const cardRef = useRef(null);
+
+  // Fetch the actor's current profile image
+  useEffect(() => {
+    const fetchActorProfile = async () => {
+      try {
+        const profile = await getUserProfile(notification.actorId);
+        if (profile && profile.profileImage) {
+          setActorProfileImage(profile.profileImage);
+        }
+      } catch (error) {
+        console.error("Error fetching actor profile:", error);
+        // Keep the cached image if fetch fails
+      }
+    };
+
+    if (notification.actorId) {
+      fetchActorProfile();
+    }
+  }, [notification.actorId]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -217,7 +240,7 @@ const NotificationCard = ({ notification }) => {
             />
           </svg>
         );
-      case "like":
+      case "post_like":
         return (
           <svg
             className="w-5 h-5 text-red-600 dark:text-red-400"
@@ -231,17 +254,21 @@ const NotificationCard = ({ notification }) => {
             />
           </svg>
         );
-      case "community_joined":
+      case "post_comment":
         return (
           <svg
-            className="w-5 h-5 text-green-600 dark:text-green-400"
+            className="w-5 h-5 text-orange-600 dark:text-orange-400"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
-            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+            <path
+              fillRule="evenodd"
+              d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 011.414 0L10 9.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
           </svg>
         );
-      case "message":
+      case "direct_message":
         return (
           <svg
             className="w-5 h-5 text-purple-600 dark:text-purple-400"
@@ -253,6 +280,22 @@ const NotificationCard = ({ notification }) => {
               d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
               clipRule="evenodd"
             />
+          </svg>
+        );
+      case "community_member_joined":
+      case "community_join_request":
+      case "community_post":
+      case "community_chat_message":
+      case "community_admin_chat_message":
+      case "community_role_changed":
+      case "community_member_kicked":
+        return (
+          <svg
+            className="w-5 h-5 text-green-600 dark:text-green-400"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
           </svg>
         );
       default:
@@ -282,9 +325,9 @@ const NotificationCard = ({ notification }) => {
       <div className="flex items-start space-x-3">
         {/* Profile Image */}
         <div className="flex-shrink-0">
-          {notification.actorProfileImage ? (
+          {actorProfileImage ? (
             <img
-              src={notification.actorProfileImage}
+              src={actorProfileImage}
               alt={notification.actorName}
               className="w-12 h-12 rounded-full object-cover"
             />
@@ -308,11 +351,25 @@ const NotificationCard = ({ notification }) => {
                   "requested to follow you"}
                 {notification.type === "follow_request_accepted" &&
                   "accepted your follow request"}
-                {notification.type === "like" && "liked your post"}
-                {notification.type === "community_joined" &&
+                {notification.type === "post_like" && "liked your post"}
+                {notification.type === "post_comment" &&
+                  "commented on your post"}
+                {notification.type === "direct_message" &&
+                  "sent you a direct message"}
+                {notification.type === "community_member_joined" &&
                   `joined ${notification.communityName}`}
-                {notification.type === "message" &&
+                {notification.type === "community_join_request" &&
+                  `requested to join ${notification.communityName}`}
+                {notification.type === "community_post" &&
+                  `posted in ${notification.communityName}`}
+                {notification.type === "community_chat_message" &&
                   `sent a message in ${notification.communityName}`}
+                {notification.type === "community_admin_chat_message" &&
+                  `sent an admin message in ${notification.communityName}`}
+                {notification.type === "community_role_changed" &&
+                  `your role changed in ${notification.communityName}`}
+                {notification.type === "community_member_kicked" &&
+                  `you were removed from ${notification.communityName}`}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {formatTimestamp(notification.createdAt)}

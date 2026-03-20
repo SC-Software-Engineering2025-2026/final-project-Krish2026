@@ -418,7 +418,8 @@ const ProfilePage = () => {
         {profile.bannerImage && (
           <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-200">
             <img
-              src={profile.bannerImage}
+              key={profile.bannerImage}
+              src={`${profile.bannerImage}${profile.bannerImage.includes("?") ? "&" : "?"}t=${Date.now()}`}
               alt="Banner"
               className="w-full h-full object-cover"
             />
@@ -430,7 +431,8 @@ const ProfilePage = () => {
           <div className="flex-shrink-0">
             {profile.profileImage ? (
               <img
-                src={profile.profileImage}
+                key={profile.profileImage}
+                src={`${profile.profileImage}${profile.profileImage.includes("?") ? "&" : "?"}t=${Date.now()}`}
                 alt={profile.displayName}
                 className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
               />
@@ -760,7 +762,8 @@ const ProfilePage = () => {
                       >
                         {follower.profileImage ? (
                           <img
-                            src={follower.profileImage}
+                            key={follower.profileImage}
+                            src={`${follower.profileImage}${follower.profileImage.includes("?") ? "&" : "?"}t=${Date.now()}`}
                             alt={follower.displayName}
                             className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                           />
@@ -889,7 +892,8 @@ const ProfilePage = () => {
                       >
                         {followingUser.profileImage ? (
                           <img
-                            src={followingUser.profileImage}
+                            key={followingUser.profileImage}
+                            src={`${followingUser.profileImage}${followingUser.profileImage.includes("?") ? "&" : "?"}t=${Date.now()}`}
                             alt={followingUser.displayName}
                             className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                           />

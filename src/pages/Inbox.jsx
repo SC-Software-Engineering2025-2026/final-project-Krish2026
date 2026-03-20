@@ -42,6 +42,7 @@ const Inbox = () => {
   const [replyingToMessage, setReplyingToMessage] = useState(null);
   const [dmSettings, setDmSettings] = useState(null);
   const [messageContextMenu, setMessageContextMenu] = useState(null);
+  const [userContextMenu, setUserContextMenu] = useState(null);
 
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -208,6 +209,28 @@ const Inbox = () => {
   }, [messageContextMenu]);
 
   useEffect(() => {
+    if (!userContextMenu) return;
+
+    const closeMenu = () => setUserContextMenu(null);
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        closeMenu();
+      }
+    };
+
+    document.addEventListener("click", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("click", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [userContextMenu]);
+
+  useEffect(() => {
     if (!showNewMessageModal || !currentUser) return;
 
     const loadFollowing = async () => {
@@ -265,10 +288,25 @@ const Inbox = () => {
   const filteredNotifications = notifications.filter((notification) => {
     if (activeNotificationTab === "all") return true;
     if (activeNotificationTab === "following") {
-      return ["follow", "community_joined"].includes(notification.type);
+      return ["follow", "follow_request", "follow_request_accepted"].includes(
+        notification.type,
+      );
+    }
+    if (activeNotificationTab === "community") {
+      return [
+        "community_member_joined",
+        "community_join_request",
+        "community_post",
+        "community_chat_message",
+        "community_admin_chat_message",
+        "community_role_changed",
+        "community_member_kicked",
+      ].includes(notification.type);
     }
     if (activeNotificationTab === "activity") {
-      return ["like", "message"].includes(notification.type);
+      return ["post_like", "post_comment", "direct_message"].includes(
+        notification.type,
+      );
     }
     return true;
   });
@@ -374,6 +412,21 @@ const Inbox = () => {
     const message = messageContextMenu.message;
     setMessageContextMenu(null);
     await handleDeleteMessage(message);
+  };
+
+  const handleUserRightClick = (event, userId) => {
+    event.preventDefault();
+    setUserContextMenu({
+      userId,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const handleContextViewProfile = () => {
+    if (!userContextMenu?.userId) return;
+    setUserContextMenu(null);
+    navigate(`/profile/${userContextMenu.userId}`);
   };
 
   const handleStartConversation = async (targetUserId) => {
@@ -527,6 +580,16 @@ const Inbox = () => {
                     Following
                   </button>
                   <button
+                    onClick={() => setActiveNotificationTab("community")}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeNotificationTab === "community"
+                        ? "border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400"
+                        : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600"
+                    }`}
+                  >
+                    Community
+                  </button>
+                  <button
                     onClick={() => setActiveNotificationTab("activity")}
                     className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       activeNotificationTab === "activity"
@@ -616,6 +679,9 @@ const Inbox = () => {
                     <button
                       key={channel.id}
                       onClick={() => setSelectedChannelId(channel.id)}
+                      onContextMenu={(e) =>
+                        handleUserRightClick(e, otherUserId)
+                      }
                       className="w-full text-left px-4 py-3 border-b border-gray-300 transition"
                       style={
                         selectedChannelId === channel.id
@@ -629,27 +695,62 @@ const Inbox = () => {
                             }
                       }
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold truncate">
-                          {profile?.displayName ||
-                            profile?.username ||
-                            "Unknown User"}
-                        </p>
-                        {isUnread && (
-                          <span
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{
-                              backgroundColor:
-                                selectedChannelId === channel.id
-                                  ? COLORS.Beige
-                                  : COLORS.Dark_Gray,
-                            }}
-                          ></span>
-                        )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-shrink-0">
+                          {profile?.profileImage ? (
+                            <img
+                              src={profile.profileImage}
+                              alt={
+                                profile?.displayName ||
+                                profile?.username ||
+                                "User"
+                              }
+                              className="h-12 w-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div
+                              className="h-12 w-12 rounded-full flex items-center justify-center font-semibold text-sm"
+                              style={{
+                                backgroundColor:
+                                  selectedChannelId === channel.id
+                                    ? COLORS.Beige
+                                    : COLORS.Dark_Gray,
+                                color:
+                                  selectedChannelId === channel.id
+                                    ? COLORS.Dark_Gray
+                                    : COLORS.Beige,
+                              }}
+                            >
+                              {(profile?.displayName ||
+                                profile?.username ||
+                                "U")[0].toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold truncate">
+                              {profile?.displayName ||
+                                profile?.username ||
+                                "Unknown User"}
+                            </p>
+                            {isUnread && (
+                              <span
+                                className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor:
+                                    selectedChannelId === channel.id
+                                      ? COLORS.Beige
+                                      : COLORS.Dark_Gray,
+                                }}
+                              ></span>
+                            )}
+                          </div>
+                          <p className="text-sm truncate mt-1 opacity-80">
+                            {channel.lastMessageText || "No messages yet"}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-sm truncate mt-1 opacity-80">
-                        {channel.lastMessageText || "No messages yet"}
-                      </p>
                     </button>
                   );
                 })
@@ -958,6 +1059,27 @@ const Inbox = () => {
                 : "Delete"}
             </button>
           )}
+        </div>
+      )}
+
+      {userContextMenu && (
+        <div
+          className="fixed z-50 min-w-48 rounded-lg border shadow-lg py-1"
+          style={{
+            left: userContextMenu.x,
+            top: userContextMenu.y,
+            backgroundColor: COLORS.Beige,
+            borderColor: COLORS.Dark_Gray,
+          }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            onClick={handleContextViewProfile}
+            className="w-full text-left px-3 py-2 text-sm hover:opacity-80"
+            style={{ color: COLORS.Dark_Gray }}
+          >
+            View Profile
+          </button>
         </div>
       )}
     </div>
