@@ -312,6 +312,8 @@ const GeneralSettings = ({
     categories: community?.categories?.length
       ? community.categories.slice(0, 3)
       : [""],
+    chatEnabled: community?.chatEnabled !== false,
+    mediaEnabled: community?.mediaEnabled !== false,
   });
 
   // Comprehensive category list
@@ -646,6 +648,84 @@ const GeneralSettings = ({
               />
             </button>
           </div>
+
+          {/* Feature Toggles (for collaborative communities only) */}
+          {community?.isCollaborative && (
+            <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="font-medium text-gray-900 dark:text-white">
+                Feature Toggles
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Control which features are available to community members
+              </p>
+
+              {/* Chat Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    Chat Tab
+                  </h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {formData.chatEnabled
+                      ? "Members can use the chat feature"
+                      : "Chat feature is disabled"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      chatEnabled: !formData.chatEnabled,
+                    })
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    formData.chatEnabled ? "bg-blue-600" : "bg-gray-300"
+                  }`}
+                  disabled={saving}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.chatEnabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Media Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white">
+                    Media Tab
+                  </h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {formData.mediaEnabled
+                      ? "Members can share and view media"
+                      : "Media feature is disabled"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      mediaEnabled: !formData.mediaEnabled,
+                    })
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    formData.mediaEnabled ? "bg-blue-600" : "bg-gray-300"
+                  }`}
+                  disabled={saving}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.mediaEnabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Community Type (Read-only) */}
           <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">

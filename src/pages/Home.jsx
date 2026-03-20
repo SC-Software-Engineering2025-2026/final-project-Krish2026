@@ -228,6 +228,14 @@ const Home = () => {
         // Community post like - format postId correctly
         const postId = `${post.communityId}/posts/${post.id}`;
         await likeCommunityPost(postId, currentUser.uid);
+
+        // Reload community posts to ensure sync with database
+        const communityPostsData = await getUserCommunitiesPosts(
+          currentUser.uid,
+        );
+        setCommunityPosts(
+          communityPostsData.map((p) => ({ ...p, postType: "community" })),
+        );
       } else {
         // Personal post like
         const isLiked = likedPosts[post.id];

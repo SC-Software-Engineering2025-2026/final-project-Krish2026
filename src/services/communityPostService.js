@@ -14,6 +14,7 @@ import {
   arrayUnion,
   arrayRemove,
   onSnapshot,
+  runTransaction,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
@@ -107,28 +108,30 @@ export const likeCommunityPost = async (postId, userId) => {
       "posts",
       postId.split("/")[2] || postId,
     );
-    const postDoc = await getDoc(postRef);
+    await runTransaction(db, async (transaction) => {
+      const postDoc = await transaction.get(postRef);
 
-    if (!postDoc.exists()) {
-      throw new Error("Post not found");
-    }
+      if (!postDoc.exists()) {
+        throw new Error("Post not found");
+      }
 
-    const likes = postDoc.data().likes || [];
-    const isLiked = likes.includes(userId);
+      const likes = postDoc.data().likes || [];
+      const currentLikesCount = postDoc.data().likesCount || 0;
+      const isLiked = likes.includes(userId);
 
-    if (isLiked) {
-      // Unlike
-      await updateDoc(postRef, {
-        likes: arrayRemove(userId),
-        likesCount: increment(-1),
+      if (isLiked) {
+        transaction.update(postRef, {
+          likes: likes.filter((id) => id !== userId),
+          likesCount: Math.max(0, currentLikesCount - 1),
+        });
+        return;
+      }
+
+      transaction.update(postRef, {
+        likes: [...likes, userId],
+        likesCount: currentLikesCount + 1,
       });
-    } else {
-      // Like
-      await updateDoc(postRef, {
-        likes: arrayUnion(userId),
-        likesCount: increment(1),
-      });
-    }
+    });
   } catch (error) {
     console.error("Error liking post:", error);
     throw error;

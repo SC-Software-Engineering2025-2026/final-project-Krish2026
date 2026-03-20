@@ -17,6 +17,7 @@ import {
   arrayUnion,
   arrayRemove,
   onSnapshot,
+  runTransaction,
 } from "firebase/firestore";
 import {
   ref,
@@ -276,19 +277,27 @@ export const unlikePost = async (postId, userId) => {
     const postRef = doc(db, "userPosts", postId);
     const likeRef = doc(db, "postLikes", `${postId}_${userId}`);
 
-    // Check if like exists
-    const likeSnap = await getDoc(likeRef);
-    if (!likeSnap.exists()) {
-      console.log("Like not found");
-      return; // Not liked, do nothing
-    }
+    await runTransaction(db, async (transaction) => {
+      const [postSnap, likeSnap] = await Promise.all([
+        transaction.get(postRef),
+        transaction.get(likeRef),
+      ]);
 
-    // Delete the specific like document
-    await deleteDoc(likeRef);
+      if (!likeSnap.exists()) {
+        console.log("Like not found");
+        return;
+      }
 
-    // Decrement likes count
-    await updateDoc(postRef, {
-      likesCount: increment(-1),
+      if (!postSnap.exists()) {
+        throw new Error("Post not found");
+      }
+
+      const currentLikesCount = postSnap.data().likesCount || 0;
+
+      transaction.delete(likeRef);
+      transaction.update(postRef, {
+        likesCount: Math.max(0, currentLikesCount - 1),
+      });
     });
   } catch (error) {
     console.error("Error unliking post:", error);

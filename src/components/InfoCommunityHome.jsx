@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   getCommunity,
-  updateHomePageContent,
+  updateHomePageSections,
 } from "../services/communityService";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
+
+const MAX_WELCOME_IMAGES = 6;
 
 const InfoCommunityHome = ({
   communityId,
@@ -16,11 +18,15 @@ const InfoCommunityHome = ({
 }) => {
   const { currentUser } = useAuth();
   const [community, setCommunity] = useState(null);
-  const [content, setContent] = useState("");
+  const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [bio, setBio] = useState("");
+  const [images, setImages] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const quillRef = useRef(null);
+  const [cropperImage, setCropperImage] = useState(null);
+  const [cropperFile, setCropperFile] = useState(null);
+  const [draggedImageIndex, setDraggedImageIndex] = useState(null);
 
   const isAdmin = userRole === "admin";
 
@@ -33,7 +39,15 @@ const InfoCommunityHome = ({
       setLoading(true);
       const data = await getCommunity(communityId);
       setCommunity(data);
-      setContent(data.homePageContent || "");
+
+      const defaultWelcomeMessage = `Welcome to ${data.name || "this community"}`;
+      const sections = data.homePageSections || {};
+
+      setWelcomeMessage(sections.welcomeMessage || defaultWelcomeMessage);
+      setBio(sections.bio || "");
+      setImages(
+        (sections.imageUrls || []).map((url) => ({ url, isNew: false })),
+      );
     } catch (error) {
       console.error("Error loading community:", error);
     } finally {
@@ -44,7 +58,15 @@ const InfoCommunityHome = ({
   const handleSave = async () => {
     try {
       setSaving(true);
-      await updateHomePageContent(communityId, content);
+
+      await updateHomePageSections(communityId, {
+        welcomeMessage:
+          welcomeMessage?.trim() ||
+          `Welcome to ${community?.name || "this community"}`,
+        bio,
+        orderedImages: images,
+      });
+
       setIsEditing(false);
       await loadCommunity();
     } catch (error) {
@@ -56,20 +78,88 @@ const InfoCommunityHome = ({
   };
 
   const handleCancel = () => {
-    setContent(community?.homePageContent || "");
+    const defaultWelcomeMessage = `Welcome to ${community?.name || "this community"}`;
+    const sections = community?.homePageSections || {};
+
+    setWelcomeMessage(sections.welcomeMessage || defaultWelcomeMessage);
+    setBio(sections.bio || "");
+    setImages((sections.imageUrls || []).map((url) => ({ url, isNew: false })));
     setIsEditing(false);
   };
 
-  const modules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ list: "ordered" }, { list: "bullet" }],
-      [{ color: [] }, { background: [] }],
-      [{ align: [] }],
-      ["link", "image", "video"],
-      ["clean"],
-    ],
+  const handleAddImage = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
+    if (images.length >= MAX_WELCOME_IMAGES) {
+      alert(`You can add up to ${MAX_WELCOME_IMAGES} images`);
+      return;
+    }
+
+    setCropperFile(file);
+    setCropperImage(URL.createObjectURL(file));
+  };
+
+  const handleCropComplete = async (croppedAreaPixels) => {
+    try {
+      const croppedBlob = await getCroppedImg(cropperImage, croppedAreaPixels);
+      const fileName = cropperFile?.name || `welcome-image-${Date.now()}.jpg`;
+      const croppedFile = new File([croppedBlob], fileName, {
+        type: "image/jpeg",
+      });
+
+      setImages((prev) => [
+        ...prev,
+        {
+          url: URL.createObjectURL(croppedFile),
+          isNew: true,
+          file: croppedFile,
+        },
+      ]);
+
+      setCropperImage(null);
+      setCropperFile(null);
+    } catch (error) {
+      console.error("Error cropping image:", error);
+      alert("Failed to crop image");
+    }
+  };
+
+  const handleCropCancel = () => {
+    setCropperImage(null);
+    setCropperFile(null);
+  };
+
+  const removeImageAtIndex = (index) => {
+    setImages((prev) => prev.filter((_, imageIndex) => imageIndex !== index));
+  };
+
+  const handleImageDragStart = (index) => {
+    setDraggedImageIndex(index);
+  };
+
+  const handleImageDrop = (dropIndex) => {
+    if (draggedImageIndex === null || draggedImageIndex === dropIndex) return;
+
+    setImages((prev) => {
+      const reordered = [...prev];
+      const [draggedItem] = reordered.splice(draggedImageIndex, 1);
+      reordered.splice(dropIndex, 0, draggedItem);
+      return reordered;
+    });
+
+    setDraggedImageIndex(null);
+  };
+
+  const handleImageDragEnd = () => {
+    setDraggedImageIndex(null);
   };
 
   if (loading) {
@@ -82,7 +172,6 @@ const InfoCommunityHome = ({
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Join Button for Non-Members */}
       {!isMember && (
         <div className="bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -101,7 +190,6 @@ const InfoCommunityHome = ({
         </div>
       )}
 
-      {/* Header */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
@@ -167,7 +255,6 @@ const InfoCommunityHome = ({
         </div>
       </div>
 
-      {/* Notice for Non-Admins */}
       {!isAdmin && (
         <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
           <div className="flex items-start space-x-3">
@@ -196,7 +283,6 @@ const InfoCommunityHome = ({
         </div>
       )}
 
-      {/* Content Area */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         {isEditing ? (
           <div>
@@ -205,19 +291,90 @@ const InfoCommunityHome = ({
                 Edit Home Page
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Use the editor below to customize your community's home page
+                Update the welcome message, bio, and images for this page
               </p>
             </div>
 
-            <ReactQuill
-              ref={quillRef}
-              theme="snow"
-              value={content}
-              onChange={setContent}
-              modules={modules}
-              className="bg-white"
-              style={{ minHeight: "300px" }}
-            />
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Welcome Message
+                </label>
+                <input
+                  type="text"
+                  value={welcomeMessage}
+                  onChange={(e) => setWelcomeMessage(e.target.value)}
+                  placeholder={`Welcome to ${community?.name || "this community"}`}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Bio
+                </label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  rows={6}
+                  placeholder="Add a short bio for your community"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white">
+                    Images ({images.length}/{MAX_WELCOME_IMAGES})
+                  </label>
+                  <label className="px-4 py-2 rounded-lg cursor-pointer text-sm bg-blue-600 text-white hover:bg-blue-700">
+                    Add Image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAddImage}
+                    />
+                  </label>
+                </div>
+
+                {images.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {images.map((image, index) => (
+                      <div
+                        key={`${image.url}-${index}`}
+                        className="relative"
+                        draggable
+                        onDragStart={() => handleImageDragStart(index)}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => handleImageDrop(index)}
+                        onDragEnd={handleImageDragEnd}
+                      >
+                        <img
+                          src={image.url}
+                          alt={`Welcome image ${index + 1}`}
+                          className="w-full h-44 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                        />
+                        <span className="absolute top-2 left-2 px-2 py-1 rounded-md text-xs bg-black/60 text-white">
+                          Drag
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeImageAtIndex(index)}
+                          className="absolute top-2 right-2 px-2 py-1 rounded-md text-xs bg-red-600 text-white"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No images added yet.
+                  </p>
+                )}
+              </div>
+            </div>
 
             <div className="flex space-x-3 mt-6">
               <button
@@ -238,11 +395,50 @@ const InfoCommunityHome = ({
           </div>
         ) : (
           <div>
-            {content ? (
-              <div
-                className="prose dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: content }}
-              />
+            {welcomeMessage || bio || images.length > 0 ? (
+              <div className="space-y-6 community-home-content">
+                <section>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white break-words">
+                    {welcomeMessage ||
+                      `Welcome to ${community?.name || "this community"}`}
+                  </h2>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Bio
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                    {bio || "No bio added yet."}
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Images
+                  </h3>
+                  {images.length > 0 ? (
+                    <div className="columns-1 sm:columns-2 gap-4">
+                      {images.map((image, index) => (
+                        <div
+                          key={`${image.url}-${index}`}
+                          className="mb-4 break-inside-avoid"
+                        >
+                          <img
+                            src={image.url}
+                            alt={`Community image ${index + 1}`}
+                            className="w-full h-auto rounded-lg"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      No images added yet.
+                    </p>
+                  )}
+                </section>
+              </div>
             ) : (
               <div className="text-center py-12">
                 <svg
@@ -271,6 +467,16 @@ const InfoCommunityHome = ({
           </div>
         )}
       </div>
+
+      {cropperImage && (
+        <ImageCropper
+          image={cropperImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={4 / 3}
+          allowRatioChange={true}
+        />
+      )}
     </div>
   );
 };

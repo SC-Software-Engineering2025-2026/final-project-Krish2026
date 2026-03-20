@@ -899,6 +899,67 @@ export const updateHomePageContent = async (communityId, content) => {
 };
 
 /**
+ * Update community home page sections with optional images
+ * @param {string} communityId - Community ID
+ * @param {Object} sections - { welcomeMessage, bio, orderedImages }
+ */
+export const updateHomePageSections = async (communityId, sections) => {
+  try {
+    const orderedImageUrls = [];
+
+    for (const imageItem of sections.orderedImages || []) {
+      if (imageItem.isNew && imageItem.file) {
+        const imageRef = ref(
+          storage,
+          `communities/${communityId}/home-page/${Date.now()}_${imageItem.file.name}`,
+        );
+        const snapshot = await uploadBytes(imageRef, imageItem.file);
+        const imageUrl = await getDownloadURL(snapshot.ref);
+        orderedImageUrls.push(imageUrl);
+      } else if (imageItem.url) {
+        orderedImageUrls.push(imageItem.url);
+      }
+    }
+
+    const structuredContent = {
+      welcomeMessage: sections.welcomeMessage || "",
+      bio: sections.bio || "",
+      imageUrls: orderedImageUrls,
+    };
+
+    const escapedWelcome = structuredContent.welcomeMessage
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const escapedBio = structuredContent.bio
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br />");
+
+    const contentHtml = `
+      <h2>${escapedWelcome}</h2>
+      <p>${escapedBio}</p>
+      <div>${structuredContent.imageUrls
+        .map(
+          (imageUrl) =>
+            `<img src="${imageUrl}" alt="Community welcome image" style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px;" />`,
+        )
+        .join("")}</div>
+    `;
+
+    await updateDoc(doc(db, "communities", communityId), {
+      homePageSections: structuredContent,
+      homePageContent: contentHtml,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating home page sections:", error);
+    throw error;
+  }
+};
+
+/**
  * Listen to community updates in real-time
  * @param {string} communityId - Community ID
  * @param {Function} callback - Callback function to receive updates
@@ -939,5 +1000,6 @@ export default {
   removeMember,
   getCommunityMembers,
   updateHomePageContent,
+  updateHomePageSections,
   subscribeToCommunity,
 };

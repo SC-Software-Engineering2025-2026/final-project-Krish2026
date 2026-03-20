@@ -145,8 +145,14 @@ const CommunityPage = () => {
     tabs.push({ id: "posts", label: "Posts" });
 
     if (community.isCollaborative) {
-      tabs.push({ id: "chat", label: "Chat" });
-      tabs.push({ id: "media", label: "Media" });
+      // Check if chat is enabled (defaults to true if not specified)
+      if (community.chatEnabled !== false) {
+        tabs.push({ id: "chat", label: "Chat" });
+      }
+      // Check if media is enabled (defaults to true if not specified)
+      if (community.mediaEnabled !== false) {
+        tabs.push({ id: "media", label: "Media" });
+      }
     } else {
       // Informational community tabs
       if (isAdmin) {
