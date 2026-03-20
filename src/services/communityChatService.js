@@ -96,6 +96,13 @@ export const sendAdminMessage = async (communityId, userId, messageData) => {
       createdAt: serverTimestamp(),
     };
 
+    // Add reply data if present
+    if (messageData.replyTo) {
+      message.replyTo = messageData.replyTo;
+      message.replyToText = messageData.replyToText || "";
+      message.replyToUser = messageData.replyToUser || "User";
+    }
+
     const docRef = await addDoc(messagesRef, message);
     return docRef.id;
   } catch (error) {
@@ -189,6 +196,53 @@ export const subscribeToUserToAdminMessages = (communityId, callback) => {
 };
 
 /**
+ * Mark a user-to-admin message as read
+ * @param {string} communityId - Community ID
+ * @param {string} messageId - Message ID
+ * @returns {Promise<void>}
+ */
+export const markUserToAdminMessageAsRead = async (communityId, messageId) => {
+  try {
+    const messageRef = doc(
+      db,
+      `communities/${communityId}/userToAdminMessages`,
+      messageId,
+    );
+    await updateDoc(messageRef, {
+      read: true,
+      readAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error marking user-to-admin message as read:", error);
+    throw new Error("Failed to mark message as read");
+  }
+};
+
+/**
+ * Mark multiple user-to-admin messages as read
+ * @param {string} communityId - Community ID
+ * @param {string[]} messageIds - Message IDs
+ * @returns {Promise<void>}
+ */
+export const markUserToAdminMessagesAsRead = async (
+  communityId,
+  messageIds,
+) => {
+  try {
+    if (!messageIds?.length) return;
+
+    await Promise.all(
+      messageIds.map((messageId) =>
+        markUserToAdminMessageAsRead(communityId, messageId),
+      ),
+    );
+  } catch (error) {
+    console.error("Error marking user-to-admin messages as read:", error);
+    throw new Error("Failed to mark messages as read");
+  }
+};
+
+/**
  * Delete a message from community chat
  * @param {string} communityId - Community ID
  * @param {string} messageId - Message ID
@@ -237,6 +291,51 @@ export const updateCommunityMessage = async (
   }
 };
 
+/**
+ * Delete a message in admin chat
+ * @param {string} communityId - Community ID
+ * @param {string} messageId - Message ID
+ * @returns {Promise<void>}
+ */
+export const deleteAdminMessage = async (communityId, messageId) => {
+  try {
+    const messageRef = doc(
+      db,
+      `communities/${communityId}/adminMessages`,
+      messageId,
+    );
+    await deleteDoc(messageRef);
+  } catch (error) {
+    console.error("Error deleting admin message:", error);
+    throw new Error("Failed to delete message");
+  }
+};
+
+/**
+ * Update a message in admin chat
+ * @param {string} communityId - Community ID
+ * @param {string} messageId - Message ID
+ * @param {string} newText - New message text
+ * @returns {Promise<void>}
+ */
+export const updateAdminMessage = async (communityId, messageId, newText) => {
+  try {
+    const messageRef = doc(
+      db,
+      `communities/${communityId}/adminMessages`,
+      messageId,
+    );
+    await updateDoc(messageRef, {
+      text: newText,
+      edited: true,
+      editedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating admin message:", error);
+    throw new Error("Failed to update message");
+  }
+};
+
 export default {
   sendCommunityMessage,
   subscribeToCommunityMessages,
@@ -244,6 +343,10 @@ export default {
   updateCommunityMessage,
   sendAdminMessage,
   subscribeToAdminMessages,
+  deleteAdminMessage,
+  updateAdminMessage,
   sendUserToAdminMessage,
   subscribeToUserToAdminMessages,
+  markUserToAdminMessageAsRead,
+  markUserToAdminMessagesAsRead,
 };

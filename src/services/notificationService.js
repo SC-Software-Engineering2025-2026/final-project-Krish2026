@@ -29,6 +29,7 @@ export const createNotification = async (notificationData) => {
       actorName,
       actorProfileImage,
       postId,
+      channelId,
       communityId,
       communityName,
       message,
@@ -48,6 +49,7 @@ export const createNotification = async (notificationData) => {
 
     // Add optional fields
     if (postId) notification.postId = postId;
+    if (channelId) notification.channelId = channelId;
     if (communityId) notification.communityId = communityId;
     if (communityName) notification.communityName = communityName;
 
@@ -318,6 +320,38 @@ export const createLikeNotification = async (
     actorProfileImage: likerProfile.profileImage || "",
     postId,
     message: `${likerProfile.displayName || likerProfile.username} liked your post`,
+  });
+};
+
+/**
+ * Create direct message notification
+ * @param {string} senderId - User who sent the message
+ * @param {string} recipientId - User receiving the message
+ * @param {string} channelId - Direct message channel ID
+ * @param {Object} senderProfile - Sender profile data
+ * @param {string} text - Message text
+ * @returns {Promise<string|null>} Notification ID
+ */
+export const createDirectMessageNotification = async (
+  senderId,
+  recipientId,
+  channelId,
+  senderProfile,
+  text,
+) => {
+  if (senderId === recipientId) return null;
+
+  const senderDisplayName = senderProfile.displayName || senderProfile.username;
+  const truncatedText = (text || "").trim().slice(0, 80);
+
+  return createNotification({
+    userId: recipientId,
+    type: "message",
+    actorId: senderId,
+    actorName: senderDisplayName,
+    actorProfileImage: senderProfile.profileImage || "",
+    channelId,
+    message: `${senderDisplayName} sent you a message${truncatedText ? `: \"${truncatedText}\"` : ""}`,
   });
 };
 

@@ -25,6 +25,7 @@ import {
 import { db, storage, auth } from "./firebase";
 import { deleteUser } from "firebase/auth";
 import { createFollowNotification } from "./notificationService";
+import { createOrGetDirectMessageChannel } from "./directMessageService";
 
 /**
  * Get user profile by userId
@@ -74,6 +75,10 @@ export const createUserProfile = async (userId, profileData) => {
       following: [],
       sentFollowRequests: [],
       pendingFollowRequests: [],
+      dmSettings: {
+        allowDirectMessagesFrom: "everyone",
+        blockedUsers: [],
+      },
       theme: "light", // Default theme
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -565,6 +570,15 @@ export const followUser = async (currentUserId, targetUserId) => {
       console.error("Error creating follow notification:", notifError);
       // Don't throw error, follow action was successful
     }
+
+    try {
+      await createOrGetDirectMessageChannel(currentUserId, targetUserId);
+    } catch (dmError) {
+      console.error(
+        "Error creating direct message channel after follow:",
+        dmError,
+      );
+    }
   } catch (error) {
     console.error("Error following user:", error);
     throw error;
@@ -771,6 +785,15 @@ export const acceptFollowRequest = async (currentUserId, requesterId) => {
         notifError,
       );
       // Don't throw error, accept action was successful
+    }
+
+    try {
+      await createOrGetDirectMessageChannel(currentUserId, requesterId);
+    } catch (dmError) {
+      console.error(
+        "Error creating direct message channel after follow request acceptance:",
+        dmError,
+      );
     }
   } catch (error) {
     console.error("Error accepting follow request:", error);

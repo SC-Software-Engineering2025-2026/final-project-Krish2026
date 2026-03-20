@@ -248,7 +248,11 @@ const CommunityPage = () => {
               isCollaborative={community.isCollaborative}
             />
           ) : (
-            <InfoCommunityPosts communityId={communityId} userRole={role} />
+            <InfoCommunityPosts
+              communityId={communityId}
+              userRole={role}
+              isCollaborative={community.isCollaborative}
+            />
           ))}
 
         {activeTab === "chat" && community.isCollaborative && (

@@ -7,7 +7,13 @@ import {
   toggleProfilePrivacy,
   subscribeToUserProfile,
   deleteCompleteUserAccount,
+  searchUsers,
 } from "../services/profileService";
+import {
+  blockDirectMessageUser,
+  unblockDirectMessageUser,
+  updateDmSettings,
+} from "../services/directMessageService";
 import {
   LockClosedIcon,
   LockOpenIcon,
@@ -28,6 +34,12 @@ const Settings = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [dmSettings, setDmSettings] = useState(null);
+  const [updatingDmSettings, setUpdatingDmSettings] = useState(false);
+  const [dmSearchTerm, setDmSearchTerm] = useState("");
+  const [dmSearchResults, setDmSearchResults] = useState([]);
+  const [dmSearchLoading, setDmSearchLoading] = useState(false);
+  const [blockedUserProfiles, setBlockedUserProfiles] = useState({});
 
   useEffect(() => {
     if (!currentUser) {
@@ -44,6 +56,12 @@ const Settings = () => {
           return;
         }
         setProfile(profileData);
+        setDmSettings(
+          profileData.dmSettings || {
+            allowDirectMessagesFrom: "everyone",
+            blockedUsers: [],
+          },
+        );
         setLoading(false);
       },
     );
@@ -69,6 +87,121 @@ const Settings = () => {
     } catch (err) {
       console.error("Error logging out:", err);
       alert("Failed to log out");
+    }
+  };
+
+  useEffect(() => {
+    if (!currentUser || !dmSettings) return;
+
+    const blockedIds = dmSettings.blockedUsers || [];
+    if (blockedIds.length === 0) return;
+
+    const loadBlockedProfiles = async () => {
+      const loaded = await Promise.all(
+        blockedIds.map(async (userId) => {
+          if (blockedUserProfiles[userId]) {
+            return null;
+          }
+
+          try {
+            const profile = await getUserProfile(userId);
+            return profile ? { userId, profile } : null;
+          } catch (error) {
+            console.error("Error loading blocked user profile:", error);
+            return null;
+          }
+        }),
+      );
+
+      const updates = loaded.filter(Boolean).reduce((acc, entry) => {
+        acc[entry.userId] = entry.profile;
+        return acc;
+      }, {});
+
+      if (Object.keys(updates).length > 0) {
+        setBlockedUserProfiles((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    loadBlockedProfiles();
+  }, [currentUser, dmSettings, blockedUserProfiles]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const timeout = setTimeout(async () => {
+      if (!dmSearchTerm.trim()) {
+        setDmSearchResults([]);
+        return;
+      }
+
+      setDmSearchLoading(true);
+      try {
+        const users = await searchUsers(dmSearchTerm);
+        setDmSearchResults(
+          users.filter((user) => user.id !== currentUser.uid).slice(0, 12),
+        );
+      } catch (error) {
+        console.error("Error searching users for DM blocking:", error);
+        setDmSearchResults([]);
+      } finally {
+        setDmSearchLoading(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [currentUser, dmSearchTerm]);
+
+  const handleUpdateDmAudience = async (audience) => {
+    if (!currentUser) return;
+
+    try {
+      setUpdatingDmSettings(true);
+      const updated = await updateDmSettings(currentUser.uid, {
+        allowDirectMessagesFrom: audience,
+      });
+      setDmSettings(updated);
+    } catch (error) {
+      console.error("Error updating DM settings:", error);
+      alert("Failed to update direct message settings");
+    } finally {
+      setUpdatingDmSettings(false);
+    }
+  };
+
+  const handleBlockUser = async (targetUserId) => {
+    if (!currentUser) return;
+
+    try {
+      setUpdatingDmSettings(true);
+      const updated = await blockDirectMessageUser(
+        currentUser.uid,
+        targetUserId,
+      );
+      setDmSettings(updated);
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      alert("Failed to block user");
+    } finally {
+      setUpdatingDmSettings(false);
+    }
+  };
+
+  const handleUnblockUser = async (targetUserId) => {
+    if (!currentUser) return;
+
+    try {
+      setUpdatingDmSettings(true);
+      const updated = await unblockDirectMessageUser(
+        currentUser.uid,
+        targetUserId,
+      );
+      setDmSettings(updated);
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      alert("Failed to unblock user");
+    } finally {
+      setUpdatingDmSettings(false);
     }
   };
 
@@ -199,6 +332,145 @@ const Settings = () => {
                       : "Make Profile Private"}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Direct Message Settings Section */}
+          <div className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Direct Messages
+            </h3>
+
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6 mb-4">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Who can message you
+              </h4>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Control who can start direct message conversations with you.
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: "everyone", label: "Everyone" },
+                  { id: "followers", label: "Followers only" },
+                  { id: "nobody", label: "Nobody" },
+                ].map((option) => (
+                  <button
+                    key={option.id}
+                    disabled={updatingDmSettings}
+                    onClick={() => handleUpdateDmAudience(option.id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      dmSettings?.allowDirectMessagesFrom === option.id
+                        ? "bg-blue-600 text-white"
+                        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Block users from messaging you
+              </h4>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Blocked users cannot send you direct messages.
+              </p>
+
+              <input
+                type="text"
+                value={dmSearchTerm}
+                onChange={(e) => setDmSearchTerm(e.target.value)}
+                placeholder="Search users to block"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white mb-3"
+              />
+
+              {dmSearchLoading ? (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  Searching users...
+                </p>
+              ) : dmSearchTerm.trim() && dmSearchResults.length === 0 ? (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  No users found
+                </p>
+              ) : (
+                <div className="space-y-2 mb-4">
+                  {dmSearchResults.map((user) => {
+                    const isBlocked = dmSettings?.blockedUsers?.includes(
+                      user.id,
+                    );
+                    return (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {user.displayName ||
+                              user.username ||
+                              "Unknown User"}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            @{user.username || "user"}
+                          </p>
+                        </div>
+                        <button
+                          disabled={updatingDmSettings || isBlocked}
+                          onClick={() => handleBlockUser(user.id)}
+                          className="px-3 py-1.5 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                        >
+                          {isBlocked ? "Blocked" : "Block"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div>
+                <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                  Blocked users
+                </h5>
+                {(dmSettings?.blockedUsers || []).length === 0 ? (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    No blocked users.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {(dmSettings?.blockedUsers || []).map((blockedUserId) => {
+                      const blockedProfile = blockedUserProfiles[blockedUserId];
+                      return (
+                        <div
+                          key={blockedUserId}
+                          className="flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {blockedProfile?.displayName ||
+                                blockedProfile?.username ||
+                                "User"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              @
+                              {blockedProfile?.username ||
+                                blockedUserId.slice(0, 8)}
+                            </p>
+                          </div>
+                          <button
+                            disabled={updatingDmSettings}
+                            onClick={() => handleUnblockUser(blockedUserId)}
+                            className="px-3 py-1.5 text-sm rounded-lg bg-gray-600 hover:bg-gray-700 text-white disabled:opacity-50"
+                          >
+                            Unblock
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -32,6 +32,10 @@ import {
   XMarkIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import {
+  canMessageUser,
+  createOrGetDirectMessageChannel,
+} from "../services/directMessageService";
 
 const ProfilePage = () => {
   const { userId } = useParams();
@@ -61,6 +65,7 @@ const ProfilePage = () => {
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
   const [privacyPopupMessage, setPrivacyPopupMessage] = useState("");
+  const [startingDirectMessage, setStartingDirectMessage] = useState(false);
   const dropdownRef = useRef(null);
 
   // Determine if viewing own profile
@@ -247,6 +252,39 @@ const ProfilePage = () => {
   const handleProfileUpdate = async () => {
     // Profile will be updated via subscription
     setIsEditMode(false);
+  };
+
+  const handleStartDirectMessage = async () => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    if (!profileId || isOwnProfile) {
+      return;
+    }
+
+    try {
+      setStartingDirectMessage(true);
+      const permission = await canMessageUser(currentUser.uid, profileId);
+
+      if (!permission.allowed) {
+        alert("This user is not accepting direct messages from you.");
+        return;
+      }
+
+      const channel = await createOrGetDirectMessageChannel(
+        currentUser.uid,
+        profileId,
+      );
+
+      navigate(`/inbox?section=direct_messages&channel=${channel.id}`);
+    } catch (error) {
+      console.error("Error starting direct message:", error);
+      alert("Failed to start direct message");
+    } finally {
+      setStartingDirectMessage(false);
+    }
   };
 
   const handleOpenFollowersModal = async () => {
@@ -504,7 +542,7 @@ const ProfilePage = () => {
 
             {/* Follow Button - positioned under stats */}
             {!isOwnProfile && (
-              <div className="mb-4">
+              <div className="mb-4 flex flex-wrap gap-2">
                 <button
                   onClick={handleFollowToggle}
                   disabled={followLoading}
@@ -546,6 +584,19 @@ const ProfilePage = () => {
                       <span>{profile.isPrivate ? "Request" : "Follow"}</span>
                     </>
                   )}
+                </button>
+                <button
+                  onClick={handleStartDirectMessage}
+                  disabled={startingDirectMessage}
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
+                  className="flex items-center gap-2 px-6 py-2 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>
+                    {startingDirectMessage ? "Opening..." : "Message"}
+                  </span>
                 </button>
               </div>
             )}

@@ -50,7 +50,12 @@ const NavBar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo and Navigation */}
           <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center gap-3">
+              <img
+                src="/Sfera-icon.png"
+                alt="Sfera"
+                className="w-10 h-10 rounded-lg object-cover"
+              />
               <h1
                 className="text-4xl font-bold"
                 style={{

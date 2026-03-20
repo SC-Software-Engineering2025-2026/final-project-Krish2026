@@ -74,12 +74,18 @@ const NotificationCard = ({ notification }) => {
         navigate(`/profile/${notification.actorId}`);
       } else if (notification.type === "like" && notification.postId) {
         navigate(`/post/${notification.postId}`);
+      } else if (notification.type === "message" && notification.channelId) {
+        navigate(
+          `/inbox?section=direct_messages&channel=${notification.channelId}`,
+        );
       } else if (
         (notification.type === "community_joined" ||
           notification.type === "message") &&
         notification.communityId
       ) {
         navigate(`/communities/${notification.communityId}`);
+      } else if (notification.type === "message") {
+        navigate("/inbox?section=direct_messages");
       }
     } catch (error) {
       console.error("Error handling notification click:", error);

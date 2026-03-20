@@ -96,16 +96,28 @@ function Communities() {
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Create or join a community to get started
                 </p>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="mt-6 px-6 py-2 rounded-lg"
-                  style={{
-                    backgroundColor: COLORS.Dark_Gray,
-                    color: COLORS.Beige,
-                  }}
-                >
-                  Create Your First Community
-                </button>
+                <div className="mt-6 flex flex-col items-center gap-3">
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-6 py-2 rounded-lg"
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                    }}
+                  >
+                    Create Your First Community
+                  </button>
+                  <button
+                    onClick={() => navigate("/discover")}
+                    className="px-6 py-2 rounded-lg"
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                    }}
+                  >
+                    Go to Discover Page
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

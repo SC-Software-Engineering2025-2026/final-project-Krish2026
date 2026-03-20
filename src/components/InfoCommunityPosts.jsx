@@ -14,18 +14,21 @@ import {
 } from "../services/communityPostService";
 import { getUserProfile } from "../services/profileService";
 import ImageCropper from "./ImageCropper";
+import LocationPicker from "./LocationPicker";
 import { getCroppedImg } from "../utils/cropImage";
 import { shortenLocation } from "../utils/locationUtils";
 
-const InfoCommunityPosts = ({ communityId, userRole }) => {
+import { COLORS } from "../theme/colors";
+
+const InfoCommunityPosts = ({ communityId, userRole, isCollaborative }) => {
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("all"); // all, images, videos, text
   const [selectedPost, setSelectedPost] = useState(null);
 
-  const isAdmin = userRole === "admin";
+  const canPost = isCollaborative || userRole === "admin";
 
   useEffect(() => {
     setLoading(true);
@@ -74,7 +77,7 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
       // Real-time listener will automatically update the posts
     } catch (error) {
       console.error("Error deleting post:", error);
-      alert(error.message || "Failed to delete post");
+      throw error;
     }
   };
 
@@ -96,84 +99,61 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Notice for Non-Admins */}
-      {!isAdmin && (
-        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
-          <div className="flex items-start space-x-3">
-            <svg
-              className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div>
-              <h3 className="font-medium text-blue-900 dark:text-blue-200">
-                Admin-Only Posting
-              </h3>
-              <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
-                Only admins can create posts in this informational community.
-                You can view, like, and comment on posts.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             <button
               onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "all"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "all" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "all" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               All
             </button>
             <button
               onClick={() => setFilter("images")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "images"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "images" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "images" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Images
             </button>
             <button
               onClick={() => setFilter("videos")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "videos"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "videos" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "videos" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Videos
             </button>
             <button
               onClick={() => setFilter("text")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                filter === "text"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              style={{
+                backgroundColor:
+                  filter === "text" ? COLORS.Dark_Gray : COLORS.Beige,
+                color: filter === "text" ? COLORS.Beige : COLORS.Dark_Gray,
+              }}
+              className="px-4 py-2 rounded-lg font-medium"
             >
               Text
             </button>
           </div>
 
-          {isAdmin && (
+          {canPost && (
             <button
               onClick={() => setShowCreatePost(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+              className="px-4 py-2 rounded-lg flex items-center space-x-2"
             >
               <svg
                 className="w-5 h-5"
@@ -211,11 +191,11 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
               />
             </svg>
-            <h3 className="mt-2 text-lg font-medium text-gray-900">
+            <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
               No posts yet
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {isAdmin
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {canPost
                 ? "Be the first to create a post!"
                 : "No posts have been created yet"}
             </p>
@@ -242,7 +222,7 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
           onClose={() => setShowCreatePost(false)}
           onSuccess={() => {
             setShowCreatePost(false);
-            loadPosts();
+            // Real-time subscription will automatically update posts
           }}
         />
       )}
@@ -253,14 +233,16 @@ const InfoCommunityPosts = ({ communityId, userRole }) => {
           post={selectedPost}
           communityId={communityId}
           onClose={() => setSelectedPost(null)}
-          onCommentAdded={loadPosts}
+          onCommentAdded={() => {
+            // Real-time subscription will automatically update comments
+          }}
         />
       )}
     </div>
   );
 };
 
-// Post Card Component (reused from CommunityPosts)
+// Post Card Component
 const PostCard = ({
   post,
   onLike,
@@ -271,6 +253,7 @@ const PostCard = ({
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const isLiked = post.likes?.includes(currentUserId);
   const isAuthor = post.userId === currentUserId;
@@ -286,6 +269,13 @@ const PostCard = ({
     const width = e.target.offsetWidth;
     const index = Math.round(scrollLeft / width);
     setCurrentImageIndex(index);
+  };
+
+  const handleVideoScroll = (e) => {
+    const scrollLeft = e.target.scrollLeft;
+    const width = e.target.offsetWidth;
+    const index = Math.round(scrollLeft / width);
+    setCurrentVideoIndex(index);
   };
 
   const handleDelete = async () => {
@@ -306,36 +296,26 @@ const PostCard = ({
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      {/* Post Header */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          {post.userProfile?.profilePicture ? (
+          {post.userProfile?.profileImage ? (
             <img
-              src={post.userProfile.profilePicture}
+              src={post.userProfile.profileImage}
               alt={post.userProfile.username}
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
             <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
               <span className="text-gray-600 dark:text-gray-300 font-medium">
-                {post.userProfile?.username?.[0]?.toUpperCase() || "A"}
+                {post.userProfile?.username?.[0]?.toUpperCase() || "U"}
               </span>
             </div>
           )}
           <div>
-            <div className="flex items-center space-x-2">
-              <p className="font-semibold text-gray-900 dark:text-white">
-                {post.userProfile?.username || "Admin"}
-              </p>
-              <span
-                className="px-2 py-0.5 text-xs font-medium rounded"
-                style={{
-                  backgroundColor: COLORS.Dark_Gray,
-                  color: COLORS.Beige,
-                }}
-              >
-                Admin
-              </span>
-            </div>
+            <p className="font-semibold text-gray-900 dark:text-white">
+              {post.userProfile?.username || "User"}
+            </p>
             {post.location && (
               <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 <svg
@@ -414,6 +394,7 @@ const PostCard = ({
         )}
       </div>
 
+      {/* Post Images */}
       {post.images && post.images.length > 0 && (
         <div className="relative">
           <div
@@ -457,14 +438,51 @@ const PostCard = ({
         </div>
       )}
 
+      {/* Post Videos */}
       {post.videos && post.videos.length > 0 && (
-        <div className="space-y-2">
-          {post.videos.map((video, index) => (
-            <video key={index} src={video} controls className="w-full" />
-          ))}
+        <div className="relative">
+          <div
+            className="overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+            onScroll={handleVideoScroll}
+          >
+            <div className="flex">
+              {post.videos.map((video, index) => (
+                <div
+                  key={index}
+                  className="w-full flex-shrink-0 snap-center snap-always flex justify-center bg-gray-50"
+                >
+                  <video
+                    src={video}
+                    controls
+                    className="rounded"
+                    style={{
+                      maxHeight: "400px",
+                      width: "100%",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Pagination indicators */}
+          {post.videos.length > 1 && (
+            <div className="flex justify-center gap-1.5 mt-2 pb-2">
+              {post.videos.map((_, index) => (
+                <div
+                  key={index}
+                  className="w-1.5 h-1.5 rounded-full transition-colors duration-200"
+                  style={{
+                    backgroundColor:
+                      currentVideoIndex === index ? "#171717" : "#9ca3af",
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
+      {/* Post Content */}
       {post.content && (
         <div className="px-4 pb-3 pt-3">
           <p className="text-gray-900 dark:text-white pl-2.5">{post.content}</p>
@@ -484,6 +502,7 @@ const PostCard = ({
         </div>
       )}
 
+      {/* Post Actions */}
       <div className="p-4 border-t dark:border-gray-700">
         <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
           <span>
@@ -544,34 +563,62 @@ const PostCard = ({
   );
 };
 
-// Create Post Modal (reused)
+// Create Post Modal Component
 const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   const { currentUser } = useAuth();
+  const [postType, setPostType] = useState(null); // 'text' or 'media'
   const [content, setContent] = useState("");
-  const [images, setImages] = useState([]);
+  const [mediaFiles, setMediaFiles] = useState([]);
+  const [mediaPreviews, setMediaPreviews] = useState([]);
+  const [location, setLocation] = useState(null); // { name, coordinates: { lat, lng } }
+  const [hashtags, setHashtags] = useState("");
+  const [taggedUsers, setTaggedUsers] = useState("");
   const [loading, setLoading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!content.trim() && images.length === 0) {
-      alert("Please add content or images");
+    if (postType === "text" && !content.trim()) {
+      alert("Please add some text content");
+      return;
+    }
+
+    if (postType === "media" && mediaFiles.length === 0 && !content.trim()) {
+      alert("Please add media or content");
       return;
     }
 
     setLoading(true);
     try {
+      const postData = {
+        content: content.trim(),
+        location: location?.name || "",
+        locationCoordinates: location?.coordinates || null,
+        hashtags: hashtags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+        taggedUsers: taggedUsers
+          .split(",")
+          .map((user) => user.trim())
+          .filter((user) => user),
+      };
+
       await createCommunityPost(
         communityId,
         currentUser.uid,
-        {
-          content: content.trim(),
-        },
-        images,
+        postData,
+        mediaFiles,
       );
+
+      // Clean up previews
+      mediaPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+
       onSuccess();
+      onClose();
     } catch (error) {
       console.error("Error creating post:", error);
       alert("Failed to create post");
@@ -580,23 +627,42 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
     }
   };
 
-  const handleImageChange = async (e) => {
+  const handleMediaChange = async (e) => {
     const files = Array.from(e.target.files);
-    if (files.length + images.length > 4) {
-      alert("Maximum 4 images allowed");
+
+    if (files.length + mediaFiles.length > 20) {
+      alert("Maximum 20 media files allowed");
       return;
     }
 
     for (const file of files) {
-      if (!file.type.startsWith("image/")) {
-        alert(`${file.name} is not an image file`);
+      if (file.size > 100 * 1024 * 1024) {
+        // 100MB limit
+        alert(`${file.name} is too large. Maximum size is 100MB`);
         continue;
       }
 
-      // Show cropper with 4:3 aspect ratio
-      const imageUrl = URL.createObjectURL(file);
-      setImageToCrop(imageUrl);
-      setCurrentImageIndex(images.length);
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        alert(`${file.name} is not a valid image or video file`);
+        continue;
+      }
+
+      // If it's an image, show cropper with 4:3 aspect ratio
+      if (file.type.startsWith("image/")) {
+        const imageUrl = URL.createObjectURL(file);
+        setImageToCrop(imageUrl);
+        setCurrentImageIndex(mediaFiles.length); // Store index for where to insert
+      } else {
+        // For videos, just add them directly
+        setMediaFiles((prev) => [...prev, file]);
+        setMediaPreviews((prev) => [
+          ...prev,
+          {
+            url: URL.createObjectURL(file),
+            type: "video",
+          },
+        ]);
+      }
     }
 
     // Reset file input
@@ -614,8 +680,15 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
         { type: "image/jpeg" },
       );
 
-      // Add to images
-      setImages((prev) => [...prev, croppedFile]);
+      // Add to media files and previews
+      setMediaFiles((prev) => [...prev, croppedFile]);
+      setMediaPreviews((prev) => [
+        ...prev,
+        {
+          url: URL.createObjectURL(croppedFile),
+          type: "image",
+        },
+      ]);
 
       // Clean up
       URL.revokeObjectURL(imageToCrop);
@@ -637,11 +710,232 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
     setCurrentImageIndex(null);
   };
 
+  const handleRemoveMedia = (index) => {
+    const newFiles = mediaFiles.filter((_, i) => i !== index);
+    const newPreviews = mediaPreviews.filter((_, i) => i !== index);
+
+    // Revoke object URL to free memory
+    URL.revokeObjectURL(mediaPreviews[index].url);
+
+    setMediaFiles(newFiles);
+    setMediaPreviews(newPreviews);
+  };
+
+  // Step 1: Choose post type
+  if (!postType) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold dark:text-white">
+              Choose Post Type
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <button
+              onClick={() => setPostType("text")}
+              className="w-full p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition group"
+            >
+              <div className="flex flex-col items-center space-y-3">
+                <svg
+                  className="w-12 h-12 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                    Text Post
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Share your thoughts with text
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setPostType("media")}
+              className="w-full p-6 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition group"
+            >
+              <div className="flex flex-col items-center space-y-3">
+                <svg
+                  className="w-12 h-12 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                    Photo/Video Post
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Share photos or videos with captions
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Text post form
+  if (postType === "text") {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setPostType(null)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <h2 className="text-xl font-semibold dark:text-white">
+                Create Text Post
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="What's on your mind?"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+              rows={8}
+              maxLength={5000}
+              disabled={loading}
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {content.length}/5000 characters
+            </p>
+
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !content.trim()}
+                style={{
+                  backgroundColor: !content.trim()
+                    ? "#d1d5db"
+                    : COLORS.Dark_Gray,
+                  color: !content.trim() ? "#888" : COLORS.Beige,
+                  cursor:
+                    loading || !content.trim() ? "not-allowed" : "pointer",
+                }}
+                className="px-6 py-2 rounded-lg transition"
+              >
+                {loading ? "Posting..." : "Post"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: Media post form
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
-          <h2 className="text-xl font-semibold dark:text-white">Create Post</h2>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setPostType(null)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <h2 className="text-xl font-semibold dark:text-white">
+              Create Photo/Video Post
+            </h2>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -662,33 +956,161 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Share an announcement or update..."
-            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-            rows={6}
-          />
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Media Upload Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Photos/Videos ({mediaPreviews.length}/20)
+            </label>
 
-          {images.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {images.map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={URL.createObjectURL(image)}
-                    alt={`Upload ${index + 1}`}
-                    className="w-full h-32 object-cover rounded"
+            {/* Media Previews */}
+            {mediaPreviews.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                {mediaPreviews.map((preview, index) => (
+                  <div key={index} className="relative group aspect-square">
+                    {preview.type === "video" ? (
+                      <video
+                        src={preview.url}
+                        className="w-full h-full object-cover rounded-lg"
+                        controls
+                      />
+                    ) : (
+                      <img
+                        src={preview.url}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMedia(index)}
+                      style={{
+                        backgroundColor: COLORS.Dark_Gray,
+                        color: COLORS.Beige,
+                      }}
+                      className="absolute top-2 right-2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                    {index === 0 && (
+                      <div className="absolute bottom-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+                        Cover
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload Button */}
+            {mediaPreviews.length < 20 && (
+              <label
+                style={{
+                  backgroundColor: COLORS.Beige,
+                  color: COLORS.Dark_Gray,
+                }}
+                className="cursor-pointer w-full flex flex-col items-center justify-center gap-2 px-6 py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg transition"
+              >
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleMediaChange}
+                  className="hidden"
+                  disabled={loading}
+                />
+                <svg
+                  className="w-12 h-12 text-gray-400 dark:text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setImages(images.filter((_, i) => i !== index))
-                    }
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                  >
+                </svg>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Click to upload photos or videos
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Up to 20 files, 100MB each
+                  </p>
+                </div>
+              </label>
+            )}
+          </div>
+
+          {/* Caption */}
+          <div>
+            <label
+              htmlFor="caption"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Caption
+            </label>
+            <textarea
+              id="caption"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+              placeholder="Write a caption..."
+              maxLength={2200}
+              disabled={loading}
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {content.length}/2200 characters
+            </p>
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="flex items-center gap-2">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <span>Location</span>
+              </div>
+            </label>
+            {location ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+                  <div className="flex items-center gap-2">
                     <svg
-                      className="w-4 h-4"
+                      className="w-4 h-4 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -697,47 +1119,191 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
-                  </button>
+                    <span className="text-gray-900 dark:text-white">
+                      {location.name}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setLocation(null)}
+                  disabled={loading}
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
+                  className="px-3 py-2 rounded-lg transition"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowLocationPicker(true)}
+                disabled={loading}
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg transition text-left flex items-center gap-2"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <span>Add location</span>
+              </button>
+            )}
+          </div>
+
+          {/* Location Picker Modal */}
+          {showLocationPicker && (
+            <LocationPicker
+              onLocationSelect={(selectedLocation) => {
+                setLocation(selectedLocation);
+                setShowLocationPicker(false);
+              }}
+              onClose={() => setShowLocationPicker(false)}
+              currentLocation={location}
+            />
           )}
 
-          <div className="mt-4 flex items-center justify-between">
-            <label className="cursor-pointer flex items-center space-x-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <span>Add Photos</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-                className="hidden"
-                disabled={loading}
-              />
+          {/* Hashtags */}
+          <div>
+            <label
+              htmlFor="hashtags"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              <div className="flex items-center gap-2">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+                  />
+                </svg>
+                <span>Hashtags</span>
+              </div>
             </label>
+            <input
+              type="text"
+              id="hashtags"
+              value={hashtags}
+              onChange={(e) => setHashtags(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+              placeholder="Add hashtags separated by commas (e.g., nature, travel, photography)"
+              disabled={loading}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Separate hashtags with commas
+            </p>
+          </div>
 
+          {/* Tagged Users */}
+          <div>
+            <label
+              htmlFor="taggedUsers"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              <div className="flex items-center gap-2">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+                <span>Tag Users</span>
+              </div>
+            </label>
+            <input
+              type="text"
+              id="taggedUsers"
+              value={taggedUsers}
+              onChange={(e) => setTaggedUsers(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+              placeholder="Tag users by username, separated by commas (e.g., @john, @jane)"
+              disabled={loading}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Separate usernames with commas
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              disabled={loading || (!content.trim() && images.length === 0)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+              disabled={loading || (mediaFiles.length === 0 && !content.trim())}
+              style={{
+                backgroundColor:
+                  mediaFiles.length === 0 && !content.trim()
+                    ? "#d1d5db"
+                    : COLORS.Dark_Gray,
+                color:
+                  mediaFiles.length === 0 && !content.trim()
+                    ? "#888"
+                    : COLORS.Beige,
+                cursor:
+                  loading || (mediaFiles.length === 0 && !content.trim())
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+              className="flex-1 px-6 py-3 rounded-lg transition font-medium"
             >
-              {loading ? "Posting..." : "Post"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  Posting...
+                </span>
+              ) : (
+                "Share Post"
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+            >
+              Cancel
             </button>
           </div>
         </form>
@@ -757,7 +1323,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   );
 };
 
-// Comments Modal (reused)
+// Comments Modal Component
 const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
   const { currentUser } = useAuth();
   const [comments, setComments] = useState([]);
@@ -835,7 +1401,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
   };
 
   const handleCommentDoubleClick = (comment, event) => {
-    if (comment.userId !== currentUser.uid) return;
+    if (comment.userId !== currentUser.uid) return; // Only allow editing own comments
     event.preventDefault();
     const rect = event.currentTarget.getBoundingClientRect();
     setSelectedComment(comment);
@@ -954,6 +1520,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
     }
   };
 
+  // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setContextMenuPosition(null);
@@ -1085,9 +1652,9 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               {comments.map((comment) => (
                 <div key={comment.id}>
                   <div className="flex space-x-3">
-                    {comment.userProfile?.profilePicture ? (
+                    {comment.userProfile?.profileImage ? (
                       <img
-                        src={comment.userProfile.profilePicture}
+                        src={comment.userProfile.profileImage}
                         alt={comment.userProfile.username}
                         className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                       />
@@ -1149,7 +1716,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         </p>
                         <button
                           onClick={() => handleCommentLike(comment.id)}
-                          className="flex items-center space-x-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 font-medium"
+                          className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium"
                         >
                           <svg
                             className={`w-3.5 h-3.5 ${
@@ -1187,20 +1754,24 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                               value={replyText}
                               onChange={(e) => setReplyText(e.target.value)}
                               placeholder={`Reply to ${comment.userProfile?.username || "User"}...`}
-                              className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                              className="flex-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                               disabled={loading}
                             />
                             <button
                               type="submit"
                               disabled={loading || !replyText.trim()}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                              style={{
+                                backgroundColor: COLORS.Dark_Gray,
+                                color: COLORS.Beige,
+                              }}
+                              className="px-3 py-1 rounded text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
                             >
                               {loading ? "..." : "Reply"}
                             </button>
                             <button
                               type="button"
                               onClick={handleCancelReply}
-                              className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                              className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
@@ -1213,7 +1784,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                         <div className="mt-2">
                           <button
                             onClick={() => toggleReplies(comment.id)}
-                            className="flex items-center space-x-1 text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 font-medium"
+                            className="flex items-center space-x-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
                           >
                             <svg
                               className={`w-4 h-4 transition-transform ${collapsedReplies[comment.id] ? "" : "rotate-90"}`}
@@ -1241,22 +1812,22 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                             <div className="ml-6 mt-2 space-y-3 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                               {comment.replies.map((reply) => (
                                 <div key={reply.id} className="flex space-x-2">
-                                  {reply.userProfile?.profilePicture ? (
+                                  {reply.userProfile?.profileImage ? (
                                     <img
-                                      src={reply.userProfile.profilePicture}
+                                      src={reply.userProfile.profileImage}
                                       alt={reply.userProfile.username}
                                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     />
                                   ) : (
-                                    <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0 flex items-center justify-center dark:bg-gray-600">
-                                      <span className="text-gray-600 text-xs font-medium dark:text-gray-300">
+                                    <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex-shrink-0 flex items-center justify-center">
+                                      <span className="text-gray-600 dark:text-gray-300 text-xs font-medium">
                                         {reply.userProfile?.username?.[0]?.toUpperCase() ||
                                           "U"}
                                       </span>
                                     </div>
                                   )}
                                   <div className="flex-1">
-                                    <p className="font-semibold text-xs dark:text-white">
+                                    <p className="font-semibold text-xs text-gray-900 dark:text-white">
                                       {reply.userProfile?.username || "User"}
                                     </p>
                                     {editingComment?.id === reply.id ? (
@@ -1268,7 +1839,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                           onChange={(e) =>
                                             setEditText(e.target.value)
                                           }
-                                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                           autoFocus
                                         />
                                         <div className="flex space-x-2 mt-1">
@@ -1280,7 +1851,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                           </button>
                                           <button
                                             onClick={handleCancelEdit}
-                                            className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                            className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-300 dark:hover:bg-gray-600"
                                           >
                                             Cancel
                                           </button>
@@ -1288,7 +1859,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                       </div>
                                     ) : (
                                       <p
-                                        className="text-gray-900 text-sm mt-0.5 cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1 dark:text-white dark:hover:bg-gray-700"
+                                        className="text-gray-900 dark:text-white text-sm mt-0.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded p-1 -ml-1"
                                         onDoubleClick={(e) =>
                                           handleReplyDoubleClick(reply, e)
                                         }
@@ -1296,7 +1867,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                         {reply.text}
                                       </p>
                                     )}
-                                    <p className="text-xs text-gray-500 mt-0.5 dark:text-gray-400">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                       {reply.createdAt
                                         ?.toDate?.()
                                         ?.toLocaleDateString() || "Just now"}
@@ -1309,7 +1880,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
                                         onClick={() =>
                                           handleCommentLike(reply.id)
                                         }
-                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 font-medium"
+                                        className="inline-flex items-center space-x-1 ml-3 text-xs text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium"
                                       >
                                         <svg
                                           className={`w-3 h-3 ${
@@ -1346,9 +1917,10 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               <div ref={commentsEndRef} />
             </>
           )}
+          {/* Context Menu */}
           {contextMenuPosition && selectedComment && (
             <div
-              className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[60] dark:bg-gray-800 dark:border-gray-700"
+              className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-[60]"
               style={{
                 left: `${contextMenuPosition.x}px`,
                 top: `${contextMenuPosition.y}px`,
@@ -1357,7 +1929,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
             >
               <button
                 onClick={handleEditComment}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 dark:hover:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white flex items-center space-x-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -1376,7 +1948,7 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               </button>
               <button
                 onClick={handleDeleteComment}
-                className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 flex items-center space-x-2 dark:hover:bg-red-900/30 dark:text-red-400"
+                className="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center space-x-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -1408,13 +1980,14 @@ const CommentsModal = ({ post, communityId, onClose, onCommentAdded }) => {
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading || !newComment.trim()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+              className="px-6 py-2 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition"
             >
               {loading ? "Posting..." : "Post"}
             </button>
