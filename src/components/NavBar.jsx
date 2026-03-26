@@ -60,7 +60,7 @@ const NavBar = () => {
       >
         Skip to main content
       </a>
-      
+
       <nav
         className={`fixed top-0 left-0 right-0 z-50 bg-white shadow-md ${!isAuthPage ? "dark:bg-gray-800" : ""}`}
         role="navigation"
@@ -70,7 +70,11 @@ const NavBar = () => {
           <div className="flex justify-between items-center h-16">
             {/* Left side - Logo and Navigation */}
             <div className="flex items-center gap-8">
-              <Link to="/" className="flex items-center gap-3" aria-label="Sfera Home">
+              <Link
+                to="/"
+                className="flex items-center gap-3"
+                aria-label="Sfera Home"
+              >
                 <img
                   src="/Sfera-icon.png"
                   alt="Sfera"
@@ -100,7 +104,9 @@ const NavBar = () => {
                         : !isAuthPage && isDark
                           ? "#EDE8DD"
                           : "#54524D",
-                      backgroundColor: isActive("/") ? "#54524D" : "transparent",
+                      backgroundColor: isActive("/")
+                        ? "#54524D"
+                        : "transparent",
                       borderRadius: isActive("/") ? "20px" : "0",
                     }}
                     role="menuitem"

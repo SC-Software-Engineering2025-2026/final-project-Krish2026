@@ -17,6 +17,7 @@ import {
 import { getCommunitiesByIds } from "../services/communityService";
 import COLORS from "../theme/colors";
 import EditProfile from "../components/EditProfile";
+import LanguageAndAccessibilitySettings from "../components/LanguageAndAccessibilitySettings";
 import {
   UserCircleIcon,
   Cog6ToothIcon,
@@ -31,6 +32,7 @@ import {
   UserMinusIcon,
   XMarkIcon,
   MagnifyingGlassIcon,
+  LanguageIcon,
 } from "@heroicons/react/24/outline";
 import {
   canMessageUser,
@@ -66,6 +68,7 @@ const ProfilePage = () => {
   const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
   const [privacyPopupMessage, setPrivacyPopupMessage] = useState("");
   const [startingDirectMessage, setStartingDirectMessage] = useState(false);
+  const [showAccessibilitySettings, setShowAccessibilitySettings] = useState(false);
   const dropdownRef = useRef(null);
 
   // Determine if viewing own profile
@@ -482,6 +485,16 @@ const ProfilePage = () => {
                         >
                           <Cog6ToothIcon className="h-5 w-5" />
                           <span>Settings</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowDropdown(false);
+                            setShowAccessibilitySettings(true);
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-3 text-gray-700 dark:text-gray-200"
+                        >
+                          <LanguageIcon className="h-5 w-5" />
+                          <span>Accessibility & Language</span>
                         </button>
                       </div>
                     )}
@@ -1150,6 +1163,43 @@ const ProfilePage = () => {
             >
               OK
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Accessibility & Language Settings Modal */}
+      {showAccessibilitySettings && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+          onClick={() => setShowAccessibilitySettings(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <LanguageIcon className="h-6 w-6 text-blue-500" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Accessibility & Language
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowAccessibilitySettings(false)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+              >
+                <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <LanguageAndAccessibilitySettings
+                profile={profile}
+                onSave={(settings) => {
+                  console.log("Accessibility settings saved:", settings);
+                  setShowAccessibilitySettings(false);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

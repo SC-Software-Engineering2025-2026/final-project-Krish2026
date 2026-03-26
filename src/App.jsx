@@ -38,41 +38,41 @@ function App() {
               {/* Main content area with padding to account for fixed navbar */}
               <main
                 id="main-content"
-              className="pt-16"
-              role="main"
-              aria-label="Main content"
-            >
-              <Routes>
-                {/* Authentication routes - login/signup pages */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+                className="pt-16"
+                role="main"
+                aria-label="Main content"
+              >
+                <Routes>
+                  {/* Authentication routes - login/signup pages */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
 
-                {/* Main App Routes - core user-facing features */}
-                <Route path="/" element={<Home />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/profile/:userId" element={<ProfilePage />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/post/:postId" element={<PostDetail />} />
-                {/* Community routes - view and manage communities */}
-                <Route path="/communities" element={<Communities />} />
-                <Route
-                  path="/communities/:communityId"
-                  element={<CommunityPage />}
-                />
-                <Route path="/discover" element={<Discover />} />
-                {/* Messaging routes - user-to-user and group communication */}
-                <Route path="/inbox" element={<Inbox />} />
-                <Route path="/messages" element={<Messages />} />
+                  {/* Main App Routes - core user-facing features */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/profile/:userId" element={<ProfilePage />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/post/:postId" element={<PostDetail />} />
+                  {/* Community routes - view and manage communities */}
+                  <Route path="/communities" element={<Communities />} />
+                  <Route
+                    path="/communities/:communityId"
+                    element={<CommunityPage />}
+                  />
+                  <Route path="/discover" element={<Discover />} />
+                  {/* Messaging routes - user-to-user and group communication */}
+                  <Route path="/inbox" element={<Inbox />} />
+                  <Route path="/messages" element={<Messages />} />
 
-                {/* Temporary utility route - remove after use */}
-                <Route
-                  path="/sync-communities"
-                  element={<SyncUserCommunities />}
-                />
-              </Routes>
-            </main>
-          </div>
-        </Router>
+                  {/* Temporary utility route - remove after use */}
+                  <Route
+                    path="/sync-communities"
+                    element={<SyncUserCommunities />}
+                  />
+                </Routes>
+              </main>
+            </div>
+          </Router>
         </ThemeProvider>
       </AuthProvider>
     </I18nextProvider>

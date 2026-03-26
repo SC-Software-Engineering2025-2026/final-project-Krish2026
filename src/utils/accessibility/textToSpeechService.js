@@ -32,7 +32,7 @@ class TextToSpeechService {
    */
   speak(text, options = {}) {
     if (!this.isSupported) {
-      console.warn('Text-to-Speech not supported in this browser');
+      console.warn("Text-to-Speech not supported in this browser");
       return false;
     }
 
@@ -42,11 +42,11 @@ class TextToSpeechService {
     }
 
     const {
-      language = 'en-US',
+      language = "en-US",
       rate = 1,
       pitch = 1,
       volume = 1,
-      onEnd = null
+      onEnd = null,
     } = options;
 
     // Create utterance
@@ -67,7 +67,7 @@ class TextToSpeechService {
     };
 
     this.currentUtterance.onerror = (event) => {
-      console.error('Speech error:', event.error);
+      console.error("Speech error:", event.error);
       this.isSpeaking = false;
     };
 
@@ -116,7 +116,7 @@ class TextToSpeechService {
    */
   getVoiceForLanguage(lang) {
     const voices = this.getAvailableVoices();
-    return voices.find(voice => voice.lang.startsWith(lang)) || null;
+    return voices.find((voice) => voice.lang.startsWith(lang)) || null;
   }
 
   /**
@@ -143,7 +143,7 @@ class TextToSpeechService {
   speakFast(text, options = {}) {
     const highSpeedOptions = {
       rate: 1.5,
-      ...options
+      ...options,
     };
     this.speak(text, highSpeedOptions);
   }
@@ -154,7 +154,7 @@ class TextToSpeechService {
   speakSlow(text, options = {}) {
     const slowSpeedOptions = {
       rate: 0.8,
-      ...options
+      ...options,
     };
     this.speak(text, slowSpeedOptions);
   }

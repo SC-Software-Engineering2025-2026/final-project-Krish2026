@@ -3,7 +3,7 @@
  * Provides keyboard navigation and focus management for accessibility
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from "react";
 
 export function useFocusManagement() {
   const containerRef = useRef(null);
@@ -22,10 +22,12 @@ export function useFocusManagement() {
   const getFocusableElements = useCallback(() => {
     if (!containerRef.current) return [];
     return Array.from(
-      containerRef.current.querySelectorAll(focusableElementsSelector)
-    ).filter(element => {
-      return element.offsetParent !== null && // Element is visible
-             !element.hasAttribute('disabled'); // Element is not disabled
+      containerRef.current.querySelectorAll(focusableElementsSelector),
+    ).filter((element) => {
+      return (
+        element.offsetParent !== null && // Element is visible
+        !element.hasAttribute("disabled")
+      ); // Element is not disabled
     });
   }, []);
 
@@ -60,7 +62,7 @@ export function useFocusManagement() {
     const elements = getFocusableElements();
     const activeElement = document.activeElement;
     const currentIndex = elements.indexOf(activeElement);
-    
+
     if (currentIndex < elements.length - 1) {
       elements[currentIndex + 1].focus();
       return true;
@@ -75,7 +77,7 @@ export function useFocusManagement() {
     const elements = getFocusableElements();
     const activeElement = document.activeElement;
     const currentIndex = elements.indexOf(activeElement);
-    
+
     if (currentIndex > 0) {
       elements[currentIndex - 1].focus();
       return true;
@@ -86,21 +88,24 @@ export function useFocusManagement() {
   /**
    * Handle keyboard navigation (Tab, Shift+Tab)
    */
-  const handleKeyDown = useCallback((event) => {
-    if (event.key === 'Tab') {
-      if (event.shiftKey) {
-        if (!focusPrevious()) {
-          event.preventDefault();
-          focusLast();
-        }
-      } else {
-        if (!focusNext()) {
-          event.preventDefault();
-          focusFirst();
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === "Tab") {
+        if (event.shiftKey) {
+          if (!focusPrevious()) {
+            event.preventDefault();
+            focusLast();
+          }
+        } else {
+          if (!focusNext()) {
+            event.preventDefault();
+            focusFirst();
+          }
         }
       }
-    }
-  }, [focusNext, focusPrevious, focusFirst, focusLast]);
+    },
+    [focusNext, focusPrevious, focusFirst, focusLast],
+  );
 
   /**
    * Setup keyboard event listener
@@ -108,9 +113,9 @@ export function useFocusManagement() {
   useEffect(() => {
     const container = containerRef.current;
     if (container) {
-      container.addEventListener('keydown', handleKeyDown);
+      container.addEventListener("keydown", handleKeyDown);
       return () => {
-        container.removeEventListener('keydown', handleKeyDown);
+        container.removeEventListener("keydown", handleKeyDown);
       };
     }
   }, [handleKeyDown]);
@@ -121,6 +126,6 @@ export function useFocusManagement() {
     focusLast,
     focusNext,
     focusPrevious,
-    getFocusableElements
+    getFocusableElements,
   };
 }

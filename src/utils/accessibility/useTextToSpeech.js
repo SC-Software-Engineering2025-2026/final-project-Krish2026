@@ -3,8 +3,8 @@
  * Provides easy integration of text-to-speech functionality in React components
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import ttsService from './textToSpeechService';
+import { useState, useCallback, useEffect } from "react";
+import ttsService from "./textToSpeechService";
 
 export function useTextToSpeech() {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -14,20 +14,23 @@ export function useTextToSpeech() {
     setIsSupported(ttsService.isAvailable());
   }, []);
 
-  const speak = useCallback((text, options = {}) => {
-    if (!isSupported) return;
-    
-    const defaultOptions = {
-      language: 'en-US',
-      onEnd: () => setIsSpeaking(false),
-      ...options
-    };
+  const speak = useCallback(
+    (text, options = {}) => {
+      if (!isSupported) return;
 
-    const success = ttsService.speak(text, defaultOptions);
-    if (success) {
-      setIsSpeaking(true);
-    }
-  }, [isSupported]);
+      const defaultOptions = {
+        language: "en-US",
+        onEnd: () => setIsSpeaking(false),
+        ...options,
+      };
+
+      const success = ttsService.speak(text, defaultOptions);
+      if (success) {
+        setIsSpeaking(true);
+      }
+    },
+    [isSupported],
+  );
 
   const stop = useCallback(() => {
     ttsService.stop();
@@ -48,6 +51,6 @@ export function useTextToSpeech() {
     pause,
     resume,
     isSpeaking,
-    isSupported
+    isSupported,
   };
 }

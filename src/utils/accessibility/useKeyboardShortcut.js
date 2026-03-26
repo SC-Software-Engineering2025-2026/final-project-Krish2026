@@ -3,7 +3,7 @@
  * Provides keyboard shortcut functionality for accessibility
  */
 
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 export function useKeyboardShortcut(keys, callback, options = {}) {
   const { enabled = true, preventDefault = true } = options;
@@ -13,17 +13,17 @@ export function useKeyboardShortcut(keys, callback, options = {}) {
 
     const handleKeyDown = (event) => {
       const keyCombination = [];
-      
-      if (event.ctrlKey || event.metaKey) keyCombination.push('ctrl');
-      if (event.shiftKey) keyCombination.push('shift');
-      if (event.altKey) keyCombination.push('alt');
-      
+
+      if (event.ctrlKey || event.metaKey) keyCombination.push("ctrl");
+      if (event.shiftKey) keyCombination.push("shift");
+      if (event.altKey) keyCombination.push("alt");
+
       keyCombination.push(event.key.toLowerCase());
 
       // Check if current key combination matches expected keys
-      const normalizedKeys = keys.map(k => k.toLowerCase());
-      const currentCombo = keyCombination.join('+');
-      
+      const normalizedKeys = keys.map((k) => k.toLowerCase());
+      const currentCombo = keyCombination.join("+");
+
       if (normalizedKeys.includes(currentCombo)) {
         if (preventDefault) {
           event.preventDefault();
@@ -32,19 +32,19 @@ export function useKeyboardShortcut(keys, callback, options = {}) {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [keys, callback, enabled, preventDefault]);
 }
 
 // Common keyboard shortcuts
 export const KEYBOARD_SHORTCUTS = {
-  SEARCH: 'ctrl+k',
-  FOCUS_NAVIGATION: 'ctrl+m',
-  TOGGLE_TTS: 'alt+s', // Alt + S for Speech
-  INCREASE_FONT: 'ctrl+=',
-  DECREASE_FONT: 'ctrl+-'
+  SEARCH: "ctrl+k",
+  FOCUS_NAVIGATION: "ctrl+m",
+  TOGGLE_TTS: "alt+s", // Alt + S for Speech
+  INCREASE_FONT: "ctrl+=",
+  DECREASE_FONT: "ctrl+-",
 };

@@ -3,23 +3,28 @@
  * Provides keyboard shortcuts and focus management for the entire application
  */
 
-import { useEffect } from 'react';
-import { useTextToSpeech } from '../utils/accessibility/useTextToSpeech';
-import { KEYBOARD_SHORTCUTS } from '../utils/accessibility/useKeyboardShortcut';
+import { useEffect } from "react";
+import { useTextToSpeech } from "../utils/accessibility/useTextToSpeech";
+import { KEYBOARD_SHORTCUTS } from "../utils/accessibility/useKeyboardShortcut";
 
 const GlobalKeyboardHandler = () => {
-  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useTextToSpeech();
+  const {
+    speak,
+    stop,
+    isSpeaking,
+    isSupported: ttsSupported,
+  } = useTextToSpeech();
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       // Get the combination of keys pressed
       const keyCombination = [];
-      if (event.ctrlKey || event.metaKey) keyCombination.push('ctrl');
-      if (event.shiftKey) keyCombination.push('shift');
-      if (event.altKey) keyCombination.push('alt');
+      if (event.ctrlKey || event.metaKey) keyCombination.push("ctrl");
+      if (event.shiftKey) keyCombination.push("shift");
+      if (event.altKey) keyCombination.push("alt");
       keyCombination.push(event.key.toLowerCase());
-      
-      const combo = keyCombination.join('+');
+
+      const combo = keyCombination.join("+");
 
       // Toggle Text-to-Speech (Alt + S)
       if (combo === KEYBOARD_SHORTCUTS.TOGGLE_TTS && ttsSupported) {
@@ -28,7 +33,7 @@ const GlobalKeyboardHandler = () => {
           stop();
         } else {
           // Speak the current page content - target the main content area
-          const mainContent = document.getElementById('main-content');
+          const mainContent = document.getElementById("main-content");
           if (mainContent) {
             const text = mainContent.textContent || mainContent.innerText;
             if (text) {
@@ -41,31 +46,37 @@ const GlobalKeyboardHandler = () => {
       // Focus to Navigation (Ctrl + M)
       if (combo === KEYBOARD_SHORTCUTS.FOCUS_NAVIGATION) {
         event.preventDefault();
-        const navElement = document.querySelector('nav');
+        const navElement = document.querySelector("nav");
         if (navElement) {
           navElement.focus();
-          navElement.setAttribute('tabindex', '0');
+          navElement.setAttribute("tabindex", "0");
         }
       }
 
       // Focus to Search (Ctrl + K)
       if (combo === KEYBOARD_SHORTCUTS.SEARCH) {
         event.preventDefault();
-        const searchInput = document.querySelector('input[type="search"], input[placeholder*="search" i], input[placeholder*="Search" i]');
+        const searchInput = document.querySelector(
+          'input[type="search"], input[placeholder*="search" i], input[placeholder*="Search" i]',
+        );
         if (searchInput) {
           searchInput.focus();
         }
       }
 
       // Show keyboard shortcuts help (Ctrl + ?)
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === '?') {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey &&
+        event.key === "?"
+      ) {
         event.preventDefault();
         showKeyboardHelp();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSpeaking, ttsSupported, speak, stop]);
 
   return null;

@@ -123,7 +123,7 @@ All data handling will be done through Firebase. User log-in and authentication 
 - [x] [UI improvement task]
 - [x] [Styling task]
 - [x] [Responsive design implementation]
-- [ ] [Accessibility improvements]
+- [x] [Accessibility improvements]
 
 ---
 
@@ -133,8 +133,8 @@ All data handling will be done through Firebase. User log-in and authentication 
 
 **Deliverables:**
 
-- [ ] Write and run tests
-- [ ] Fix bugs and optimize performance
+- [x] Write and run tests
+- [x] Fix bugs and optimize performance
 - [ ] Deploy to hosting platform
 - [ ] Prepare final presentation
 
@@ -142,11 +142,9 @@ All data handling will be done through Firebase. User log-in and authentication 
 
 ## ✅ Success Criteria
 
-- [ ] All core features are functional
+- [x] All core features are functional
 - [ ] Application is deployed and accessible online
-- [ ] Code is well-documented with clear comments
-- [ ] [Additional criterion]
-- [ ] [Additional criterion]
+- [x] Code is well-documented with clear comments
 
 ---
 
