@@ -1,3 +1,7 @@
+// ===== Community Page Component =====
+// Main container for viewing/managing a specific community
+// Handles tab routing, membership checks, ban status, and permissions
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -5,6 +9,8 @@ import {
   getCommunity,
   joinCommunity,
   subscribeToCommunity,
+  isUserBanned,
+  subscribeToUserBanStatus,
 } from "../services/communityService";
 import { useCommunityRole } from "../hooks/useCommunityPermissions";
 import CommunityHome from "../components/CommunityHome";
@@ -19,16 +25,19 @@ import CommunitySettings from "../components/CommunitySettings";
 import { COLORS } from "../theme/colors";
 
 const CommunityPage = () => {
-  const { communityId } = useParams();
-  const { currentUser } = useAuth();
+  const { communityId } = useParams(); // Community ID from URL
+  const { currentUser } = useAuth(); // Current logged-in user
   const navigate = useNavigate();
 
-  const [community, setCommunity] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("home");
-  const [joining, setJoining] = useState(false);
-  const [membershipRefresh, setMembershipRefresh] = useState(0);
+  // STATE MANAGEMENT
+  const [community, setCommunity] = useState(null); // Community data
+  const [loading, setLoading] = useState(true); // Data loading indicator
+  const [activeTab, setActiveTab] = useState("home"); // Currently active tab
+  const [joining, setJoining] = useState(false); // Join button loading state
+  const [membershipRefresh, setMembershipRefresh] = useState(0); // Trigger for re-checking membership
+  const [isBanned, setIsBanned] = useState(false); // User's ban status
 
+  // Get user's role and permissions in this community
   const {
     role,
     isAdmin,
@@ -36,28 +45,51 @@ const CommunityPage = () => {
     loading: roleLoading,
   } = useCommunityRole(communityId, currentUser?.uid, membershipRefresh);
 
+  // EFFECT: Subscribe to real-time community data updates
   useEffect(() => {
     if (!communityId) return;
 
-    // Subscribe to real-time community updates
+    // Listen for any changes to community (name, description, members, etc.)
     const unsubscribe = subscribeToCommunity(communityId, (data) => {
       setCommunity(data);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribe(); // Cleanup listener on unmount
   }, [communityId]);
 
+  // EFFECT: Check if user is banned from this community
+  useEffect(() => {
+    if (!currentUser || !communityId) return;
+
+    // Listen for real-time ban status updates
+    const unsubscribe = subscribeToUserBanStatus(
+      communityId,
+      currentUser.uid,
+      (banned) => {
+        setIsBanned(banned);
+      },
+    );
+
+    return () => unsubscribe(); // Cleanup listener
+  }, [communityId, currentUser?.uid]);
+
+  // Handle joining the community
   const handleJoin = async () => {
     if (!currentUser) {
-      navigate("/login");
+      navigate("/login"); // Redirect to login if not authenticated
+      return;
+    }
+
+    if (isBanned) {
+      alert("You are banned from this community");
       return;
     }
 
     setJoining(true);
     try {
       await joinCommunity(communityId, currentUser.uid);
-      // Trigger a refresh of the membership status
+      // Refresh membership status to update UI
       setMembershipRefresh((prev) => prev + 1);
       // Set active tab to home
       setActiveTab("home");
@@ -227,6 +259,7 @@ const CommunityPage = () => {
               communityId={communityId}
               userRole={role}
               isMember={isMember}
+              isBanned={isBanned}
               onJoin={handleJoin}
               joining={joining}
             />
@@ -235,6 +268,7 @@ const CommunityPage = () => {
               communityId={communityId}
               userRole={role}
               isMember={isMember}
+              isBanned={isBanned}
               onJoin={handleJoin}
               joining={joining}
             />

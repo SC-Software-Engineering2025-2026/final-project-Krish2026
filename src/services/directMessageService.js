@@ -1,3 +1,5 @@
+// ===== Direct Messaging Service =====
+// Handles 1-on-1 direct messages, blocking, and DM privacy settings
 import {
   addDoc,
   arrayUnion,
@@ -15,11 +17,13 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+// Default DM settings for new users
 const DEFAULT_DM_SETTINGS = {
-  allowDirectMessagesFrom: "everyone", // everyone | followers | nobody
-  blockedUsers: [],
+  allowDirectMessagesFrom: "everyone", // "everyone" | "followers" | "nobody"
+  blockedUsers: [], // Array of blocked user IDs
 };
 
+// Normalize DM settings with defaults
 const normalizeDmSettings = (settings = {}) => ({
   ...DEFAULT_DM_SETTINGS,
   ...settings,
@@ -28,10 +32,12 @@ const normalizeDmSettings = (settings = {}) => ({
     : [],
 });
 
+// Create a unique key for a pair of users (used for DM channels)
 const createParticipantKey = (userAId, userBId) => {
   return [userAId, userBId].sort().join("__");
 };
 
+// Helper to get user document
 const getUserDoc = async (userId) => {
   const userRef = doc(db, "users", userId);
   const userSnap = await getDoc(userRef);
@@ -46,11 +52,24 @@ const getUserDoc = async (userId) => {
   };
 };
 
+/**
+ * GET USER'S DM SETTINGS
+ * Retrieve privacy settings for direct messages
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} User's DM settings
+ */
 export const getDmSettings = async (userId) => {
   const user = await getUserDoc(userId);
   return normalizeDmSettings(user.dmSettings);
 };
 
+/**
+ * UPDATE DM SETTINGS
+ * Modify which users can message this user
+ * @param {string} userId - User ID
+ * @param {Object} updates - Settings to update
+ * @returns {Promise<Object>} Updated settings
+ */
 export const updateDmSettings = async (userId, updates) => {
   const currentSettings = await getDmSettings(userId);
   const merged = normalizeDmSettings({
@@ -67,6 +86,13 @@ export const updateDmSettings = async (userId, updates) => {
   return merged;
 };
 
+/**
+ * BLOCK USER FROM MESSAGING
+ * Add user to blocked list (they cannot send DMs)
+ * @param {string} userId - Blocking user ID
+ * @param {string} blockedUserId - User to block
+ * @returns {Promise<Object>} Updated settings
+ */
 export const blockDirectMessageUser = async (userId, blockedUserId) => {
   if (userId === blockedUserId) {
     throw new Error("You cannot block yourself");
@@ -80,6 +106,13 @@ export const blockDirectMessageUser = async (userId, blockedUserId) => {
   return updateDmSettings(userId, { blockedUsers });
 };
 
+/**
+ * UNBLOCK USER FROM MESSAGING
+ * Remove user from blocked list (they can send DMs again)
+ * @param {string} userId - Unblocking user ID
+ * @param {string} blockedUserId - User to unblock
+ * @returns {Promise<Object>} Updated settings
+ */
 export const unblockDirectMessageUser = async (userId, blockedUserId) => {
   const settings = await getDmSettings(userId);
   const blockedUsers = settings.blockedUsers.filter(
@@ -89,6 +122,13 @@ export const unblockDirectMessageUser = async (userId, blockedUserId) => {
   return updateDmSettings(userId, { blockedUsers });
 };
 
+/**
+ * CHECK IF USER CAN MESSAGE
+ * Verify recipient allows DMs from sender based on privacy settings
+ * @param {string} senderId - Sender user ID
+ * @param {string} recipientId - Recipient user ID
+ * @returns {Promise<Object>} { allowed: boolean, reason: string }
+ */
 export const canMessageUser = async (senderId, recipientId) => {
   if (!senderId || !recipientId) {
     return {

@@ -1,3 +1,5 @@
+// ===== User Profile Service =====
+// Handles user profile creation, updates, following/followers, and theme settings
 import {
   doc,
   getDoc,
@@ -28,9 +30,10 @@ import { createFollowNotification } from "./notificationService";
 import { createOrGetDirectMessageChannel } from "./directMessageService";
 
 /**
- * Get user profile by userId
+ * RETRIEVE USER PROFILE
+ * Get complete user profile document from Firestore
  * @param {string} userId - The user ID
- * @returns {Promise<Object|null>} User profile data or null
+ * @returns {Promise<Object|null>} Full user profile with all fields
  */
 export const getUserProfile = async (userId) => {
   try {
@@ -48,14 +51,17 @@ export const getUserProfile = async (userId) => {
 };
 
 /**
- * Create a new user profile
+ * CREATE NEW USER PROFILE
+ * Initialize a new user profile when account is first created
+ * Sets default values for all profile fields
  * @param {string} userId - The user ID
- * @param {Object} profileData - Profile data
- * @returns {Promise<void>}
+ * @param {Object} profileData - Initial profile data (username, email, etc.)
+ * @returns {Promise<Object>} Created profile object
  */
 export const createUserProfile = async (userId, profileData) => {
   try {
     const userRef = doc(db, "users", userId);
+    // Set default values for all profile fields
     const defaultProfile = {
       username: profileData.username || "",
       displayName: profileData.displayName || "",
@@ -66,23 +72,23 @@ export const createUserProfile = async (userId, profileData) => {
       profileImage: "",
       coverImages: [],
       links: [],
-      joinedCommunities: [],
-      isPrivate: false,
-      postsCount: 0,
-      followersCount: 0,
-      followingCount: 0,
-      followers: [],
-      following: [],
-      sentFollowRequests: [],
-      pendingFollowRequests: [],
+      joinedCommunities: [], // Communities this user is a member of
+      isPrivate: false, // Account privacy setting
+      postsCount: 0, // Total posts created
+      followersCount: 0, // Total followers
+      followingCount: 0, // Total following
+      followers: [], // Array of follower user IDs
+      following: [], // Array of following user IDs
+      sentFollowRequests: [], // Pending follow requests sent
+      pendingFollowRequests: [], // Pending follow requests received
       dmSettings: {
-        allowDirectMessagesFrom: "everyone",
-        blockedUsers: [],
+        allowDirectMessagesFrom: "everyone", // DM privacy setting
+        blockedUsers: [], // List of blocked user IDs
       },
-      theme: "light", // Default theme
+      theme: "light", // User's theme preference
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      ...profileData,
+      ...profileData, // Merge with provided profile data
     };
 
     await setDoc(userRef, defaultProfile);
@@ -94,9 +100,10 @@ export const createUserProfile = async (userId, profileData) => {
 };
 
 /**
- * Update user profile
+ * UPDATE USER PROFILE
+ * Modify user profile fields and update timestamp
  * @param {string} userId - The user ID
- * @param {Object} data - Data to update
+ * @param {Object} data - Data fields to update
  * @returns {Promise<void>}
  */
 export const updateUserProfile = async (userId, data) => {

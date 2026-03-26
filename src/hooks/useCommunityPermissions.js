@@ -1,19 +1,22 @@
+// ===== Community Permission Hooks =====
+// Custom hooks for checking user roles and membership status in communities
 import { useState, useEffect } from "react";
 import { getUserRole, isMember } from "../services/communityService";
 
 /**
- * Hook to get user's role in a community
+ * Hook to determine user's role in a community (admin, member, or none)
+ * Useful for conditionally rendering UI based on permissions
  * @param {string} communityId - Community ID
  * @param {string} userId - User ID
- * @param {number} refreshKey - Optional key to force refresh
+ * @param {number} refreshKey - Optional key to force re-fetch role
  * @returns {Object} { role, loading, isAdmin, isMember }
  */
 export const useCommunityRole = (communityId, userId, refreshKey = 0) => {
-  const [role, setRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState(null); // User's role: "admin", "member", or null
+  const [loading, setLoading] = useState(true); // Loading indicator
 
   useEffect(() => {
-    let isMounted = true;
+    let isMounted = true; // Cleanup flag to prevent state updates on unmounted component
 
     const fetchRole = async () => {
       if (!communityId || !userId) {
@@ -23,6 +26,7 @@ export const useCommunityRole = (communityId, userId, refreshKey = 0) => {
 
       try {
         setLoading(true);
+        // Query Firebase for user's role in this community
         const userRole = await getUserRole(communityId, userId);
         if (isMounted) {
           setRole(userRole);
@@ -41,29 +45,32 @@ export const useCommunityRole = (communityId, userId, refreshKey = 0) => {
 
     fetchRole();
 
+    // Cleanup function to prevent memory leaks
     return () => {
       isMounted = false;
     };
-  }, [communityId, userId, refreshKey]);
+  }, [communityId, userId, refreshKey]); // Re-fetch if any dependency changes
 
   return {
-    role,
-    loading,
-    isAdmin: role === "admin",
-    isMember: role !== null,
+    role, // Raw role value
+    loading, // Whether role is being fetched
+    isAdmin: role === "admin", // Convenience boolean for admin checks
+    isMember: role !== null, // Convenience boolean for membership checks
   };
 };
 
 /**
  * Hook to check if user is a member of a community
+ * Simpler than useCommunityRole if you only need membership status
  * @param {string} communityId - Community ID
  * @param {string} userId - User ID
  * @returns {Object} { isMember, loading, checkMembership }
  */
 export const useIsMember = (communityId, userId) => {
-  const [memberStatus, setMemberStatus] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [memberStatus, setMemberStatus] = useState(false); // Membership status
+  const [loading, setLoading] = useState(true); // Loading indicator
 
+  // Function to manually check membership (can be called outside effect)
   const checkMembership = async () => {
     if (!communityId || !userId) {
       setLoading(false);
@@ -72,6 +79,7 @@ export const useIsMember = (communityId, userId) => {
 
     try {
       setLoading(true);
+      // Query if user exists in community's members array
       const status = await isMember(communityId, userId);
       setMemberStatus(status);
     } catch (error) {

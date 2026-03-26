@@ -16,6 +16,7 @@ const CommunityHome = ({
   communityId,
   userRole,
   isMember = true,
+  isBanned = false,
   onJoin,
   joining = false,
 }) => {
@@ -213,21 +214,44 @@ const CommunityHome = ({
     <div className="max-w-4xl mx-auto">
       {/* Join Button for Non-Members */}
       {!isMember && (
-        <div className="bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Join {community?.name}
-          </h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">
-            Become a member to fully participate in this community
-          </p>
-          <button
-            onClick={onJoin}
-            disabled={joining}
-            className="px-8 py-3 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
-            style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
-          >
-            {joining ? "Joining..." : "Join Community"}
-          </button>
+        <div
+          className={`border-2 rounded-lg p-6 mb-6 text-center ${
+            isBanned
+              ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700"
+              : "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700"
+          }`}
+        >
+          {isBanned ? (
+            <>
+              <h2 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-2">
+                Banned from Community
+              </h2>
+              <p className="text-red-800 dark:text-red-300">
+                You are banned from {community?.name} and cannot join this
+                community.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Join {community?.name}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Become a member to fully participate in this community
+              </p>
+              <button
+                onClick={onJoin}
+                disabled={joining}
+                className="px-8 py-3 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
+              >
+                {joining ? "Joining..." : "Join Community"}
+              </button>
+            </>
+          )}
         </div>
       )}
 

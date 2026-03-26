@@ -1,3 +1,5 @@
+// ===== Authentication Context =====
+// Global state management for user authentication and session persistence
 import { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "../services/firebase";
 import {
@@ -12,56 +14,65 @@ import {
   signInWithPhoneNumber,
 } from "firebase/auth";
 
+// Create auth context for global access to auth methods and user state
 const AuthContext = createContext({});
 
+// Hook to access auth context throughout the app
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null); // Currently logged-in user
+  const [loading, setLoading] = useState(true); // Auth state loading indicator
 
-  // Sign up new user
+  // EMAIL/PASSWORD AUTHENTICATION METHODS
+
+  // Create new user account with email and password
   const signup = (email, password) => {
     return createUserWithEmailAndPassword(auth, email, password);
   };
 
-  // Log in existing user
+  // Log in existing user with email and password
   const login = (email, password) => {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  // Log out user
+  // Log out current user
   const logout = () => {
     return firebaseSignOut(auth);
   };
 
-  // Google Sign In
+  // SOCIAL AUTHENTICATION METHODS
+
+  // Sign in with Google OAuth
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     return signInWithPopup(auth, provider);
   };
 
-  // Apple Sign In
+  // Sign in with Apple OAuth
   const signInWithApple = async () => {
     const provider = new OAuthProvider("apple.com");
     return signInWithPopup(auth, provider);
   };
 
-  // Phone Sign In - Step 1: Setup reCAPTCHA
+  // PHONE AUTHENTICATION METHODS (Two-Step Process)
+
+  // Step 1: Initialize reCAPTCHA verifier for phone auth security
   const setupRecaptcha = (containerId) => {
-    // Clear existing verifier if it exists
+    // Clear any existing verifier to prevent conflicts
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
       window.recaptchaVerifier = null;
     }
 
+    // Create new invisible reCAPTCHA verifier
     window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
       size: "invisible",
       callback: () => {
         // reCAPTCHA solved - allow form submission
       },
       "expired-callback": () => {
-        // Response expired. Ask user to solve reCAPTCHA again.
+        // Response expired - ask user to solve reCAPTCHA again
         window.recaptchaVerifier = null;
       },
     });
@@ -69,18 +80,19 @@ export const AuthProvider = ({ children }) => {
     return window.recaptchaVerifier;
   };
 
-  // Phone Sign In - Step 2: Send verification code
+  // Step 2: Send SMS verification code to phone number
   const signInWithPhone = async (phoneNumber, recaptchaVerifier) => {
     return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
   };
 
+  // EFFECT: Listen for auth state changes and update current user
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      setLoading(false);
+      setLoading(false); // Finished loading auth state
     });
 
-    return unsubscribe;
+    return unsubscribe; // Cleanup listener on unmount
   }, []);
 
   const value = {

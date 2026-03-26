@@ -1,3 +1,7 @@
+// ===== Home Page / Main Feed =====
+// Displays personalized feed combining personal posts and community posts
+// Handles post creation, likes, comments, and local/community content
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -37,20 +41,23 @@ import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { COLORS } from "../theme/colors";
 
 const Home = () => {
-  const { currentUser } = useAuth();
-  const { isDark } = useTheme();
+  const { currentUser } = useAuth(); // Current logged-in user
+  const { isDark } = useTheme(); // Check if dark mode is enabled
   const navigate = useNavigate();
-  const [showPostUpload, setShowPostUpload] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [communityPosts, setCommunityPosts] = useState([]);
-  const [personalPosts, setPersonalPosts] = useState([]);
-  const [likedPosts, setLikedPosts] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
-  const [currentImageIndices, setCurrentImageIndices] = useState({});
 
+  // STATE MANAGEMENT
+  const [showPostUpload, setShowPostUpload] = useState(false); // Post creation modal
+  const [userProfile, setUserProfile] = useState(null); // Current user's profile
+  const [posts, setPosts] = useState([]); // All feed posts (personal + community)
+  const [communityPosts, setCommunityPosts] = useState([]); // Posts from joined communities
+  const [personalPosts, setPersonalPosts] = useState([]); // User's own posts
+  const [likedPosts, setLikedPosts] = useState({}); // Track liked posts for UI
+  const [loading, setLoading] = useState(true); // Content loading state
+  const [selectedPost, setSelectedPost] = useState(null); // Selected post for comment modal
+  const [showCommentsModal, setShowCommentsModal] = useState(false); // Comments modal visibility
+  const [currentImageIndices, setCurrentImageIndices] = useState({}); // Track image carousel position
+
+  // Handle image carousel scroll for multi-image posts
   const handleImageScroll = (postId, e) => {
     const scrollLeft = e.target.scrollLeft;
     const width = e.target.offsetWidth;
@@ -58,6 +65,7 @@ const Home = () => {
     setCurrentImageIndices((prev) => ({ ...prev, [postId]: index }));
   };
 
+  // EFFECT: Load user profile on mount or login
   useEffect(() => {
     const loadUserProfile = async () => {
       if (currentUser) {
@@ -72,6 +80,7 @@ const Home = () => {
     loadUserProfile();
   }, [currentUser]);
 
+  // EFFECT: Subscribe to real-time feed (personal + community posts)
   useEffect(() => {
     if (!currentUser) return;
 

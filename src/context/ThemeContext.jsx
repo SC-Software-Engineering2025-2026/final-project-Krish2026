@@ -1,9 +1,13 @@
+// ===== Theme Context =====
+// Global state management for dark/light theme preference with Firebase persistence
 import { createContext, useContext, useState, useEffect } from "react";
 import { getUserProfile, updateUserTheme } from "../services/profileService";
 import { useAuth } from "./AuthContext";
 
+// Create theme context for global theme access
 const ThemeContext = createContext();
 
+// Hook to access theme context throughout the app
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
@@ -14,19 +18,19 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const { currentUser } = useAuth();
-  const [theme, setTheme] = useState("light"); // Default to light mode
-  const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState("light"); // Current theme: "light" or "dark"
+  const [loading, setLoading] = useState(true); // Theme loading state
 
-  // Load theme from user profile when user logs in
+  // EFFECT: Load user's theme preference from Firestore when they log in
   useEffect(() => {
     const loadUserTheme = async () => {
       if (currentUser) {
         try {
           const profile = await getUserProfile(currentUser.uid);
+          // Use saved theme or default to light mode
           if (profile && profile.theme) {
             setTheme(profile.theme);
           } else {
-            // If user doesn't have a theme set, default to light
             setTheme("light");
           }
         } catch (error) {
@@ -34,7 +38,7 @@ export const ThemeProvider = ({ children }) => {
           setTheme("light");
         }
       } else {
-        // No user logged in, default to light
+        // No user logged in - use light mode
         setTheme("light");
       }
       setLoading(false);
@@ -43,8 +47,8 @@ export const ThemeProvider = ({ children }) => {
     loadUserTheme();
   }, [currentUser]);
 
+  // EFFECT: Apply current theme to DOM by adding/removing dark class
   useEffect(() => {
-    // Apply theme to DOM
     const root = document.documentElement;
     if (theme === "dark") {
       root.classList.add("dark");
@@ -53,6 +57,7 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [theme]);
 
+  // Toggle between light and dark theme
   const toggleTheme = async () => {
     const newTheme = theme === "light" ? "dark" : "light";
 
@@ -66,7 +71,7 @@ export const ThemeProvider = ({ children }) => {
 
     setTheme(newTheme);
 
-    // Save to Firestore if user is logged in
+    // Persist theme preference to Firestore if user is logged in
     if (currentUser) {
       try {
         await updateUserTheme(currentUser.uid, newTheme);

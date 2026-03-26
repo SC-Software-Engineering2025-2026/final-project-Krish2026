@@ -1,3 +1,5 @@
+// ===== Main App Component =====
+// Handles routing and theme/auth context setup for entire application
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -22,29 +24,33 @@ import SyncUserCommunities from "./components/SyncUserCommunities";
 
 function App() {
   return (
+    // Wrap entire app with auth & theme providers for global state
     <AuthProvider>
       <ThemeProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
             <NavBar />
+            {/* Main content area with padding to account for fixed navbar */}
             <div className="pt-16">
               <Routes>
-                {/* Auth Routes */}
+                {/* Authentication routes - login/signup pages */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
 
-                {/* Main App Routes */}
+                {/* Main App Routes - core user-facing features */}
                 <Route path="/" element={<Home />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/post/:postId" element={<PostDetail />} />
+                {/* Community routes - view and manage communities */}
                 <Route path="/communities" element={<Communities />} />
                 <Route
                   path="/communities/:communityId"
                   element={<CommunityPage />}
                 />
                 <Route path="/discover" element={<Discover />} />
+                {/* Messaging routes - user-to-user and group communication */}
                 <Route path="/inbox" element={<Inbox />} />
                 <Route path="/messages" element={<Messages />} />
 

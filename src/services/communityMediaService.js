@@ -1,3 +1,5 @@
+// ===== Community Media Service =====
+// Handles media uploads and shared library management for collaborative communities
 import {
   collection,
   addDoc,
@@ -18,33 +20,35 @@ import {
 import { db, storage } from "./firebase";
 
 /**
- * Upload media to community library
+ * UPLOAD MEDIA TO COMMUNITY LIBRARY
+ * Upload images/videos to shared community storage and Firestore metadata
  * @param {string} communityId - Community ID
- * @param {string} userId - User ID
- * @param {File} file - Media file
- * @returns {Promise<string>} Media ID
+ * @param {string} userId - Uploader's user ID
+ * @param {File} file - Media file to upload
+ * @returns {Promise<string>} Media document ID
  */
 export const uploadCommunityMedia = async (communityId, userId, file) => {
   try {
+    // Determine media type based on file MIME type
     const fileType = file.type.startsWith("image") ? "image" : "video";
     const storageRef = ref(
       storage,
       `communities/${communityId}/media/${Date.now()}_${file.name}`,
     );
 
-    // Upload file
+    // Upload file to Firebase Storage
     const snapshot = await uploadBytes(storageRef, file);
     const url = await getDownloadURL(snapshot.ref);
 
-    // Save metadata to Firestore
+    // Save metadata in Firestore for gallery/access tracking
     const mediaRef = collection(db, `communities/${communityId}/media`);
     const mediaDoc = {
-      userId,
-      url,
-      type: fileType,
+      userId, // Who uploaded it
+      url, // Download URL
+      type: fileType, // image or video
       fileName: file.name,
       fileSize: file.size,
-      storagePath: snapshot.ref.fullPath,
+      storagePath: snapshot.ref.fullPath, // Storage path for deletion
       createdAt: serverTimestamp(),
     };
 
@@ -57,13 +61,15 @@ export const uploadCommunityMedia = async (communityId, userId, file) => {
 };
 
 /**
- * Get all media from community library
+ * GET COMMUNITY MEDIA LIBRARY
+ * Fetch all media gallery items for a community (sorted newest first)
  * @param {string} communityId - Community ID
- * @returns {Promise<Array>} Array of media items
+ * @returns {Promise<Array>} Array of media items with metadata
  */
 export const getCommunityMedia = async (communityId) => {
   try {
     const mediaRef = collection(db, `communities/${communityId}/media`);
+    // Query all media ordered by upload date (newest first)
     const q = query(mediaRef, orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
 

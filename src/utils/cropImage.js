@@ -1,5 +1,11 @@
+// ===== Image Cropping Utility =====
+// Provides canvas-based image cropping functionality for profile/community images
+
 /**
- * Creates an image element from a URL
+ * Load image from URL into an Image element
+ * Handles CORS for external images and blob/data URLs
+ * @param {string} url - Image URL or data URL
+ * @returns {Promise<Image>} Loaded image element
  */
 const createImage = (url) =>
   new Promise((resolve, reject) => {
@@ -18,14 +24,21 @@ const createImage = (url) =>
   });
 
 /**
- * Gets the radians from degrees
+ * Convert degree rotation to radians for calculations
+ * @param {number} degreeValue - Rotation in degrees
+ * @returns {number} Rotation in radians
  */
 const getRadianAngle = (degreeValue) => {
   return (degreeValue * Math.PI) / 180;
 };
 
 /**
- * Returns the new bounding area of a rotated rectangle
+ * Calculate new bounding box dimensions after image rotation
+ * Used to resize canvas to fit rotated image
+ * @param {number} width - Original width
+ * @param {number} height - Original height
+ * @param {number} rotation - Rotation in degrees
+ * @returns {Object} { width, height } of new bounding box
  */
 const rotateSize = (width, height, rotation) => {
   const rotRad = getRadianAngle(rotation);
@@ -39,7 +52,13 @@ const rotateSize = (width, height, rotation) => {
 };
 
 /**
- * Crops an image and returns a blob
+ * CROP IMAGE - Main function
+ * Crops image using canvas and returns cropped image as blob
+ * Supports rotation during crop operation
+ * @param {string} imageSrc - Image URL or data URL
+ * @param {Object} pixelCrop - Crop area { x, y, width, height }
+ * @param {number} rotation - Rotation in degrees (default: 0)
+ * @returns {Promise<Blob|null>} Cropped image blob or null on error
  */
 export const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
   const image = await createImage(imageSrc);

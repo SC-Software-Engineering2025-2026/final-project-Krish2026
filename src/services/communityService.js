@@ -1,3 +1,5 @@
+// ===== Community Service =====
+// Handles all community CRUD operations, member management, and ownership tracking
 import {
   collection,
   doc,
@@ -32,11 +34,13 @@ import {
 import { getUserProfile } from "./profileService";
 
 /**
- * Create a new community
- * @param {string} userId - The creator's user ID
- * @param {Object} communityData - Community data
- * @param {File} imageFile - Community image file
- * @returns {Promise<string>} Community ID
+ * CREATE COMMUNITY
+ * Creates a new community with creator as initial owner/admin
+ * Stores community in main collection and adds creator to communityMembers subcollection
+ * @param {string} userId - Creator's user ID
+ * @param {Object} communityData - Community details (name, description, type, etc.)
+ * @param {File} imageFile - Optional community image
+ * @returns {Promise<string>} New community ID
  */
 export const createCommunity = async (
   userId,
@@ -44,24 +48,12 @@ export const createCommunity = async (
   imageFile = null,
 ) => {
   try {
-    let imageUrl = "";
-
-    // Upload image if provided
-    if (imageFile) {
-      const imageRef = ref(
-        storage,
-        `communities/${Date.now()}_${imageFile.name}`,
-      );
-      const snapshot = await uploadBytes(imageRef, imageFile);
-      imageUrl = await getDownloadURL(snapshot.ref);
-    }
-
-    // Create community document
+    // Create community document first (without image) to get the community ID
     const communitiesRef = collection(db, "communities");
     const community = {
       name: communityData.name,
       description: communityData.description || "",
-      imageUrl,
+      imageUrl: "", // Placeholder, will be updated if image is provided
       isPublic: communityData.isPublic,
       isCollaborative: communityData.isCollaborative,
       categories: communityData.categories || [],
@@ -69,28 +61,50 @@ export const createCommunity = async (
       admins: [userId],
       members: [userId],
       memberCount: 1,
+      bannedUsers: [],
       homePageContent: "",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
     const docRef = await addDoc(communitiesRef, community);
+    const communityId = docRef.id;
+
+    // Upload image if provided, to community-specific folder
+    let imageUrl = "";
+    if (imageFile) {
+      const imageRef = ref(
+        storage,
+        `communities/${communityId}/profile/${Date.now()}_${imageFile.name}`,
+      );
+      const snapshot = await uploadBytes(imageRef, imageFile);
+      imageUrl = await getDownloadURL(snapshot.ref);
+
+      // Update community with image URL
+      await updateDoc(docRef, {
+        imageUrl,
+        updatedAt: serverTimestamp(),
+      });
+    }
 
     // Add user to community members subcollection
-    await addDoc(collection(db, `communities/${docRef.id}/communityMembers`), {
-      userId,
-      role: "admin",
-      joinedAt: serverTimestamp(),
-    });
+    await addDoc(
+      collection(db, `communities/${communityId}/communityMembers`),
+      {
+        userId,
+        role: "admin",
+        joinedAt: serverTimestamp(),
+      },
+    );
 
     // Add community to user's joinedCommunities array
     const userRef = doc(db, "users", userId);
     await updateDoc(userRef, {
-      joinedCommunities: arrayUnion(docRef.id),
+      joinedCommunities: arrayUnion(communityId),
       updatedAt: serverTimestamp(),
     });
 
-    return docRef.id;
+    return communityId;
   } catch (error) {
     console.error("Error creating community:", error);
     throw new Error("Failed to create community");
@@ -236,6 +250,11 @@ export const joinCommunity = async (communityId, userId) => {
       throw new Error("Already a member of this community");
     }
 
+    // Check if user is banned
+    if (communityData.bannedUsers?.includes(userId)) {
+      throw new Error("You are banned from this community");
+    }
+
     // Check if community is private
     if (!communityData.isPublic) {
       throw new Error("Cannot join private community without invitation");
@@ -376,11 +395,11 @@ export const updateCommunity = async (
       updateData.categories = [updateData.categories];
     }
 
-    // Upload new image if provided
+    // Upload new image if provided to community-specific folder
     if (newImage) {
       const imageRef = ref(
         storage,
-        `communities/${Date.now()}_${newImage.name}`,
+        `communities/${communityId}/profile/${Date.now()}_${newImage.name}`,
       );
       const snapshot = await uploadBytes(imageRef, newImage);
       updateData.imageUrl = await getDownloadURL(snapshot.ref);
@@ -1018,6 +1037,146 @@ export const updateHomePageSections = async (communityId, sections) => {
 };
 
 /**
+ * Ban user from community
+ * @param {string} communityId - Community ID
+ * @param {string} userIdToBan - User ID to ban
+ * @param {string} adminId - ID of admin performing the ban
+ */
+export const banUserFromCommunity = async (
+  communityId,
+  userIdToBan,
+  adminId,
+) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if banning user is an admin
+    if (!communityData.admins?.includes(adminId)) {
+      throw new Error("Only admins can ban members");
+    }
+
+    // Cannot ban the creator
+    if (communityData.creatorId === userIdToBan) {
+      throw new Error("Cannot ban the community creator");
+    }
+
+    // Add to banned list and remove from community
+    const bannedUsers = communityData.bannedUsers || [];
+    if (bannedUsers.includes(userIdToBan)) {
+      throw new Error("User is already banned from this community");
+    }
+
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
+    // Add user to banned list and remove from members
+    batch.update(communityRef, {
+      bannedUsers: arrayUnion(userIdToBan),
+      members: arrayRemove(userIdToBan),
+      admins: arrayRemove(userIdToBan),
+      memberCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Remove from user's joinedCommunities array
+    const userRef = doc(db, "users", userIdToBan);
+    batch.update(userRef, {
+      joinedCommunities: arrayRemove(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    // Remove from members subcollection
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userIdToBan),
+    );
+    const membersSnapshot = await getDocs(membersQuery);
+
+    const deleteBatch = writeBatch(db);
+    membersSnapshot.docs.forEach((doc) => {
+      deleteBatch.delete(doc.ref);
+    });
+    await deleteBatch.commit();
+
+    // Send notification to banned user
+    try {
+      const adminProfile = await getUserProfile(adminId);
+      if (adminProfile) {
+        // We'll use the kicked notification for ban as well since the user is being removed
+        await createCommunityMemberKickedNotification(
+          userIdToBan,
+          communityId,
+          adminId,
+          adminProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating ban notification:", notifError);
+      // Don't throw error, ban was successful
+    }
+  } catch (error) {
+    console.error("Error banning user:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if user is banned from a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} True if user is banned
+ */
+export const isUserBanned = async (communityId, userId) => {
+  try {
+    const communityDoc = await getDoc(doc(db, "communities", communityId));
+    if (!communityDoc.exists()) return false;
+
+    const bannedUsers = communityDoc.data().bannedUsers || [];
+    return bannedUsers.includes(userId);
+  } catch (error) {
+    console.error("Error checking ban status:", error);
+    return false;
+  }
+};
+
+/**
+ * Listen to community ban status in real-time
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @param {Function} callback - Callback function to receive ban status
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToUserBanStatus = (communityId, userId, callback) => {
+  const communityRef = doc(db, "communities", communityId);
+
+  return onSnapshot(
+    communityRef,
+    (doc) => {
+      if (doc.exists()) {
+        const bannedUsers = doc.data().bannedUsers || [];
+        callback(bannedUsers.includes(userId));
+      } else {
+        callback(false);
+      }
+    },
+    (error) => {
+      console.error("Error listening to ban status:", error);
+      callback(false);
+    },
+  );
+};
+
+/**
  * Listen to community updates in real-time
  * @param {string} communityId - Community ID
  * @param {Function} callback - Callback function to receive updates
@@ -1055,7 +1214,11 @@ export default {
   getUserRole,
   isMember,
   promoteToAdmin,
+  demoteAdmin,
   removeMember,
+  banUserFromCommunity,
+  isUserBanned,
+  subscribeToUserBanStatus,
   getCommunityMembers,
   updateHomePageContent,
   updateHomePageSections,

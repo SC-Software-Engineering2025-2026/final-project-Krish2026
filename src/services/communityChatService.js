@@ -1,3 +1,5 @@
+// ===== Community Chat Service =====
+// Manages group chat messages and admin-only communication in communities
 import {
   collection,
   addDoc,
@@ -14,11 +16,13 @@ import {
 import { db } from "./firebase";
 
 /**
- * Send a message in community chat
+ * SEND COMMUNITY MESSAGE
+ * Post a message to the community's group chat
+ * Supports text messages, images, and optional replies/threads
  * @param {string} communityId - Community ID
- * @param {string} userId - User ID
- * @param {Object} messageData - Message data (text, imageUrl, type)
- * @returns {Promise<string>} Message ID
+ * @param {string} userId - Sender's user ID
+ * @param {Object} messageData - Message content (text, imageUrl, type)
+ * @returns {Promise<string>} New message ID
  */
 export const sendCommunityMessage = async (
   communityId,
@@ -31,13 +35,13 @@ export const sendCommunityMessage = async (
       userId,
       text: messageData.text || "",
       imageUrl: messageData.imageUrl || "",
-      type: messageData.type || "text",
+      type: messageData.type || "text", // "text" or "image"
       createdAt: serverTimestamp(),
     };
 
-    // Add reply data if present
+    // Include reply information if this message is replying to another
     if (messageData.replyTo) {
-      message.replyTo = messageData.replyTo;
+      message.replyTo = messageData.replyTo; // ID of message being replied to
       message.replyToText = messageData.replyToText || "";
       message.replyToUser = messageData.replyToUser || "User";
     }
@@ -51,13 +55,15 @@ export const sendCommunityMessage = async (
 };
 
 /**
- * Subscribe to community messages in real-time
+ * SUBSCRIBE TO COMMUNITY MESSAGES (REAL-TIME)
+ * Listen to all messages in community chat as they arrive
  * @param {string} communityId - Community ID
- * @param {Function} callback - Callback function to receive messages
- * @returns {Function} Unsubscribe function
+ * @param {Function} callback - Called with array of messages when data changes
+ * @returns {Function} Unsubscribe function to stop listening
  */
 export const subscribeToCommunityMessages = (communityId, callback) => {
   const messagesRef = collection(db, `communities/${communityId}/messages`);
+  // Query last 100 messages ordered chronologically
   const q = query(messagesRef, orderBy("createdAt", "asc"), limit(100));
 
   return onSnapshot(
@@ -76,7 +82,8 @@ export const subscribeToCommunityMessages = (communityId, callback) => {
 };
 
 /**
- * Send admin-only message
+ * SEND ADMIN MESSAGE
+ * Send admin-only announcement or message in community (admin-to-all)
  * @param {string} communityId - Community ID
  * @param {string} userId - Admin user ID
  * @param {Object} messageData - Message data

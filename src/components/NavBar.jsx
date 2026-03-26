@@ -1,3 +1,7 @@
+// ===== Navigation Bar Component =====
+// Fixed header displayed across entire app
+// Shows logo, navigation links, user profile, notifications, and theme toggle
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -6,16 +10,19 @@ import { getUserProfile } from "../services/profileService";
 import { subscribeToUnreadCount } from "../services/notificationService";
 
 const NavBar = () => {
-  const { currentUser } = useAuth();
-  const { isDark } = useTheme();
-  const location = useLocation();
-  const [userProfile, setUserProfile] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { currentUser } = useAuth(); // Current user from auth context
+  const { isDark } = useTheme(); // Dark mode status
+  const location = useLocation(); // Current route location
 
-  // Check if we're on login or signup pages
+  // STATE MANAGEMENT
+  const [userProfile, setUserProfile] = useState(null); // User's profile data
+  const [unreadCount, setUnreadCount] = useState(0); // Notification badge count
+
+  // Check if we're on login or signup pages (hide nav on auth pages)
   const isAuthPage =
     location.pathname === "/login" || location.pathname === "/signup";
 
+  // EFFECT: Load user profile when user logs in
   useEffect(() => {
     const loadUserProfile = async () => {
       if (currentUser) {
@@ -30,6 +37,7 @@ const NavBar = () => {
     loadUserProfile();
   }, [currentUser]);
 
+  // EFFECT: Subscribe to unread notification count in real-time
   useEffect(() => {
     if (!currentUser) return;
 
@@ -37,9 +45,10 @@ const NavBar = () => {
       setUnreadCount(count);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribe(); // Cleanup listener on unmount
   }, [currentUser]);
 
+  // Helper: Check if current route is active
   const isActive = (path) => location.pathname === path;
 
   return (

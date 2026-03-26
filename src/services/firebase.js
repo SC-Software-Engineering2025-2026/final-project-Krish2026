@@ -1,3 +1,5 @@
+// ===== Firebase Configuration & Initialization =====
+// Central hub for Firebase service initialization (Auth, Firestore, Storage)
 import { initializeApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
@@ -13,15 +15,15 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Validate Firebase configuration
+// Validate Firebase configuration - missing env vars will break the app
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   console.error("❌ Firebase configuration is missing! Check your .env file.");
 }
 
-// Initialize Firebase
+// Initialize Firebase app instance
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
+// Export Firebase service instances for use throughout app
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

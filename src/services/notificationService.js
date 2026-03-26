@@ -1,3 +1,5 @@
+// ===== Notification Service =====
+// Handles creation and retrieval of in-app notifications for user activities
 import {
   collection,
   addDoc,
@@ -16,16 +18,18 @@ import {
 import { db } from "./firebase";
 
 /**
- * Create a notification
- * @param {Object} notificationData - Notification data
- * @returns {Promise<string>} Notification ID
+ * CREATE NOTIFICATION
+ * Add a new notification to a user's notification stream
+ * Notifications track activities: likes, comments, follows, messages, role changes
+ * @param {Object} notificationData - Notification details
+ * @returns {Promise<string>} New notification ID
  */
 export const createNotification = async (notificationData) => {
   try {
     const {
-      userId,
-      type,
-      actorId,
+      userId, // Recipient of the notification
+      type, // Type: "like", "comment", "follow", "message", "roleChange", etc.
+      actorId, // User who performed the action
       actorName,
       actorProfileImage,
       postId,
@@ -43,11 +47,11 @@ export const createNotification = async (notificationData) => {
       actorName: actorName || "Someone",
       actorProfileImage: actorProfileImage || "",
       message,
-      read: false,
+      read: false, // Unread by default
       createdAt: serverTimestamp(),
     };
 
-    // Add optional fields
+    // Add optional fields if provided
     if (postId) notification.postId = postId;
     if (channelId) notification.channelId = channelId;
     if (communityId) notification.communityId = communityId;
@@ -62,14 +66,17 @@ export const createNotification = async (notificationData) => {
 };
 
 /**
- * Get all notifications for a user
+ * SUBSCRIBE TO NOTIFICATIONS (REAL-TIME)
+ * Listen to user's notifications in real-time
+ * Returns an unsubscribe function to cleanup listener
  * @param {string} userId - User ID
- * @param {Function} callback - Callback function
- * @returns {Function} Unsubscribe function
+ * @param {Function} callback - Function called when notifications change
+ * @returns {Function} Unsubscribe function to stop listening
  */
 export const subscribeToNotifications = (userId, callback) => {
   try {
     const notificationsRef = collection(db, "notifications");
+    // Query user's notifications ordered by newest first, limit to 100
     const q = query(
       notificationsRef,
       where("userId", "==", userId),
@@ -93,7 +100,7 @@ export const subscribeToNotifications = (userId, callback) => {
     );
   } catch (error) {
     console.error("Error subscribing to notifications:", error);
-    return () => {}; // Return empty unsubscribe function
+    return () => {}; // Return empty unsubscribe function on error
   }
 };
 

@@ -11,6 +11,7 @@ import {
   leaveCommunity,
   transferOwnership,
   demoteAdmin,
+  banUserFromCommunity,
 } from "../services/communityService";
 import { getUserProfile } from "../services/profileService";
 import { PhotoIcon, PencilIcon } from "@heroicons/react/24/outline";
@@ -199,6 +200,24 @@ const CommunitySettings = ({ communityId, userRole }) => {
     }
   };
 
+  const handleBanUser = async (userId) => {
+    if (!isAdmin) return;
+
+    const confirmed = confirm(
+      "Are you sure you want to ban this user? They will not be able to rejoin this community.",
+    );
+    if (!confirmed) return;
+
+    try {
+      await banUserFromCommunity(communityId, userId, currentUser.uid);
+      await loadData();
+      alert("User has been banned from the community");
+    } catch (error) {
+      console.error("Error banning user:", error);
+      alert(error.message || "Failed to ban user");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -287,6 +306,7 @@ const CommunitySettings = ({ communityId, userRole }) => {
               onPromote={handlePromoteToAdmin}
               onTransferOwnership={handleTransferOwnership}
               onDemote={handleDemoteAdmin}
+              onBan={handleBanUser}
               currentUserId={currentUser.uid}
               isCreator={isCreator}
             />
@@ -789,6 +809,7 @@ const MembersSettings = ({
   onPromote,
   onTransferOwnership,
   onDemote,
+  onBan,
   currentUserId,
   isCreator,
 }) => {
@@ -958,6 +979,15 @@ const MembersSettings = ({
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 border-t border-gray-200 dark:border-gray-700"
                   >
                     Remove Member
+                  </button>
+                  <button
+                    onClick={() => {
+                      onBan(member.userId);
+                      setOpenMenuId(null);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 bg-red-50 dark:bg-red-900/20"
+                  >
+                    Ban User
                   </button>
                 </div>
               </>

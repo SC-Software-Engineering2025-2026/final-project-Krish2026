@@ -36,11 +36,11 @@ One reason why I chose this project is that I feel like real diverse communities
 ### Core Features
 
 - [ ] **Feature 1:** Private Community page where people can post pictures, videos, and text threads
-- [ ] **Feature 2:** Public Community page where people can post pictures, videos, and text threads
-- [ ] **Feature 3:** Discover page where people can find new communities
-- [ ] **Feature 4:** Home page where the user has a feed of all posts from communities they already follow
-- [ ] **Feature 5:** Messaging system for both direct messaging and group chats
-- [ ] **Feature 6:** Profile pages with bio's, posts, links, and list of joined communities.
+- [x] **Feature 2:** Public Community page where people can post pictures, videos, and text threads
+- [x] **Feature 3:** Discover page where people can find new communities
+- [x] **Feature 4:** Home page where the user has a feed of all posts from communities they already follow
+- [x] **Feature 5:** Messaging system for both direct messaging and group chats
+- [x] **Feature 6:** Profile pages with bio's, posts, links, and list of joined communities.
 
 ### Technology Stack
 
@@ -62,8 +62,8 @@ The first page will be the home page, that will look very similar to how Instagr
 
 **Main Views:**
 
-1. [View Name] - [Purpose]
-2. [View Name] - [Purpose]
+1. Home - Display recent posts from communities that the user is a part of.
+2. Communities - [Purpose]
 3. [View Name] - [Purpose]
 
 ### Data Management

@@ -1,3 +1,5 @@
+// ===== User Post Service =====
+// Handles personal user posts, feeds, likes, and comments on user profiles
 import {
   collection,
   doc,
@@ -33,24 +35,26 @@ import {
 import { getUserProfile } from "./profileService";
 
 /**
- * Create a new post
- * @param {string} userId - The user ID
- * @param {Object} postData - Post data
- * @param {File[]} images - Array of image files
- * @returns {Promise<string>} Post ID
+ * CREATE NEW USER POST
+ * Add a new post to user's personal posts collection
+ * Increments user's post count and uploads all images
+ * @param {string} userId - Post creator's user ID
+ * @param {Object} postData - Post content (caption, location, tags, etc.)
+ * @param {File[]} images - Array of image files to upload
+ * @returns {Promise<string>} New post ID
  */
 export const createPost = async (userId, postData, images = []) => {
   try {
-    // Upload images first
+    // Upload all images in parallel to Firebase Storage
     const imageUrls = await uploadPostImages(userId, images);
 
-    // Create post document
+    // Create post document in userPosts collection
     const postsRef = collection(db, "userPosts");
     const post = {
-      userId,
+      userId, // Post owner
       caption: postData.caption || "",
       images: imageUrls,
-      tags: postData.tags || [],
+      tags: postData.tags || [], // Tags/mentions
       location: postData.location || "",
       locationCoordinates: postData.locationCoordinates || null,
       likesCount: 0,
@@ -61,7 +65,7 @@ export const createPost = async (userId, postData, images = []) => {
 
     const docRef = await addDoc(postsRef, post);
 
-    // Update user's post count
+    // Increment user's post counter
     const userRef = doc(db, "users", userId);
     await updateDoc(userRef, {
       postsCount: increment(1),
@@ -75,8 +79,9 @@ export const createPost = async (userId, postData, images = []) => {
 };
 
 /**
- * Upload post images
- * @param {string} userId - The user ID
+ * UPLOAD POST IMAGES
+ * Upload multiple images to Firebase Storage in parallel
+ * @param {string} userId - Post creator's user ID
  * @param {File[]} files - Array of image files
  * @returns {Promise<string[]>} Array of download URLs
  */
@@ -84,6 +89,7 @@ export const uploadPostImages = async (userId, files) => {
   try {
     if (!files || files.length === 0) return [];
 
+    // Upload all images in parallel (Promise.all)
     const uploadPromises = files.map(async (file, index) => {
       const timestamp = Date.now();
       const storageRef = ref(storage, `posts/${userId}/${timestamp}-${index}`);
@@ -99,15 +105,17 @@ export const uploadPostImages = async (userId, files) => {
 };
 
 /**
- * Get user posts
- * @param {string} userId - The user ID
- * @param {number} limitCount - Number of posts to fetch
- * @param {Object} lastDoc - Last document for pagination
- * @returns {Promise<Object>} Posts array and last document
+ * GET USER'S POSTS (PAGINATED)
+ * Fetch user's posts with pagination support for infinite scroll
+ * @param {string} userId - User ID
+ * @param {number} limitCount - Number of posts per page (default: 12)
+ * @param {Object} lastDoc - Last document for pagination cursor
+ * @returns {Promise<Object>} { posts: Array, lastDoc: Object }
  */
 export const getUserPosts = async (userId, limitCount = 12, lastDoc = null) => {
   try {
     const postsRef = collection(db, "userPosts");
+    // Query user's posts ordered by newest first
     let q = query(
       postsRef,
       where("userId", "==", userId),
@@ -115,6 +123,7 @@ export const getUserPosts = async (userId, limitCount = 12, lastDoc = null) => {
       limit(limitCount),
     );
 
+    // For pagination, start after the last document
     if (lastDoc) {
       q = query(q, startAfter(lastDoc));
     }
@@ -125,6 +134,7 @@ export const getUserPosts = async (userId, limitCount = 12, lastDoc = null) => {
       ...doc.data(),
     }));
 
+    // Return last document for next pagination query
     const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
 
     return { posts, lastDoc: lastVisible };
@@ -135,9 +145,10 @@ export const getUserPosts = async (userId, limitCount = 12, lastDoc = null) => {
 };
 
 /**
- * Get a single post by ID
- * @param {string} postId - The post ID
- * @returns {Promise<Object|null>} Post data or null
+ * GET SINGLE POST BY ID
+ * Retrieve a specific post (useful for post detail pages)
+ * @param {string} postId - Post ID
+ * @returns {Promise<Object|null>} Post data or null if not found
  */
 export const getPost = async (postId) => {
   try {

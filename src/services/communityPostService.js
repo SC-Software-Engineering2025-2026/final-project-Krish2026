@@ -1,3 +1,5 @@
+// ===== Community Post Service =====
+// Handles community-specific post creation, likes, comments, and engagement
 import {
   collection,
   doc,
@@ -20,12 +22,13 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
 
 /**
- * Create a community post
+ * CREATE COMMUNITY POST
+ * Add a new post to a specific community's posts collection
  * @param {string} communityId - Community ID
- * @param {string} userId - User ID
- * @param {Object} postData - Post data
- * @param {File[]} images - Array of image files
- * @returns {Promise<string>} Post ID
+ * @param {string} userId - Post creator's user ID
+ * @param {Object} postData - Post content (text, hashtags, location, etc.)
+ * @param {File[]} images - Array of image files to upload
+ * @returns {Promise<string>} New post ID
  */
 export const createCommunityPost = async (
   communityId,
@@ -34,7 +37,7 @@ export const createCommunityPost = async (
   images = [],
 ) => {
   try {
-    // Upload images
+    // Upload all images to Firebase Storage
     const imageUrls = [];
     for (const image of images) {
       const imageRef = ref(
@@ -46,18 +49,18 @@ export const createCommunityPost = async (
       imageUrls.push(url);
     }
 
-    // Create post
+    // Create post document in community's posts subcollection
     const postsRef = collection(db, `communities/${communityId}/posts`);
     const post = {
-      userId,
+      userId, // Who posted
       content: postData.content || "",
       images: imageUrls,
       videos: postData.videos || [],
       location: postData.location || "",
       locationCoordinates: postData.locationCoordinates || null,
-      hashtags: postData.hashtags || [],
-      taggedUsers: postData.taggedUsers || [],
-      likes: [],
+      hashtags: postData.hashtags || [], // Searchable tags
+      taggedUsers: postData.taggedUsers || [], // Mentioned users
+      likes: [], // Array of user IDs who liked
       likesCount: 0,
       commentsCount: 0,
       createdAt: serverTimestamp(),
@@ -73,13 +76,15 @@ export const createCommunityPost = async (
 };
 
 /**
- * Get community posts
+ * GET COMMUNITY POSTS
+ * Fetch all posts from a community (newest first)
  * @param {string} communityId - Community ID
- * @returns {Promise<Array>} Array of posts
+ * @returns {Promise<Array>} Array of post objects with metadata
  */
 export const getCommunityPosts = async (communityId) => {
   try {
     const postsRef = collection(db, `communities/${communityId}/posts`);
+    // Query posts ordered by creation date (newest first)
     const q = query(postsRef, orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
 
@@ -94,7 +99,8 @@ export const getCommunityPosts = async (communityId) => {
 };
 
 /**
- * Like a community post
+ * LIKE A COMMUNITY POST
+ * Add user to post's likes array and increment likes counter
  * @param {string} postId - Post ID (format: communityId/posts/postId)
  * @param {string} userId - User ID
  */
