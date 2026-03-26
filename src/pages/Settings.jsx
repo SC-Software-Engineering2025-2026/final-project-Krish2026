@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -27,6 +28,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 const Settings = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -244,23 +246,23 @@ const Settings = () => {
             className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
           >
             <ArrowLeftIcon className="h-5 w-5" />
-            <span>Back</span>
+            <span>{t("common.back")}</span>
           </button>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            Settings
+            {t("settings.accountSettings")}
           </h1>
         </div>
 
         {/* Settings Content */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Account Settings
+            {t("settings.accountSettings")}
           </h2>
 
           {/* Appearance Settings Section */}
           <div className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Appearance
+              {t("settings.displaySettings")}
             </h3>
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
               <div className="flex items-start justify-between">
@@ -272,13 +274,13 @@ const Settings = () => {
                       <SunIcon className="h-6 w-6 text-gray-700 dark:text-gray-300" />
                     )}
                     <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                      {isDark ? "Dark Mode" : "Light Mode"}
+                      {isDark ? t("profile.darkMode") : t("profile.lightMode")}
                     </h4>
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                     {isDark
-                      ? "Dark mode is enabled. Switch to light mode for a brighter interface."
-                      : "Light mode is enabled. Switch to dark mode for a darker interface."}
+                      ? t("profile.darkMode")
+                      : t("profile.lightMode")}
                   </p>
                   <button
                     onClick={toggleTheme}
@@ -288,7 +290,7 @@ const Settings = () => {
                         : "bg-gray-800 hover:bg-gray-900 text-white"
                     }`}
                   >
-                    {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    {isDark ? t("profile.lightMode") : t("profile.darkMode")}
                   </button>
                 </div>
               </div>
@@ -309,7 +311,7 @@ const Settings = () => {
           {/* Privacy Settings Section */}
           <div className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Privacy Settings
+              {t("settings.privacySettings")}
             </h3>
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
               <div className="flex items-start justify-between">
@@ -322,14 +324,14 @@ const Settings = () => {
                     )}
                     <h4 className="text-lg font-medium text-gray-900 dark:text-white">
                       {profile?.isPrivate
-                        ? "Private Profile"
-                        : "Public Profile"}
+                        ? t("settings.privateProfile")
+                        : t("settings.publicProfile")}
                     </h4>
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                     {profile?.isPrivate
-                      ? "Your profile is private. Only you can see your information."
-                      : "Your profile is public. Anyone can see your information."}
+                      ? t("settings.profilePrivateDesc")
+                      : t("settings.profilePublicDesc")}
                   </p>
                   <button
                     onClick={handleTogglePrivacy}
@@ -340,8 +342,8 @@ const Settings = () => {
                     }`}
                   >
                     {profile?.isPrivate
-                      ? "Make Profile Public"
-                      : "Make Profile Private"}
+                      ? t("settings.makeProfilePublic")
+                      : t("settings.makeProfilePrivate")}
                   </button>
                 </div>
               </div>
@@ -351,22 +353,22 @@ const Settings = () => {
           {/* Direct Message Settings Section */}
           <div className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Direct Messages
+              {t("settings.directMessages")}
             </h3>
 
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6 mb-4">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Who can message you
+                {t("settings.whoCanMessage")}
               </h4>
               <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                Control who can start direct message conversations with you.
+                {t("settings.whoCanMessageDesc")}
               </p>
 
               <div className="flex flex-wrap gap-2">
                 {[
-                  { id: "everyone", label: "Everyone" },
-                  { id: "followers", label: "Followers only" },
-                  { id: "nobody", label: "Nobody" },
+                  { id: "everyone", label: t("common.everyone") },
+                  { id: "followers", label: t("common.followersOnly") },
+                  { id: "nobody", label: t("common.nobody") },
                 ].map((option) => (
                   <button
                     key={option.id}
@@ -386,27 +388,27 @@ const Settings = () => {
 
             <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
               <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                Block users from messaging you
+                {t("settings.blockUsers")}
               </h4>
               <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                Blocked users cannot send you direct messages.
+                {t("settings.blockUsersDesc")}
               </p>
 
               <input
                 type="text"
                 value={dmSearchTerm}
                 onChange={(e) => setDmSearchTerm(e.target.value)}
-                placeholder="Search users to block"
+                placeholder={t("settings.searchUsersToBlock")}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white mb-3"
               />
 
               {dmSearchLoading ? (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Searching users...
+                  {t("settings.searchingUsers")}
                 </p>
               ) : dmSearchTerm.trim() && dmSearchResults.length === 0 ? (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  No users found
+                  {t("settings.noUsersFound")}
                 </p>
               ) : (
                 <div className="space-y-2 mb-4">
@@ -423,7 +425,7 @@ const Settings = () => {
                           <p className="font-medium text-gray-900 dark:text-white">
                             {user.displayName ||
                               user.username ||
-                              "Unknown User"}
+                              t("common.unknownUser")}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             @{user.username || "user"}
@@ -434,7 +436,7 @@ const Settings = () => {
                           onClick={() => handleBlockUser(user.id)}
                           className="px-3 py-1.5 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                         >
-                          {isBlocked ? "Blocked" : "Block"}
+                          {isBlocked ? t("common.blocked") : t("common.block")}
                         </button>
                       </div>
                     );
@@ -444,11 +446,11 @@ const Settings = () => {
 
               <div>
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  Blocked users
+                  {t("settings.blockedUsers")}
                 </h5>
                 {(dmSettings?.blockedUsers || []).length === 0 ? (
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    No blocked users.
+                    {t("settings.noBlockedUsers")}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -476,7 +478,7 @@ const Settings = () => {
                             onClick={() => handleUnblockUser(blockedUserId)}
                             className="px-3 py-1.5 text-sm rounded-lg bg-gray-600 hover:bg-gray-700 text-white disabled:opacity-50"
                           >
-                            Unblock
+                            {t("common.unblock")}
                           </button>
                         </div>
                       );
@@ -490,7 +492,7 @@ const Settings = () => {
           {/* Account Actions Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Account Actions
+              {t("settings.accountActions")}
             </h3>
 
             {/* Log Out */}
@@ -500,18 +502,18 @@ const Settings = () => {
                   <div className="flex items-center gap-2 mb-2">
                     <ArrowRightOnRectangleIcon className="h-6 w-6 text-red-700 dark:text-red-400" />
                     <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Log Out
+                      {t("settings.logOut")}
                     </h4>
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                    Sign out of your account on this device.
+                    {t("settings.logOutDesc")}
                   </p>
                   <button
                     onClick={handleLogout}
                     className="px-6 py-3 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                   >
                     <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                    <span>Log Out</span>
+                    <span>{t("settings.logOut")}</span>
                   </button>
                 </div>
               </div>
@@ -524,15 +526,13 @@ const Settings = () => {
                   <div className="flex items-center gap-2 mb-2">
                     <TrashIcon className="h-6 w-6 text-red-700 dark:text-red-400" />
                     <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                      Delete Account
+                      {t("settings.deleteAccount")}
                     </h4>
                   </div>
                   <div className="flex items-start gap-2 bg-red-200 dark:bg-red-900/50 rounded-lg p-3 mb-4">
                     <ExclamationTriangleIcon className="h-5 w-5 text-red-700 dark:text-red-400 flex-shrink-0 mt-0.5" />
                     <p className="text-red-900 dark:text-red-200 text-sm">
-                      <strong>Warning:</strong> This action is permanent and
-                      cannot be undone. All your data will be permanently
-                      deleted, including:
+                      <strong>{t("common.warning")}:</strong> {t("settings.deleteAccountWarning")}
                     </p>
                   </div>
                   <ul className="text-gray-700 dark:text-gray-300 text-sm mb-4 ml-8 list-disc space-y-1">
@@ -552,7 +552,7 @@ const Settings = () => {
                     className="px-6 py-3 bg-red-700 hover:bg-red-800 dark:bg-red-800 dark:hover:bg-red-900 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <TrashIcon className="h-5 w-5" />
-                    <span>Delete My Account</span>
+                    <span>{t("settings.deleteMyAccount")}</span>
                   </button>
                 </div>
               </div>
@@ -568,25 +568,24 @@ const Settings = () => {
             <div className="flex items-center gap-3 mb-4">
               <ExclamationTriangleIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Confirm Account Deletion
+                {t("settings.confirmAccountDeletion")}
               </h3>
             </div>
 
             <div className="mb-6">
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Are you absolutely sure you want to delete your account? This
-                action cannot be undone.
+                {t("settings.confirmAccountDeletionDesc")}
               </p>
 
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Type <strong>DELETE</strong> to confirm:
+                {t("settings.typeDELETEToConfirm")}
               </p>
 
               <input
                 type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="Type DELETE"
+                placeholder={t("settings.typeDELETE")}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 disabled={deleting}
               />
@@ -601,7 +600,7 @@ const Settings = () => {
                 disabled={deleting}
                 className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleDeleteAccount}
@@ -611,12 +610,12 @@ const Settings = () => {
                 {deleting ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Deleting...</span>
+                    <span>{t("settings.deleting")}</span>
                   </>
                 ) : (
                   <>
                     <TrashIcon className="h-5 w-5" />
-                    <span>Delete Forever</span>
+                    <span>{t("settings.deleteForever")}</span>
                   </>
                 )}
               </button>

@@ -107,10 +107,10 @@ All data handling will be done through Firebase. User log-in and authentication 
 
 **Deliverables:**
 
-- [ ] [Specific feature to implement]
-- [ ] [Specific feature to implement]
-- [ ] [Specific feature to implement]
-- [ ] [Specific feature to implement]
+- [x] Home page functionality with displaying different posts
+- [x] Community pages with a welcome page, post page, chat page, media upload page, and settings
+- [x] Profile Creation with user data storage
+- [x] Create a post functionality with captions, video and image upload, and hashtags
 
 ---
 

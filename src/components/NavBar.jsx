@@ -4,12 +4,14 @@
 
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getUserProfile } from "../services/profileService";
 import { subscribeToUnreadCount } from "../services/notificationService";
 
 const NavBar = () => {
+  const { t } = useTranslation(); // Get translation function
   const { currentUser } = useAuth(); // Current user from auth context
   const { isDark } = useTheme(); // Dark mode status
   const location = useLocation(); // Current route location
@@ -110,10 +112,8 @@ const NavBar = () => {
                       borderRadius: isActive("/") ? "20px" : "0",
                     }}
                     role="menuitem"
-                    aria-current={isActive("/") ? "page" : undefined}
-                    aria-label="Home page"
                   >
-                    Home
+                    {t("nav.home")}
                   </Link>
                   <Link
                     to="/communities"
@@ -132,9 +132,9 @@ const NavBar = () => {
                     }}
                     role="menuitem"
                     aria-current={isActive("/communities") ? "page" : undefined}
-                    aria-label="Communities page"
+                    aria-label={t("nav.communities")}
                   >
-                    Communities
+                    {t("nav.communities")}
                   </Link>
                   <Link
                     to="/discover"
@@ -153,9 +153,9 @@ const NavBar = () => {
                     }}
                     role="menuitem"
                     aria-current={isActive("/discover") ? "page" : undefined}
-                    aria-label="Discover page"
+                    aria-label={t("nav.discover")}
                   >
-                    Discover
+                    {t("nav.discover")}
                   </Link>
                   <Link
                     to="/inbox"
@@ -174,9 +174,13 @@ const NavBar = () => {
                     }}
                     role="menuitem"
                     aria-current={isActive("/inbox") ? "page" : undefined}
-                    aria-label={`Inbox ${unreadCount > 0 ? `with ${unreadCount} unread notifications` : "page"}`}
+                    aria-label={
+                      unreadCount > 0
+                        ? `${t("nav.inbox")} ${unreadCount} ${t("common.more")}`
+                        : t("nav.inbox")
+                    }
                   >
-                    Inbox
+                    {t("nav.inbox")}
                     {unreadCount > 0 && (
                       <span
                         className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-600 rounded-full"
@@ -216,9 +220,9 @@ const NavBar = () => {
                         ? "page"
                         : undefined
                     }
-                    aria-label="My profile page"
+                    aria-label={t("nav.profile")}
                   >
-                    Profile
+                    {t("nav.profile")}
                   </Link>
                 </div>
               )}
