@@ -14,6 +14,7 @@ import {
   unblockDirectMessageUser,
   updateDmSettings,
 } from "../services/directMessageService";
+import LanguageAndAccessibilitySettings from "../components/LanguageAndAccessibilitySettings";
 import {
   LockClosedIcon,
   LockOpenIcon,
@@ -292,6 +293,17 @@ const Settings = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Accessibility & Language Settings Section */}
+          <div className="mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
+            <LanguageAndAccessibilitySettings
+              profile={profile}
+              onSave={(settings) => {
+                console.log("Accessibility settings saved:", settings);
+                // Settings are automatically saved to localStorage in the component
+              }}
+            />
           </div>
 
           {/* Privacy Settings Section */}

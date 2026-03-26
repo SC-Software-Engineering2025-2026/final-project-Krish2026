@@ -1,9 +1,12 @@
 // ===== Main App Component =====
 // Handles routing and theme/auth context setup for entire application
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { I18nextProvider } from "react-i18next";
+import i18n from "./i18n/i18n";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import NavBar from "./components/NavBar";
+import GlobalKeyboardHandler from "./components/GlobalKeyboardHandler";
 
 // Pages
 import Home from "./pages/Home";
@@ -24,14 +27,21 @@ import SyncUserCommunities from "./components/SyncUserCommunities";
 
 function App() {
   return (
-    // Wrap entire app with auth & theme providers for global state
-    <AuthProvider>
-      <ThemeProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-            <NavBar />
-            {/* Main content area with padding to account for fixed navbar */}
-            <div className="pt-16">
+    // Wrap entire app with i18n, auth & theme providers for global state
+    <I18nextProvider i18n={i18n}>
+      <AuthProvider>
+        <ThemeProvider>
+          <GlobalKeyboardHandler />
+          <Router>
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+              <NavBar />
+              {/* Main content area with padding to account for fixed navbar */}
+              <main
+                id="main-content"
+              className="pt-16"
+              role="main"
+              aria-label="Main content"
+            >
               <Routes>
                 {/* Authentication routes - login/signup pages */}
                 <Route path="/login" element={<Login />} />
@@ -60,11 +70,12 @@ function App() {
                   element={<SyncUserCommunities />}
                 />
               </Routes>
-            </div>
+            </main>
           </div>
         </Router>
-      </ThemeProvider>
-    </AuthProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </I18nextProvider>
   );
 }
 

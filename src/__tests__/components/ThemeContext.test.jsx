@@ -27,7 +27,7 @@ describe("Theme Context", () => {
   it("should provide theme toggle functionality", () => {
     const toggleTheme = vi.fn();
     expect(typeof toggleTheme).toBe("function");
-    
+
     toggleTheme();
     expect(toggleTheme).toHaveBeenCalled();
   });
@@ -51,12 +51,12 @@ describe("Theme Context", () => {
 
   it("should persist theme preference", async () => {
     const { updateUserTheme } = await import("../../services/profileService");
-    
+
     const userId = "test-user";
     const theme = "dark";
-    
+
     await updateUserTheme(userId, theme);
-    
+
     expect(updateUserTheme).toHaveBeenCalledWith(userId, theme);
   });
 });

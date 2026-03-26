@@ -51,13 +51,9 @@ beforeAll(() => {
   });
 
   console.warn = vi.fn((...args) => {
-    if (
-      typeof args[0] === "string" &&
-      args[0].includes("esbuild")
-    ) {
+    if (typeof args[0] === "string" && args[0].includes("esbuild")) {
       return;
     }
     originalWarn.call(console, ...args);
   });
 });
-

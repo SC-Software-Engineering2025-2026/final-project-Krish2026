@@ -26,7 +26,7 @@ describe("Component Structure & Boilerplate", () => {
 
     // Should start with capital letter and use PascalCase
     expect(componentName[0]).toBe(componentName[0].toUpperCase());
-    
+
     // Should have .jsx extension
     expect(fileName).toMatch(/\.jsx$/);
   });

@@ -52,169 +52,206 @@ const NavBar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 bg-white shadow-md ${!isAuthPage ? "dark:bg-gray-800" : ""}`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Left side - Logo and Navigation */}
-          <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-3">
-              <img
-                src="/Sfera-icon.png"
-                alt="Sfera"
-                className="w-10 h-10 rounded-lg object-cover"
-              />
-              <h1
-                className="text-4xl font-bold"
-                style={{
-                  fontFamily: "UnifrakturMaguntia, cursive",
-                  color: !isAuthPage && isDark ? "#EDE8DD" : "#54524D",
-                }}
-              >
-                Sfera
-              </h1>
-            </Link>
+    <>
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only absolute top-0 left-0 z-50 bg-blue-600 text-white px-4 py-2"
+      >
+        Skip to main content
+      </a>
+      
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 bg-white shadow-md ${!isAuthPage ? "dark:bg-gray-800" : ""}`}
+        role="navigation"
+        aria-label="Main navigation"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Left side - Logo and Navigation */}
+            <div className="flex items-center gap-8">
+              <Link to="/" className="flex items-center gap-3" aria-label="Sfera Home">
+                <img
+                  src="/Sfera-icon.png"
+                  alt="Sfera"
+                  className="w-10 h-10 rounded-lg object-cover"
+                />
+                <h1
+                  className="text-4xl font-bold"
+                  style={{
+                    fontFamily: "UnifrakturMaguntia, cursive",
+                    color: !isAuthPage && isDark ? "#EDE8DD" : "#54524D",
+                  }}
+                >
+                  Sfera
+                </h1>
+              </Link>
 
-            {/* Navigation Buttons */}
-            {currentUser && (
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/"
-                  className="px-4 py-2 text-base font-medium transition-all duration-200"
-                  style={{
-                    fontFamily: "Times New Roman, serif",
-                    color: isActive("/")
-                      ? "#EDE8DD"
-                      : !isAuthPage && isDark
-                        ? "#EDE8DD"
-                        : "#54524D",
-                    backgroundColor: isActive("/") ? "#54524D" : "transparent",
-                    borderRadius: isActive("/") ? "20px" : "0",
-                  }}
-                >
-                  Home
-                </Link>
-                <Link
-                  to="/communities"
-                  className="px-4 py-2 text-base font-medium transition-all duration-200"
-                  style={{
-                    fontFamily: "Times New Roman, serif",
-                    color: isActive("/communities")
-                      ? "#EDE8DD"
-                      : !isAuthPage && isDark
-                        ? "#EDE8DD"
-                        : "#54524D",
-                    backgroundColor: isActive("/communities")
-                      ? "#54524D"
-                      : "transparent",
-                    borderRadius: isActive("/communities") ? "20px" : "0",
-                  }}
-                >
-                  Communities
-                </Link>
-                <Link
-                  to="/discover"
-                  className="px-4 py-2 text-base font-medium transition-all duration-200"
-                  style={{
-                    fontFamily: "Times New Roman, serif",
-                    color: isActive("/discover")
-                      ? "#EDE8DD"
-                      : !isAuthPage && isDark
-                        ? "#EDE8DD"
-                        : "#54524D",
-                    backgroundColor: isActive("/discover")
-                      ? "#54524D"
-                      : "transparent",
-                    borderRadius: isActive("/discover") ? "20px" : "0",
-                  }}
-                >
-                  Discover
-                </Link>
-                <Link
-                  to="/inbox"
-                  className="px-4 py-2 text-base font-medium transition-all duration-200 relative"
-                  style={{
-                    fontFamily: "Times New Roman, serif",
-                    color: isActive("/inbox")
-                      ? "#EDE8DD"
-                      : !isAuthPage && isDark
-                        ? "#EDE8DD"
-                        : "#54524D",
-                    backgroundColor: isActive("/inbox")
-                      ? "#54524D"
-                      : "transparent",
-                    borderRadius: isActive("/inbox") ? "20px" : "0",
-                  }}
-                >
-                  Inbox
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-600 rounded-full">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </Link>
-                <Link
-                  to={`/profile/${currentUser.uid}`}
-                  className="px-4 py-2 text-base font-medium transition-all duration-200"
-                  style={{
-                    fontFamily: "Times New Roman, serif",
-                    color:
-                      isActive(`/profile/${currentUser.uid}`) ||
-                      location.pathname === "/profile"
+              {/* Navigation Buttons */}
+              {currentUser && (
+                <div className="flex items-center gap-2" role="menubar">
+                  <Link
+                    to="/"
+                    className="px-4 py-2 text-base font-medium transition-all duration-200"
+                    style={{
+                      fontFamily: "Times New Roman, serif",
+                      color: isActive("/")
                         ? "#EDE8DD"
                         : !isAuthPage && isDark
                           ? "#EDE8DD"
                           : "#54524D",
-                    backgroundColor:
-                      isActive(`/profile/${currentUser.uid}`) ||
-                      location.pathname === "/profile"
+                      backgroundColor: isActive("/") ? "#54524D" : "transparent",
+                      borderRadius: isActive("/") ? "20px" : "0",
+                    }}
+                    role="menuitem"
+                    aria-current={isActive("/") ? "page" : undefined}
+                    aria-label="Home page"
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    to="/communities"
+                    className="px-4 py-2 text-base font-medium transition-all duration-200"
+                    style={{
+                      fontFamily: "Times New Roman, serif",
+                      color: isActive("/communities")
+                        ? "#EDE8DD"
+                        : !isAuthPage && isDark
+                          ? "#EDE8DD"
+                          : "#54524D",
+                      backgroundColor: isActive("/communities")
                         ? "#54524D"
                         : "transparent",
-                    borderRadius:
+                      borderRadius: isActive("/communities") ? "20px" : "0",
+                    }}
+                    role="menuitem"
+                    aria-current={isActive("/communities") ? "page" : undefined}
+                    aria-label="Communities page"
+                  >
+                    Communities
+                  </Link>
+                  <Link
+                    to="/discover"
+                    className="px-4 py-2 text-base font-medium transition-all duration-200"
+                    style={{
+                      fontFamily: "Times New Roman, serif",
+                      color: isActive("/discover")
+                        ? "#EDE8DD"
+                        : !isAuthPage && isDark
+                          ? "#EDE8DD"
+                          : "#54524D",
+                      backgroundColor: isActive("/discover")
+                        ? "#54524D"
+                        : "transparent",
+                      borderRadius: isActive("/discover") ? "20px" : "0",
+                    }}
+                    role="menuitem"
+                    aria-current={isActive("/discover") ? "page" : undefined}
+                    aria-label="Discover page"
+                  >
+                    Discover
+                  </Link>
+                  <Link
+                    to="/inbox"
+                    className="px-4 py-2 text-base font-medium transition-all duration-200 relative"
+                    style={{
+                      fontFamily: "Times New Roman, serif",
+                      color: isActive("/inbox")
+                        ? "#EDE8DD"
+                        : !isAuthPage && isDark
+                          ? "#EDE8DD"
+                          : "#54524D",
+                      backgroundColor: isActive("/inbox")
+                        ? "#54524D"
+                        : "transparent",
+                      borderRadius: isActive("/inbox") ? "20px" : "0",
+                    }}
+                    role="menuitem"
+                    aria-current={isActive("/inbox") ? "page" : undefined}
+                    aria-label={`Inbox ${unreadCount > 0 ? `with ${unreadCount} unread notifications` : "page"}`}
+                  >
+                    Inbox
+                    {unreadCount > 0 && (
+                      <span
+                        className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-600 rounded-full"
+                        aria-label={`${unreadCount > 9 ? "9 or more" : unreadCount} unread notifications`}
+                      >
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    to={`/profile/${currentUser.uid}`}
+                    className="px-4 py-2 text-base font-medium transition-all duration-200"
+                    style={{
+                      fontFamily: "Times New Roman, serif",
+                      color:
+                        isActive(`/profile/${currentUser.uid}`) ||
+                        location.pathname === "/profile"
+                          ? "#EDE8DD"
+                          : !isAuthPage && isDark
+                            ? "#EDE8DD"
+                            : "#54524D",
+                      backgroundColor:
+                        isActive(`/profile/${currentUser.uid}`) ||
+                        location.pathname === "/profile"
+                          ? "#54524D"
+                          : "transparent",
+                      borderRadius:
+                        isActive(`/profile/${currentUser.uid}`) ||
+                        location.pathname === "/profile"
+                          ? "20px"
+                          : "0",
+                    }}
+                    role="menuitem"
+                    aria-current={
                       isActive(`/profile/${currentUser.uid}`) ||
                       location.pathname === "/profile"
-                        ? "20px"
-                        : "0",
-                  }}
-                >
-                  Profile
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Right side - Profile Picture */}
-          {currentUser && (
-            <Link
-              to={`/profile/${currentUser.uid}`}
-              className="flex items-center"
-            >
-              {userProfile?.profileImage ? (
-                <img
-                  src={userProfile.profileImage}
-                  alt="Profile"
-                  className={`w-12 h-12 rounded-full object-cover border-2 border-gray-200 hover:border-gray-400 transition-colors ${!isAuthPage ? "dark:border-gray-700 dark:hover:border-gray-500" : ""}`}
-                />
-              ) : (
-                <div
-                  className={`w-12 h-12 rounded-full bg-gray-300 flex-shrink-0 flex items-center justify-center border-2 border-gray-200 hover:border-gray-400 transition-colors ${!isAuthPage ? "dark:bg-gray-600 dark:border-gray-700 dark:hover:border-gray-500" : ""}`}
-                >
-                  <span
-                    className="font-semibold text-lg"
-                    style={{
-                      color: !isAuthPage && isDark ? "#EDE8DD" : "#54524D",
-                    }}
+                        ? "page"
+                        : undefined
+                    }
+                    aria-label="My profile page"
                   >
-                    {currentUser.email?.[0].toUpperCase() || "U"}
-                  </span>
+                    Profile
+                  </Link>
                 </div>
               )}
-            </Link>
-          )}
+            </div>
+
+            {/* Right side - Profile Picture */}
+            {currentUser && (
+              <Link
+                to={`/profile/${currentUser.uid}`}
+                className="flex items-center"
+                aria-label={`View profile for ${userProfile?.displayName || currentUser.email}`}
+              >
+                {userProfile?.profileImage ? (
+                  <img
+                    src={userProfile.profileImage}
+                    alt={`${userProfile.displayName || "User"} profile picture`}
+                    className={`w-12 h-12 rounded-full object-cover border-2 border-gray-200 hover:border-gray-400 transition-colors ${!isAuthPage ? "dark:border-gray-700 dark:hover:border-gray-500" : ""}`}
+                  />
+                ) : (
+                  <div
+                    className={`w-12 h-12 rounded-full bg-gray-300 flex-shrink-0 flex items-center justify-center border-2 border-gray-200 hover:border-gray-400 transition-colors ${!isAuthPage ? "dark:bg-gray-600 dark:border-gray-700 dark:hover:border-gray-500" : ""}`}
+                    aria-label="Default profile icon"
+                  >
+                    <span
+                      className="font-semibold text-lg"
+                      style={{
+                        color: !isAuthPage && isDark ? "#EDE8DD" : "#54524D",
+                      }}
+                    >
+                      {currentUser.email?.[0].toUpperCase() || "U"}
+                    </span>
+                  </div>
+                )}
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 };
 

@@ -63,12 +63,16 @@ The first page will be the home page, that will look very similar to how Instagr
 **Main Views:**
 
 1. Home - Display recent posts from communities that the user is a part of.
-2. Communities - [Purpose]
-3. [View Name] - [Purpose]
+2. Communities - Display list of all communities that the user has joined.
+3. Discover - Consists of a serach engine where the user can either search for communities to join or for users.
+4. Inbox - Displays all notifications that the user gets. There is a second sub-tab with a messaging system where suers get to privately DM each other.
+5. Profile - Displays the current user profile which consists of a profile picture, a banner image, the user's real name, the username, the bio, the communities the user has joined, the users that the user follow, the users that follow the user, and extra images that builds the user's profile.
 
 ### Data Management
 
 [Explain how your application will handle data. What data needs to be stored? Will you use local storage, a database, or external APIs?]
+
+All data handling will be done through Firebase. User log-in and authentication will be handled through Firebase's authentication functionality. Data storage such as total users, community lists and data, etc. will be stored and managed through Firebase's firestore. Then, all image, video, and file uploads will be stored and handled through Firebase's storage system.
 
 ---
 
@@ -76,10 +80,9 @@ The first page will be the home page, that will look very similar to how Instagr
 
 ### Planned Use Cases
 
-- [ ] Component scaffolding and boilerplate code
-- [ ] API integration and data fetching logic
-- [ ] Writing unit tests
-- [ ] [Other use case]
+- [x] Component scaffolding and boilerplate code
+- [x] API integration and data fetching logic
+- [x] Writing unit tests
 
 ---
 
@@ -117,9 +120,9 @@ The first page will be the home page, that will look very similar to how Instagr
 
 **Deliverables:**
 
-- [ ] [UI improvement task]
-- [ ] [Styling task]
-- [ ] [Responsive design implementation]
+- [x] [UI improvement task]
+- [x] [Styling task]
+- [x] [Responsive design implementation]
 - [ ] [Accessibility improvements]
 
 ---

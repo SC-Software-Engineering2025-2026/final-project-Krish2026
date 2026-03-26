@@ -24,7 +24,7 @@ describe("NavBar Component", () => {
     render(
       <BrowserRouter>
         <NavBar />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
     expect(screen.getByTestId("navbar")).toBeTruthy();
   });
@@ -33,7 +33,7 @@ describe("NavBar Component", () => {
     render(
       <BrowserRouter>
         <NavBar />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
     const navbar = screen.getByTestId("navbar");
     expect(navbar).toBeInTheDocument();
@@ -43,9 +43,8 @@ describe("NavBar Component", () => {
     render(
       <BrowserRouter>
         <NavBar />
-      </BrowserRouter>
+      </BrowserRouter>,
     );
     expect(screen.getByTestId("navbar")).toBeTruthy();
   });
 });
-

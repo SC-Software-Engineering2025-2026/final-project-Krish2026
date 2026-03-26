@@ -81,4 +81,3 @@ describe("API Integration - Firebase Services", () => {
     expect(result.message).toBe("Test error");
   });
 });
-
