@@ -647,6 +647,48 @@ export const createCommunityMemberKickedNotification = async (
 };
 
 /**
+ * Create notification when join request is approved
+ * @param {string} userId - User who requested to join
+ * @param {string} communityId - Community ID
+ * @param {Object} communityData - Community data
+ * @returns {Promise<string|null>} Notification ID
+ */
+export const createCommunityJoinRequestApprovedNotification = async (
+  userId,
+  communityId,
+  communityData,
+) => {
+  return createNotification({
+    userId,
+    type: "community_join_request_approved",
+    communityId,
+    communityName: communityData.name,
+    message: `Your request to join ${communityData.name} has been approved!`,
+  });
+};
+
+/**
+ * Create notification when join request is rejected
+ * @param {string} userId - User who requested to join
+ * @param {string} communityId - Community ID
+ * @param {Object} communityData - Community data
+ * @returns {Promise<string|null>} Notification ID
+ */
+export const createCommunityJoinRequestRejectedNotification = async (
+  userId,
+  communityId,
+  communityData,
+) => {
+  return createNotification({
+    userId,
+    type: "community_join_request_rejected",
+    communityId,
+    communityName: communityData.name,
+    message: `Your request to join ${communityData.name} has been declined.`,
+  });
+};
+
+/**
  * Create post comment notification
  * @param {string} commenterId - User who commented
  * @param {string} postOwnerId - Post owner

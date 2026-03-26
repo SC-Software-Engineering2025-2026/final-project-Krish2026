@@ -1,11 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   getCommunity,
   updateHomePageSections,
+  leaveCommunity,
+  sendJoinRequest,
+  hasPendingJoinRequest,
+  cancelJoinRequest,
 } from "../services/communityService";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
+import COLORS from "../theme/colors";
 
 const MAX_WELCOME_IMAGES = 6;
 
@@ -14,10 +20,13 @@ const InfoCommunityHome = ({
   userRole,
   isMember = true,
   isBanned = false,
+  isPrivate = false,
   onJoin,
   joining = false,
+  onRequestAccess,
 }) => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [bio, setBio] = useState("");
@@ -25,15 +34,48 @@ const InfoCommunityHome = ({
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [cropperImage, setCropperImage] = useState(null);
   const [cropperFile, setCropperFile] = useState(null);
   const [draggedImageIndex, setDraggedImageIndex] = useState(null);
+  const [requestingAccess, setRequestingAccess] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [cancelingRequest, setCancelingRequest] = useState(false);
+  const dropdownRef = useRef(null);
 
   const isAdmin = userRole === "admin";
 
   useEffect(() => {
     loadCommunity();
   }, [communityId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Check for pending join request when not a member and community is private
+  useEffect(() => {
+    const checkPendingRequest = async () => {
+      if (!isMember && isPrivate && currentUser?.uid) {
+        try {
+          const has = await hasPendingJoinRequest(communityId, currentUser.uid);
+          setHasPendingRequest(has);
+        } catch (error) {
+          console.error("Error checking request status:", error);
+        }
+      }
+    };
+
+    checkPendingRequest();
+  }, [isMember, isPrivate, communityId, currentUser?.uid]);
 
   const loadCommunity = async () => {
     try {
@@ -86,6 +128,37 @@ const InfoCommunityHome = ({
     setBio(sections.bio || "");
     setImages((sections.imageUrls || []).map((url) => ({ url, isNew: false })));
     setIsEditing(false);
+  };
+
+  const handleRequestAccess = async () => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setRequestingAccess(true);
+      await onRequestAccess();
+      setHasPendingRequest(true);
+    } catch (error) {
+      console.error("Error requesting access:", error);
+      alert(error.message || "Failed to send request");
+    } finally {
+      setRequestingAccess(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    try {
+      setCancelingRequest(true);
+      await cancelJoinRequest(communityId, currentUser.uid);
+      setHasPendingRequest(false);
+    } catch (error) {
+      console.error("Error canceling join request:", error);
+      alert(error.message || "Failed to cancel request");
+    } finally {
+      setCancelingRequest(false);
+    }
   };
 
   const handleAddImage = (event) => {
@@ -163,6 +236,27 @@ const InfoCommunityHome = ({
     setDraggedImageIndex(null);
   };
 
+  const handleLeaveCommunity = async () => {
+    // Check if user is the creator
+    if (community?.createdBy === currentUser.uid) {
+      alert(
+        "Creator cannot leave the community. Transfer ownership or delete the community.",
+      );
+      return;
+    }
+
+    const confirmed = confirm("Are you sure you want to leave this community?");
+    if (!confirmed) return;
+
+    try {
+      await leaveCommunity(communityId, currentUser.uid);
+      navigate("/communities");
+    } catch (error) {
+      console.error("Error leaving community:", error);
+      alert(error.message || "Failed to leave community");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -194,18 +288,42 @@ const InfoCommunityHome = ({
           ) : (
             <>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Join {community?.name}
+                {isPrivate ? "Request Access" : "Join"} {community?.name}
               </h2>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Become a member to access posts and communicate with admins
+                {isPrivate
+                  ? "This is a private community. Send a request to the admins for access."
+                  : "Become a member to access posts and communicate with admins"}
               </p>
-              <button
-                onClick={onJoin}
-                disabled={joining}
-                className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
-              >
-                {joining ? "Joining..." : "Join Community"}
-              </button>
+              {hasPendingRequest ? (
+                <div className="flex items-center justify-between px-8 py-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700">
+                  <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+                    Your request is pending admin approval
+                  </p>
+                  <button
+                    onClick={handleCancelRequest}
+                    disabled={cancelingRequest}
+                    className="ml-4 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-red-600 dark:text-red-400 font-bold text-xl"
+                    title="Cancel join request"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={isPrivate ? handleRequestAccess : onJoin}
+                  disabled={joining || requestingAccess}
+                  className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+                >
+                  {isPrivate
+                    ? requestingAccess
+                      ? "Sending Request..."
+                      : "Request Access"
+                    : joining
+                      ? "Joining..."
+                      : "Join Community"}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -229,80 +347,114 @@ const InfoCommunityHome = ({
                 {community?.description}
               </p>
               <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>{community?.memberCount} members</span>
+                <span>
+                  {
+                    new Set([
+                      ...(community?.members || []),
+                      ...(community?.admins || []),
+                    ]).size
+                  }{" "}
+                  members
+                </span>
                 <span>•</span>
                 <span>{community?.isPublic ? "Public" : "Private"}</span>
-                <span>•</span>
-                <span className="flex items-center space-x-1">
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                    <path
-                      fillRule="evenodd"
-                      d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span>Informational</span>
-                </span>
+                {community?.categories?.some((cat) => cat) && (
+                  <span className="flex flex-wrap gap-2">
+                    {community.categories
+                      .slice(0, 3)
+                      .filter((cat) => cat)
+                      .map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-2 py-0.5 bg-gray-800 dark:bg-beige-700 text-gray-100 dark:text-beige-100 text-xs font-medium rounded-full border border-gray-900 dark:border-beige-800"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
-          {isAdmin && !isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex items-center space-x-2">
+            {isAdmin && !isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-2 rounded-lg flex items-center space-x-2"
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              <span>Edit Page</span>
-            </button>
-          )}
-        </div>
-      </div>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                <span>Edit Page</span>
+              </button>
+            )}
 
-      {!isAdmin && (
-        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
-          <div className="flex items-start space-x-3">
-            <svg
-              className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div>
-              <h3 className="font-medium text-blue-900 dark:text-blue-200">
-                Informational Community
-              </h3>
-              <p className="text-sm text-blue-800 dark:text-blue-300 mt-1">
-                This is an informational community. Only admins can edit this
-                page and create posts. You can view content and comment on
-                posts.
-              </p>
+            {/* Three-dot menu */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              >
+                <svg
+                  className="w-6 h-6 text-gray-600 dark:text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                  />
+                </svg>
+              </button>
+
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      handleLeaveCommunity();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center space-x-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    <span>Leave Community</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         {isEditing ? (

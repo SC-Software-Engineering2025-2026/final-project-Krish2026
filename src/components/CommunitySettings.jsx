@@ -12,6 +12,9 @@ import {
   transferOwnership,
   demoteAdmin,
   banUserFromCommunity,
+  subscribeToJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
 } from "../services/communityService";
 import { getUserProfile } from "../services/profileService";
 import { PhotoIcon, PencilIcon } from "@heroicons/react/24/outline";
@@ -27,7 +30,10 @@ const CommunitySettings = ({ communityId, userRole }) => {
   const [memberProfiles, setMemberProfiles] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("general"); // general, members
+  const [activeTab, setActiveTab] = useState("general"); // general, members, joinRequests
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [joinRequestProfiles, setJoinRequestProfiles] = useState({});
+  const [approvalProcessing, setApprovalProcessing] = useState({});
 
   const isAdmin = userRole === "admin";
   const isCreator = community?.creatorId === currentUser.uid;
@@ -36,6 +42,41 @@ const CommunitySettings = ({ communityId, userRole }) => {
   useEffect(() => {
     loadData();
   }, [communityId]);
+
+  // Subscribe to join requests for private communities
+  useEffect(() => {
+    if (!community || community.isPublic || !isAdmin) {
+      return;
+    }
+
+    const unsubscribe = subscribeToJoinRequests(
+      communityId,
+      async (requests) => {
+        setJoinRequests(requests);
+
+        // Fetch profiles for all requesting users
+        const profiles = {};
+        await Promise.all(
+          requests.map(async (request) => {
+            try {
+              const profile = await getUserProfile(request.userId);
+              if (profile) {
+                profiles[request.userId] = profile;
+              }
+            } catch (error) {
+              console.error(
+                `Error fetching profile for ${request.userId}:`,
+                error,
+              );
+            }
+          }),
+        );
+        setJoinRequestProfiles(profiles);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [communityId, community?.isPublic, isAdmin]);
 
   const loadData = async () => {
     try {
@@ -218,6 +259,38 @@ const CommunitySettings = ({ communityId, userRole }) => {
     }
   };
 
+  const handleApproveRequest = async (userId) => {
+    if (!isAdmin) return;
+
+    setApprovalProcessing((prev) => ({ ...prev, [userId]: true }));
+    try {
+      await approveJoinRequest(communityId, userId, currentUser.uid);
+      alert("Request approved! User has been added to the community.");
+      // Requests will be updated via the subscription
+    } catch (error) {
+      console.error("Error approving request:", error);
+      alert(error.message || "Failed to approve request");
+    } finally {
+      setApprovalProcessing((prev) => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const handleRejectRequest = async (userId) => {
+    if (!isAdmin) return;
+
+    setApprovalProcessing((prev) => ({ ...prev, [userId]: true }));
+    try {
+      await rejectJoinRequest(communityId, userId, currentUser.uid);
+      alert("Request rejected.");
+      // Requests will be updated via the subscription
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+      alert(error.message || "Failed to reject request");
+    } finally {
+      setApprovalProcessing((prev) => ({ ...prev, [userId]: false }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -283,6 +356,18 @@ const CommunitySettings = ({ communityId, userRole }) => {
             >
               Members ({members.length})
             </button>
+            {!community?.isPublic && isAdmin && (
+              <button
+                onClick={() => setActiveTab("joinRequests")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "joinRequests"
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+              >
+                Join Requests ({joinRequests.length})
+              </button>
+            )}
           </nav>
         </div>
 
@@ -310,6 +395,79 @@ const CommunitySettings = ({ communityId, userRole }) => {
               currentUserId={currentUser.uid}
               isCreator={isCreator}
             />
+          )}
+          {activeTab === "joinRequests" && (
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-6">
+                Pending Join Requests
+              </h3>
+              {joinRequests.length === 0 ? (
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center">
+                  <p className="text-gray-600 dark:text-gray-300">
+                    No pending join requests
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {joinRequests.map((request) => {
+                    const profile = joinRequestProfiles[request.userId] || {};
+                    const isProcessing = approvalProcessing[request.userId];
+
+                    return (
+                      <div
+                        key={request.userId}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-4">
+                          {profile.photoURL && (
+                            <img
+                              src={profile.photoURL}
+                              alt={profile.displayName || "User"}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          )}
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {profile.displayName ||
+                                request.userName ||
+                                "Unknown User"}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {profile.email || request.email}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              Requested:{" "}
+                              {request.requestedAt?.toDate?.()
+                                ? new Date(
+                                    request.requestedAt.toDate(),
+                                  ).toLocaleDateString()
+                                : "Recently"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleApproveRequest(request.userId)}
+                            disabled={isProcessing}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors text-sm"
+                          >
+                            {isProcessing ? "Processing..." : "Approve"}
+                          </button>
+                          <button
+                            onClick={() => handleRejectRequest(request.userId)}
+                            disabled={isProcessing}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors text-sm"
+                          >
+                            {isProcessing ? "Processing..." : "Reject"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

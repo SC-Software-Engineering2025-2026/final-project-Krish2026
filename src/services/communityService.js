@@ -6,6 +6,7 @@ import {
   addDoc,
   getDoc,
   getDocs,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -30,6 +31,9 @@ import {
   createCommunityMemberJoinedNotification,
   createCommunityRoleChangedNotification,
   createCommunityMemberKickedNotification,
+  createCommunityJoinRequestNotification,
+  createCommunityJoinRequestApprovedNotification,
+  createCommunityJoinRequestRejectedNotification,
 } from "./notificationService";
 import { getUserProfile } from "./profileService";
 
@@ -854,6 +858,19 @@ export const removeMember = async (communityId, userIdToRemove, adminId) => {
       updatedAt: serverTimestamp(),
     });
 
+    // Delete any pending join request so they can request again
+    try {
+      const requestRef = doc(
+        db,
+        `communities/${communityId}/joinRequests`,
+        userIdToRemove,
+      );
+      await deleteDoc(requestRef);
+    } catch (error) {
+      // Join request may not exist, that's okay
+      console.debug("No join request to clean up:", error.message);
+    }
+
     // Remove from members subcollection
     const membersQuery = query(
       collection(db, `communities/${communityId}/communityMembers`),
@@ -1094,6 +1111,19 @@ export const banUserFromCommunity = async (
 
     await batch.commit();
 
+    // Delete any pending join request so they can request again
+    try {
+      const requestRef = doc(
+        db,
+        `communities/${communityId}/joinRequests`,
+        userIdToBan,
+      );
+      await deleteDoc(requestRef);
+    } catch (error) {
+      // Join request may not exist, that's okay
+      console.debug("No join request to clean up:", error.message);
+    }
+
     // Remove from members subcollection
     const membersQuery = query(
       collection(db, `communities/${communityId}/communityMembers`),
@@ -1201,6 +1231,324 @@ export const subscribeToCommunity = (communityId, callback) => {
   );
 };
 
+/**
+ * Send a join request for a private community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID requesting to join
+ * @param {Object} userProfile - User profile data
+ * @returns {Promise<void>}
+ */
+export const sendJoinRequest = async (communityId, userId, userProfile) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if already a member
+    if (communityData.members?.includes(userId)) {
+      throw new Error("Already a member of this community");
+    }
+
+    // Check if user is banned
+    if (communityData.bannedUsers?.includes(userId)) {
+      throw new Error("You are banned from this community");
+    }
+
+    // Check if user already has a pending request
+    const existingRequest = await getDoc(
+      doc(db, `communities/${communityId}/joinRequests`, userId),
+    );
+
+    if (existingRequest.exists()) {
+      throw new Error("You have already requested to join this community");
+    }
+
+    // Create join request
+    await setDoc(doc(db, `communities/${communityId}/joinRequests`, userId), {
+      userId,
+      userName:
+        userProfile?.displayName || userProfile?.username || "Unknown User",
+      userImage: userProfile?.photoURL || "",
+      email: userProfile?.email || "",
+      requestedAt: serverTimestamp(),
+      status: "pending",
+    });
+
+    // Send notifications to all admins
+    try {
+      const admins = communityData.admins || [communityData.creatorId];
+
+      // Notify each admin
+      for (const adminId of admins) {
+        await createCommunityJoinRequestNotification(
+          userId,
+          communityId,
+          adminId,
+          userProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating join request notifications:", notifError);
+      // Don't throw error, join request was successful
+    }
+  } catch (error) {
+    console.error("Error sending join request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all pending join requests for a community
+ * @param {string} communityId - Community ID
+ * @returns {Promise<Array>} Array of join requests
+ */
+export const getJoinRequests = async (communityId) => {
+  try {
+    const requestsSnapshot = await getDocs(
+      query(
+        collection(db, `communities/${communityId}/joinRequests`),
+        where("status", "==", "pending"),
+        orderBy("requestedAt", "asc"),
+      ),
+    );
+
+    return requestsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting join requests:", error);
+    throw error;
+  }
+};
+
+/**
+ * Subscribe to join requests in real-time
+ * @param {string} communityId - Community ID
+ * @param {Function} callback - Callback function to receive requests
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToJoinRequests = (communityId, callback) => {
+  return onSnapshot(
+    query(
+      collection(db, `communities/${communityId}/joinRequests`),
+      where("status", "==", "pending"),
+      orderBy("requestedAt", "asc"),
+    ),
+    (snapshot) => {
+      const requests = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(requests);
+    },
+    (error) => {
+      console.error("Error subscribing to join requests:", error);
+      callback([]);
+    },
+  );
+};
+
+/**
+ * Approve a join request and add user to community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID to approve
+ * @param {string} adminId - Admin ID approving the request
+ */
+export const approveJoinRequest = async (communityId, userId, adminId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if approver is an admin
+    if (!communityData.admins?.includes(adminId)) {
+      throw new Error("Only admins can approve join requests");
+    }
+
+    // Check if user is already a member
+    if (communityData.members?.includes(userId)) {
+      throw new Error("User is already a member of this community");
+    }
+
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
+    // Add user to members array and increment count
+    batch.update(communityRef, {
+      members: arrayUnion(userId),
+      memberCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    batch.update(userRef, {
+      joinedCommunities: arrayUnion(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update join request status to approved
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    batch.update(requestRef, {
+      status: "approved",
+      approvedAt: serverTimestamp(),
+      approvedBy: adminId,
+    });
+
+    await batch.commit();
+
+    // Add to community members subcollection
+    await addDoc(
+      collection(db, `communities/${communityId}/communityMembers`),
+      {
+        userId,
+        role: "member",
+        joinedAt: serverTimestamp(),
+      },
+    );
+
+    // Create notification for the approved user
+    try {
+      await createCommunityJoinRequestApprovedNotification(
+        userId,
+        communityId,
+        communityData,
+      );
+    } catch (notifError) {
+      console.error("Error creating approval notification:", notifError);
+      // Don't throw error, approval was successful
+    }
+  } catch (error) {
+    console.error("Error approving join request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Reject a join request
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID to reject
+ * @param {string} adminId - Admin ID rejecting the request
+ */
+export const rejectJoinRequest = async (communityId, userId, adminId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if rejector is an admin
+    if (!communityData.admins?.includes(adminId)) {
+      throw new Error("Only admins can reject join requests");
+    }
+
+    // Update join request status to rejected
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    await updateDoc(requestRef, {
+      status: "rejected",
+      rejectedAt: serverTimestamp(),
+      rejectedBy: adminId,
+    });
+
+    // Send rejection notification to the user
+    try {
+      await createCommunityJoinRequestRejectedNotification(
+        userId,
+        communityId,
+        communityData,
+      );
+    } catch (notifError) {
+      console.error("Error creating rejection notification:", notifError);
+      // Don't throw error, rejection was successful
+    }
+  } catch (error) {
+    console.error("Error rejecting join request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if user has a pending join request for a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} True if user has pending request
+ */
+export const hasPendingJoinRequest = async (communityId, userId) => {
+  try {
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    const requestDoc = await getDoc(requestRef);
+
+    if (!requestDoc.exists()) {
+      return false;
+    }
+
+    return requestDoc.data().status === "pending";
+  } catch (error) {
+    console.error("Error checking join request status:", error);
+    return false;
+  }
+};
+
+/**
+ * Cancel a pending join request
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID canceling the request
+ * @returns {Promise<void>}
+ */
+export const cancelJoinRequest = async (communityId, userId) => {
+  try {
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    const requestDoc = await getDoc(requestRef);
+
+    if (!requestDoc.exists()) {
+      throw new Error("Join request not found");
+    }
+
+    const requestData = requestDoc.data();
+    if (requestData.status !== "pending") {
+      throw new Error("Only pending requests can be cancelled");
+    }
+
+    // Delete the request
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error canceling join request:", error);
+    throw error;
+  }
+};
+
 export default {
   createCommunity,
   getCommunity,
@@ -1223,4 +1571,11 @@ export default {
   updateHomePageContent,
   updateHomePageSections,
   subscribeToCommunity,
+  sendJoinRequest,
+  getJoinRequests,
+  subscribeToJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
+  hasPendingJoinRequest,
+  cancelJoinRequest,
 };

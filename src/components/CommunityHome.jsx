@@ -5,6 +5,9 @@ import {
   getCommunity,
   updateHomePageSections,
   leaveCommunity,
+  sendJoinRequest,
+  hasPendingJoinRequest,
+  cancelJoinRequest,
 } from "../services/communityService";
 import ImageCropper from "./ImageCropper";
 import { getCroppedImg } from "../utils/cropImage";
@@ -17,8 +20,10 @@ const CommunityHome = ({
   userRole,
   isMember = true,
   isBanned = false,
+  isPrivate = false,
   onJoin,
   joining = false,
+  onRequestAccess,
 }) => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +38,9 @@ const CommunityHome = ({
   const [cropperImage, setCropperImage] = useState(null);
   const [cropperFile, setCropperFile] = useState(null);
   const [draggedImageIndex, setDraggedImageIndex] = useState(null);
+  const [requestingAccess, setRequestingAccess] = useState(false);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [cancelingRequest, setCancelingRequest] = useState(false);
   const dropdownRef = useRef(null);
 
   const isAdmin = userRole === "admin";
@@ -52,6 +60,22 @@ const CommunityHome = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Check for pending join request when not a member and community is private
+  useEffect(() => {
+    const checkPendingRequest = async () => {
+      if (!isMember && isPrivate && currentUser?.uid) {
+        try {
+          const has = await hasPendingJoinRequest(communityId, currentUser.uid);
+          setHasPendingRequest(has);
+        } catch (error) {
+          console.error("Error checking request status:", error);
+        }
+      }
+    };
+
+    checkPendingRequest();
+  }, [isMember, isPrivate, communityId, currentUser?.uid]);
 
   const loadCommunity = async () => {
     try {
@@ -104,6 +128,37 @@ const CommunityHome = ({
     setBio(sections.bio || "");
     setImages((sections.imageUrls || []).map((url) => ({ url, isNew: false })));
     setIsEditing(false);
+  };
+
+  const handleRequestAccess = async () => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setRequestingAccess(true);
+      await onRequestAccess();
+      setHasPendingRequest(true);
+    } catch (error) {
+      console.error("Error requesting access:", error);
+      alert(error.message || "Failed to send request");
+    } finally {
+      setRequestingAccess(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    try {
+      setCancelingRequest(true);
+      await cancelJoinRequest(communityId, currentUser.uid);
+      setHasPendingRequest(false);
+    } catch (error) {
+      console.error("Error canceling join request:", error);
+      alert(error.message || "Failed to cancel request");
+    } finally {
+      setCancelingRequest(false);
+    }
   };
 
   const handleAddImage = (event) => {
@@ -234,22 +289,46 @@ const CommunityHome = ({
           ) : (
             <>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Join {community?.name}
+                {isPrivate ? "Request Access" : "Join"} {community?.name}
               </h2>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Become a member to fully participate in this community
+                {isPrivate
+                  ? "This is a private community. Send a request to the admins for access."
+                  : "Become a member to fully participate in this community"}
               </p>
-              <button
-                onClick={onJoin}
-                disabled={joining}
-                className="px-8 py-3 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
-                style={{
-                  backgroundColor: COLORS.Dark_Gray,
-                  color: COLORS.Beige,
-                }}
-              >
-                {joining ? "Joining..." : "Join Community"}
-              </button>
+              {hasPendingRequest ? (
+                <div className="flex items-center justify-between px-8 py-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700">
+                  <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+                    Your request is pending admin approval
+                  </p>
+                  <button
+                    onClick={handleCancelRequest}
+                    disabled={cancelingRequest}
+                    className="ml-4 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-red-600 dark:text-red-400 font-bold text-xl"
+                    title="Cancel join request"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={isPrivate ? handleRequestAccess : onJoin}
+                  disabled={joining || requestingAccess}
+                  className="px-8 py-3 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+                  style={{
+                    backgroundColor: COLORS.Dark_Gray,
+                    color: COLORS.Beige,
+                  }}
+                >
+                  {isPrivate
+                    ? requestingAccess
+                      ? "Sending Request..."
+                      : "Request Access"
+                    : joining
+                      ? "Joining..."
+                      : "Join Community"}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -274,7 +353,15 @@ const CommunityHome = ({
                 {community?.description}
               </p>
               <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                <span>{community?.memberCount} members</span>
+                <span>
+                  {
+                    new Set([
+                      ...(community?.members || []),
+                      ...(community?.admins || []),
+                    ]).size
+                  }{" "}
+                  members
+                </span>
                 <span>•</span>
                 <span>{community?.isPublic ? "Public" : "Private"}</span>
                 {community?.categories?.some((cat) => cat) && (

@@ -10,6 +10,10 @@ import {
   rejectFollowRequest,
   getUserProfile,
 } from "../services/profileService";
+import {
+  approveJoinRequest,
+  rejectJoinRequest,
+} from "../services/communityService";
 import { useAuth } from "../context/AuthContext";
 
 const NotificationCard = ({ notification }) => {
@@ -146,6 +150,48 @@ const NotificationCard = ({ notification }) => {
     } catch (error) {
       console.error("Error declining follow request:", error);
       alert("Failed to decline follow request");
+    } finally {
+      setProcessingRequest(false);
+    }
+  };
+
+  const handleApproveCommunityJoinRequest = async (e) => {
+    e.stopPropagation();
+    if (!currentUser) return;
+
+    try {
+      setProcessingRequest(true);
+      await approveJoinRequest(
+        notification.communityId,
+        notification.actorId,
+        currentUser.uid,
+      );
+      // Mark notification as read and delete it
+      await deleteNotification(notification.id);
+    } catch (error) {
+      console.error("Error approving join request:", error);
+      alert("Failed to approve join request");
+    } finally {
+      setProcessingRequest(false);
+    }
+  };
+
+  const handleRejectCommunityJoinRequest = async (e) => {
+    e.stopPropagation();
+    if (!currentUser) return;
+
+    try {
+      setProcessingRequest(true);
+      await rejectJoinRequest(
+        notification.communityId,
+        notification.actorId,
+        currentUser.uid,
+      );
+      // Delete the notification after rejecting
+      await deleteNotification(notification.id);
+    } catch (error) {
+      console.error("Error rejecting join request:", error);
+      alert("Failed to reject join request");
     } finally {
       setProcessingRequest(false);
     }
@@ -396,6 +442,26 @@ const NotificationCard = ({ notification }) => {
                 className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {processingRequest ? "Processing..." : "Decline"}
+              </button>
+            </div>
+          )}
+
+          {/* Community Join Request Action Buttons */}
+          {notification.type === "community_join_request" && (
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleApproveCommunityJoinRequest}
+                disabled={processingRequest}
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {processingRequest ? "Processing..." : "Approve"}
+              </button>
+              <button
+                onClick={handleRejectCommunityJoinRequest}
+                disabled={processingRequest}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {processingRequest ? "Processing..." : "Reject"}
               </button>
             </div>
           )}

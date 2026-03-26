@@ -1034,7 +1034,15 @@ const ProfilePage = () => {
                               {community.description || "No description"}
                             </p>
                             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-stone-400">
-                              <span>{community.memberCount} members</span>
+                              <span>
+                                {
+                                  new Set([
+                                    ...(community.members || []),
+                                    ...(community.admins || []),
+                                  ]).size
+                                }{" "}
+                                members
+                              </span>
                               <span>•</span>
                               <span>
                                 {community.isPublic ? "Public" : "Private"}

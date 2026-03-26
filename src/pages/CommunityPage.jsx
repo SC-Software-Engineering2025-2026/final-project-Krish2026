@@ -11,6 +11,7 @@ import {
   subscribeToCommunity,
   isUserBanned,
   subscribeToUserBanStatus,
+  sendJoinRequest,
 } from "../services/communityService";
 import { useCommunityRole } from "../hooks/useCommunityPermissions";
 import CommunityHome from "../components/CommunityHome";
@@ -23,6 +24,7 @@ import UserToAdminMessaging from "../components/UserToAdminMessaging";
 import MediaLibrary from "../components/MediaLibrary";
 import CommunitySettings from "../components/CommunitySettings";
 import { COLORS } from "../theme/colors";
+import { getUserProfile } from "../services/profileService";
 
 const CommunityPage = () => {
   const { communityId } = useParams(); // Community ID from URL
@@ -101,6 +103,30 @@ const CommunityPage = () => {
     }
   };
 
+  // Handle requesting access to a private community
+  const handleRequestAccess = async () => {
+    if (!currentUser) {
+      navigate("/login"); // Redirect to login if not authenticated
+      return;
+    }
+
+    try {
+      // Get user profile to include in the request
+      const userProfile = await getUserProfile(currentUser.uid);
+
+      if (!userProfile) {
+        throw new Error("Could not load your profile");
+      }
+
+      // Send join request
+      await sendJoinRequest(communityId, currentUser.uid, userProfile);
+      alert("Your request has been sent to the community admins for approval");
+    } catch (error) {
+      console.error("Error sending request:", error);
+      throw error; // Re-throw for CommunityHome to handle
+    }
+  };
+
   if (loading || roleLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
@@ -129,44 +155,8 @@ const CommunityPage = () => {
     );
   }
 
-  // Allow non-members to view public communities but they will see join button on home page
-  // We don't block access, just pass the isMember status to components
-
-  // Private community non-member view
-  if (!isMember && !community.isPublic) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center bg-gray-50 dark:bg-gray-900 min-h-screen">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
-          <svg
-            className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
-          </svg>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Private Community
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            This is a private community. You need an invitation to join.
-          </p>
-          <button
-            onClick={() => navigate("/communities")}
-            className="px-6 py-2 rounded-lg"
-            style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
-          >
-            Browse Other Communities
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Allow non-members to view both public and private communities
+  // They will see a "Request Access" button for private communities instead of "Join"
 
   // Determine available tabs based on community type
   const tabs = [];
@@ -220,7 +210,13 @@ const CommunityPage = () => {
                   {community.name}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {community.memberCount} members
+                  {
+                    new Set([
+                      ...(community.members || []),
+                      ...(community.admins || []),
+                    ]).size
+                  }{" "}
+                  members
                 </p>
               </div>
             </div>
@@ -260,8 +256,10 @@ const CommunityPage = () => {
               userRole={role}
               isMember={isMember}
               isBanned={isBanned}
+              isPrivate={!community.isPublic}
               onJoin={handleJoin}
               joining={joining}
+              onRequestAccess={handleRequestAccess}
             />
           ) : (
             <InfoCommunityHome
@@ -269,8 +267,10 @@ const CommunityPage = () => {
               userRole={role}
               isMember={isMember}
               isBanned={isBanned}
+              isPrivate={!community.isPublic}
               onJoin={handleJoin}
               joining={joining}
+              onRequestAccess={handleRequestAccess}
             />
           ))}
 
