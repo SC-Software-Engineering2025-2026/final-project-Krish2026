@@ -35,7 +35,7 @@ One reason why I chose this project is that I feel like real diverse communities
 
 ### Core Features
 
-- [ ] **Feature 1:** Private Community page where people can post pictures, videos, and text threads
+- [x] **Feature 1:** Private Community page where people can post pictures, videos, and text threads
 - [x] **Feature 2:** Public Community page where people can post pictures, videos, and text threads
 - [x] **Feature 3:** Discover page where people can find new communities
 - [x] **Feature 4:** Home page where the user has a feed of all posts from communities they already follow
