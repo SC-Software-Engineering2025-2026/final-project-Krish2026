@@ -1,0 +1,316 @@
+// ===== Community Page Component =====
+// Main container for viewing/managing a specific community
+// Handles tab routing, membership checks, ban status, and permissions
+
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  getCommunity,
+  joinCommunity,
+  subscribeToCommunity,
+  isUserBanned,
+  subscribeToUserBanStatus,
+  sendJoinRequest,
+} from "../services/communityService";
+import { useCommunityRole } from "../hooks/useCommunityPermissions";
+import CommunityHome from "../components/CommunityHome";
+import InfoCommunityHome from "../components/InfoCommunityHome";
+import CommunityPosts from "../components/CommunityPosts";
+import InfoCommunityPosts from "../components/InfoCommunityPosts";
+import CommunityChat from "../components/CommunityChat";
+import AdminChat from "../components/AdminChat";
+import UserToAdminMessaging from "../components/UserToAdminMessaging";
+import MediaLibrary from "../components/MediaLibrary";
+import CommunitySettings from "../components/CommunitySettings";
+import { COLORS } from "../theme/colors";
+import { getUserProfile } from "../services/profileService";
+
+const CommunityPage = () => {
+  const { communityId } = useParams(); // Community ID from URL
+  const { currentUser } = useAuth(); // Current logged-in user
+  const navigate = useNavigate();
+
+  // STATE MANAGEMENT
+  const [community, setCommunity] = useState(null); // Community data
+  const [loading, setLoading] = useState(true); // Data loading indicator
+  const [activeTab, setActiveTab] = useState("home"); // Currently active tab
+  const [joining, setJoining] = useState(false); // Join button loading state
+  const [membershipRefresh, setMembershipRefresh] = useState(0); // Trigger for re-checking membership
+  const [isBanned, setIsBanned] = useState(false); // User's ban status
+
+  // Get user's role and permissions in this community
+  const {
+    role,
+    isAdmin,
+    isMember,
+    loading: roleLoading,
+  } = useCommunityRole(communityId, currentUser?.uid, membershipRefresh);
+
+  // EFFECT: Subscribe to real-time community data updates
+  useEffect(() => {
+    if (!communityId) return;
+
+    // Listen for any changes to community (name, description, members, etc.)
+    const unsubscribe = subscribeToCommunity(communityId, (data) => {
+      setCommunity(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, [communityId]);
+
+  // EFFECT: Check if user is banned from this community
+  useEffect(() => {
+    if (!currentUser || !communityId) return;
+
+    // Listen for real-time ban status updates
+    const unsubscribe = subscribeToUserBanStatus(
+      communityId,
+      currentUser.uid,
+      (banned) => {
+        setIsBanned(banned);
+      },
+    );
+
+    return () => unsubscribe(); // Cleanup listener
+  }, [communityId, currentUser?.uid]);
+
+  // Handle joining the community
+  const handleJoin = async () => {
+    if (!currentUser) {
+      navigate("/login"); // Redirect to login if not authenticated
+      return;
+    }
+
+    if (isBanned) {
+      alert("You are banned from this community");
+      return;
+    }
+
+    setJoining(true);
+    try {
+      await joinCommunity(communityId, currentUser.uid);
+      // Refresh membership status to update UI
+      setMembershipRefresh((prev) => prev + 1);
+      // Set active tab to home
+      setActiveTab("home");
+    } catch (error) {
+      console.error("Error joining community:", error);
+      alert(error.message || "Failed to join community");
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  // Handle requesting access to a private community
+  const handleRequestAccess = async () => {
+    if (!currentUser) {
+      navigate("/login"); // Redirect to login if not authenticated
+      return;
+    }
+
+    try {
+      // Get user profile to include in the request
+      const userProfile = await getUserProfile(currentUser.uid);
+
+      if (!userProfile) {
+        throw new Error("Could not load your profile");
+      }
+
+      // Send join request
+      await sendJoinRequest(communityId, currentUser.uid, userProfile);
+      alert("Your request has been sent to the community admins for approval");
+    } catch (error) {
+      console.error("Error sending request:", error);
+      throw error; // Re-throw for CommunityHome to handle
+    }
+  };
+
+  if (loading || roleLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 dark:border-blue-400"></div>
+      </div>
+    );
+  }
+
+  if (!community) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          Community Not Found
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          The community you're looking for doesn't exist.
+        </p>
+        <button
+          onClick={() => navigate("/communities")}
+          className="px-6 py-2 rounded-lg"
+          style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+        >
+          Browse Communities
+        </button>
+      </div>
+    );
+  }
+
+  // Allow non-members to view both public and private communities
+  // They will see a "Request Access" button for private communities instead of "Join"
+
+  // Determine available tabs based on community type
+  const tabs = [];
+  tabs.push({ id: "home", label: "Home" });
+
+  // Only show other tabs if user is a member
+  if (isMember) {
+    tabs.push({ id: "posts", label: "Posts" });
+
+    if (community.isCollaborative) {
+      // Check if chat is enabled (defaults to true if not specified)
+      if (community.chatEnabled !== false) {
+        tabs.push({ id: "chat", label: "Chat" });
+      }
+      // Check if media is enabled (defaults to true if not specified)
+      if (community.mediaEnabled !== false) {
+        tabs.push({ id: "media", label: "Media" });
+      }
+    } else {
+      // Informational community tabs
+      if (isAdmin) {
+        tabs.push({ id: "adminChat", label: "Admin Chat" });
+      }
+      tabs.push({
+        id: "userToAdmin",
+        label: isAdmin ? "Member Messages" : "Message Admins",
+      });
+    }
+
+    if (isAdmin) {
+      tabs.push({ id: "settings", label: "Settings" });
+    }
+  } // End of isMember check
+
+  return (
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-8">
+      {/* Community Header */}
+      <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center space-x-4">
+              {community.imageUrl && (
+                <img
+                  src={community.imageUrl}
+                  alt={community.name}
+                  className="w-12 h-12 rounded-lg object-cover"
+                />
+              )}
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {community.name}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {
+                    new Set([
+                      ...(community.members || []),
+                      ...(community.admins || []),
+                    ]).size
+                  }{" "}
+                  members
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/communities")}
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            >
+              Back to Communities
+            </button>
+          </div>
+
+          {/* Navigation Tabs */}
+          <nav className="flex space-x-1 overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-3 font-medium text-sm whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? "border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {activeTab === "home" &&
+          (community.isCollaborative ? (
+            <CommunityHome
+              communityId={communityId}
+              userRole={role}
+              isMember={isMember}
+              isBanned={isBanned}
+              isPrivate={!community.isPublic}
+              onJoin={handleJoin}
+              joining={joining}
+              onRequestAccess={handleRequestAccess}
+            />
+          ) : (
+            <InfoCommunityHome
+              communityId={communityId}
+              userRole={role}
+              isMember={isMember}
+              isBanned={isBanned}
+              isPrivate={!community.isPublic}
+              onJoin={handleJoin}
+              joining={joining}
+              onRequestAccess={handleRequestAccess}
+            />
+          ))}
+
+        {activeTab === "posts" &&
+          (community.isCollaborative ? (
+            <CommunityPosts
+              communityId={communityId}
+              userRole={role}
+              isCollaborative={community.isCollaborative}
+            />
+          ) : (
+            <InfoCommunityPosts
+              communityId={communityId}
+              userRole={role}
+              isCollaborative={community.isCollaborative}
+            />
+          ))}
+
+        {activeTab === "chat" && community.isCollaborative && (
+          <CommunityChat communityId={communityId} />
+        )}
+
+        {activeTab === "adminChat" && !community.isCollaborative && isAdmin && (
+          <AdminChat communityId={communityId} />
+        )}
+
+        {activeTab === "userToAdmin" && !community.isCollaborative && (
+          <UserToAdminMessaging communityId={communityId} userRole={role} />
+        )}
+
+        {activeTab === "media" && community.isCollaborative && (
+          <MediaLibrary communityId={communityId} userRole={role} />
+        )}
+
+        {activeTab === "settings" && isAdmin && (
+          <CommunitySettings communityId={communityId} userRole={role} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CommunityPage;

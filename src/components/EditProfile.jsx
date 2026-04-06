@@ -1,0 +1,905 @@
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import {
+  updateUserProfile,
+  uploadProfileImage,
+  uploadCoverImages,
+  uploadBannerImage,
+  removeCoverImage,
+  removeBannerImage,
+  addProfileLink,
+  removeProfileLink,
+  isUsernameAvailable,
+} from "../services/profileService";
+import {
+  XMarkIcon,
+  PhotoIcon,
+  PlusIcon,
+  TrashIcon,
+  CheckIcon,
+  PencilIcon,
+} from "@heroicons/react/24/outline";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
+import { COLORS } from "../theme/colors";
+
+const EditProfile = ({ profile, onSave, onCancel }) => {
+  const { currentUser } = useAuth();
+  const [formData, setFormData] = useState({
+    displayName: profile.displayName || "",
+    firstName: profile.firstName || "",
+    lastName: profile.lastName || "",
+    username: profile.username || "",
+    bio: profile.bio || "",
+    email: profile.email || currentUser?.email || "",
+  });
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [profileImageOriginalFile, setProfileImageOriginalFile] =
+    useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState(
+    profile.profileImage,
+  );
+  const [bannerImageFile, setBannerImageFile] = useState(null);
+  const [bannerImageOriginalFile, setBannerImageOriginalFile] = useState(null);
+  const [bannerImagePreview, setBannerImagePreview] = useState(
+    profile.bannerImage,
+  );
+  const [coverImageFiles, setCoverImageFiles] = useState([]);
+  const [coverImagePreviews, setCoverImagePreviews] = useState(
+    profile.coverImages || [],
+  );
+  const [links, setLinks] = useState(profile.links || []);
+  const [newLink, setNewLink] = useState({ title: "", url: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [usernameError, setUsernameError] = useState(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [cropperImage, setCropperImage] = useState(null);
+  const [cropperFile, setCropperFile] = useState(null);
+  const [cropperType, setCropperType] = useState(null); // 'profile', 'banner', or 'cover'
+  const [cropperInitialCrop, setCropperInitialCrop] = useState({ x: 0, y: 0 });
+  const [cropperInitialZoom, setCropperInitialZoom] = useState(1);
+
+  // Store crop/zoom data for images
+  const [profileImageCropData, setProfileImageCropData] = useState(
+    profile.profileImageCropData || null,
+  );
+  const [bannerImageCropData, setBannerImageCropData] = useState(
+    profile.bannerImageCropData || null,
+  );
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData({ ...formData, [name]: value });
+
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors({ ...fieldErrors, [name]: false });
+    }
+
+    // Check username availability
+    if (name === "username") {
+      checkUsername(value);
+    }
+  };
+
+  const checkUsername = async (username) => {
+    if (!username || username === profile.username) {
+      setUsernameError(null);
+      return;
+    }
+
+    setUsernameChecking(true);
+    try {
+      const available = await isUsernameAvailable(username, currentUser.uid);
+      setUsernameError(available ? null : "Username is already taken");
+    } catch (err) {
+      console.error("Error checking username:", err);
+    } finally {
+      setUsernameChecking(false);
+    }
+  };
+
+  const handleProfileImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size should be less than 5MB");
+        return;
+      }
+      // Store the original file for future editing
+      setProfileImageOriginalFile(file);
+      // Show cropper for profile
+      setCropperFile(file);
+      setCropperImage(URL.createObjectURL(file));
+      setCropperType("profile");
+    }
+  };
+
+  const handleEditProfileImage = async () => {
+    // Use the original image if available, otherwise use the current preview
+    const imageToEdit = profile.profileImageOriginal || profileImagePreview;
+    if (imageToEdit) {
+      // Set saved crop/zoom values if they exist
+      if (profile.profileImageCropData) {
+        setCropperInitialCrop(
+          profile.profileImageCropData.crop || { x: 0, y: 0 },
+        );
+        setCropperInitialZoom(profile.profileImageCropData.zoom || 1);
+      } else {
+        setCropperInitialCrop({ x: 0, y: 0 });
+        setCropperInitialZoom(1);
+      }
+
+      // Edit existing profile image - use original if available
+      setCropperImage(imageToEdit);
+      setCropperType("profile");
+      // Create a placeholder file name for existing images
+      setCropperFile({ name: "profile-image.jpg" });
+
+      // Fetch the original image as a file for re-uploading
+      try {
+        const response = await fetch(imageToEdit);
+        const blob = await response.blob();
+        const file = new File([blob], "profile-image-original.jpg", {
+          type: blob.type,
+        });
+        setProfileImageOriginalFile(file);
+      } catch (error) {
+        console.error("Error fetching original image:", error);
+      }
+    }
+  };
+
+  const handleBannerImageChange = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
+    // Store the original file for future editing
+    setBannerImageOriginalFile(file);
+    // Show cropper for banner
+    setCropperFile(file);
+    setCropperImage(URL.createObjectURL(file));
+    setCropperType("banner");
+  };
+
+  const handleEditBannerImage = async () => {
+    // Use the original image if available, otherwise use the current preview
+    const imageToEdit = profile.bannerImageOriginal || bannerImagePreview;
+    if (imageToEdit) {
+      // Set saved crop/zoom values if they exist
+      if (profile.bannerImageCropData) {
+        setCropperInitialCrop(
+          profile.bannerImageCropData.crop || { x: 0, y: 0 },
+        );
+        setCropperInitialZoom(profile.bannerImageCropData.zoom || 1);
+      } else {
+        setCropperInitialCrop({ x: 0, y: 0 });
+        setCropperInitialZoom(1);
+      }
+
+      // Edit existing banner image - use original if available
+      setCropperImage(imageToEdit);
+      setCropperType("banner");
+      // Create a placeholder file name for existing images
+      setCropperFile({ name: "banner-image.jpg" });
+
+      // Fetch the original image as a file for re-uploading
+      try {
+        const response = await fetch(imageToEdit);
+        const blob = await response.blob();
+        const file = new File([blob], "banner-image-original.jpg", {
+          type: blob.type,
+        });
+        setBannerImageOriginalFile(file);
+      } catch (error) {
+        console.error("Error fetching original banner:", error);
+      }
+    }
+  };
+
+  const handleRemoveBannerImage = async () => {
+    try {
+      // If it's an existing banner image (URL), remove from Firestore
+      if (bannerImagePreview && bannerImagePreview.startsWith("http")) {
+        await removeBannerImage(currentUser.uid);
+      }
+
+      // Clear preview and file
+      setBannerImageFile(null);
+      setBannerImagePreview(null);
+    } catch (err) {
+      console.error("Error removing banner image:", err);
+      alert("Failed to remove banner image");
+    }
+  };
+
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    if (coverImagePreviews.length >= 5) {
+      alert("Maximum 5 cover images allowed");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
+    // Show cropper for cover
+    setCropperFile(file);
+    setCropperImage(URL.createObjectURL(file));
+    setCropperType("cover");
+  };
+
+  const handleCropComplete = async (croppedAreaPixels, crop, zoom) => {
+    try {
+      const croppedBlob = await getCroppedImg(cropperImage, croppedAreaPixels);
+      const croppedFile = new File([croppedBlob], cropperFile.name, {
+        type: "image/jpeg",
+      });
+
+      // Save crop and zoom data
+      const cropData = { crop, zoom };
+
+      if (cropperType === "profile") {
+        setProfileImageFile(croppedFile);
+        setProfileImagePreview(URL.createObjectURL(croppedFile));
+        setProfileImageCropData(cropData);
+      } else if (cropperType === "banner") {
+        setBannerImageFile(croppedFile);
+        setBannerImagePreview(URL.createObjectURL(croppedFile));
+        setBannerImageCropData(cropData);
+      } else if (cropperType === "cover") {
+        setCoverImageFiles([...coverImageFiles, croppedFile]);
+        setCoverImagePreviews([
+          ...coverImagePreviews,
+          URL.createObjectURL(croppedFile),
+        ]);
+      }
+
+      // Close cropper
+      setCropperImage(null);
+      setCropperFile(null);
+      setCropperType(null);
+      setCropperInitialCrop({ x: 0, y: 0 });
+      setCropperInitialZoom(1);
+    } catch (err) {
+      console.error("Error cropping image:", err);
+      alert("Failed to crop image");
+    }
+  };
+
+  const handleCropCancel = () => {
+    setCropperImage(null);
+    setCropperFile(null);
+    setCropperType(null);
+    setCropperInitialCrop({ x: 0, y: 0 });
+    setCropperInitialZoom(1);
+  };
+
+  const handleRemoveCoverImage = async (index) => {
+    const imageUrl = coverImagePreviews[index];
+
+    // Remove from preview
+    const newPreviews = coverImagePreviews.filter((_, i) => i !== index);
+    setCoverImagePreviews(newPreviews);
+
+    // If it's an existing image (URL), remove from Firestore
+    if (imageUrl.startsWith("http")) {
+      try {
+        await removeCoverImage(currentUser.uid, imageUrl);
+      } catch (err) {
+        console.error("Error removing cover image:", err);
+      }
+    } else {
+      // If it's a new file, remove from files array
+      const newFiles = coverImageFiles.filter((_, i) => i !== index);
+      setCoverImageFiles(newFiles);
+    }
+  };
+
+  const handleAddLink = () => {
+    if (newLink.title && newLink.url) {
+      if (
+        !newLink.url.startsWith("http://") &&
+        !newLink.url.startsWith("https://")
+      ) {
+        alert("URL must start with http:// or https://");
+        return;
+      }
+      setLinks([...links, newLink]);
+      setNewLink({ title: "", url: "" });
+    }
+  };
+
+  const handleRemoveLink = async (index) => {
+    const linkToRemove = links[index];
+    setLinks(links.filter((_, i) => i !== index));
+
+    // If it's an existing link, remove from Firestore
+    if (profile.links?.includes(linkToRemove)) {
+      try {
+        await removeProfileLink(currentUser.uid, linkToRemove);
+      } catch (err) {
+        console.error("Error removing link:", err);
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate required fields
+    const errors = {};
+    if (!formData.displayName.trim()) errors.displayName = true;
+    if (!formData.username.trim()) errors.username = true;
+    if (!formData.email.trim()) errors.email = true;
+    if (!formData.firstName.trim()) errors.firstName = true;
+    if (!formData.lastName.trim()) errors.lastName = true;
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    if (usernameError) {
+      alert("Please fix the username error before saving");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+
+    try {
+      // Upload profile image if changed
+      if (profileImageFile) {
+        await uploadProfileImage(
+          currentUser.uid,
+          profileImageFile,
+          profileImageOriginalFile,
+          profileImageCropData,
+        );
+      }
+
+      // Upload banner image if changed
+      if (bannerImageFile) {
+        await uploadBannerImage(
+          currentUser.uid,
+          bannerImageFile,
+          bannerImageOriginalFile,
+          bannerImageCropData,
+        );
+      }
+
+      // Upload new cover images
+      if (coverImageFiles.length > 0) {
+        await uploadCoverImages(currentUser.uid, coverImageFiles);
+      }
+
+      // Update profile data
+      await updateUserProfile(currentUser.uid, {
+        displayName: formData.displayName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        username: formData.username,
+        bio: formData.bio,
+        email: formData.email,
+        links: links,
+      });
+
+      // Add new links
+      const existingLinks = profile.links || [];
+      const newLinks = links.filter((link) => !existingLinks.includes(link));
+      for (const link of newLinks) {
+        await addProfileLink(currentUser.uid, link);
+      }
+
+      onSave();
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      setError("Failed to update profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Image Cropper Modal */}
+      {cropperImage && (
+        <ImageCropper
+          image={cropperImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={
+            cropperType === "banner"
+              ? 16 / 3
+              : cropperType === "profile"
+                ? 1
+                : 3 / 4
+          }
+          cropShape={cropperType === "profile" ? "round" : "rect"}
+          initialCrop={cropperInitialCrop}
+          initialZoom={cropperInitialZoom}
+        />
+      )}
+
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Edit Profile
+            </h2>
+            <button
+              onClick={onCancel}
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+              className="p-2 rounded-full transition"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Profile Image */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Profile Picture
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="relative group w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 cursor-pointer">
+                  {profileImagePreview ? (
+                    <img
+                      key={profileImagePreview}
+                      src={`${profileImagePreview}${profileImagePreview.includes("?") ? "&" : "?"}t=${Date.now()}`}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <PhotoIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
+                    </div>
+                  )}
+                  {profileImagePreview ? (
+                    <button
+                      type="button"
+                      onClick={handleEditProfileImage}
+                      className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer"
+                    >
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PencilIcon className="h-8 w-8 text-white" />
+                      </div>
+                    </button>
+                  ) : (
+                    <label className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className="hidden"
+                      />
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PencilIcon className="h-8 w-8 text-white" />
+                      </div>
+                    </label>
+                  )}
+                </div>
+                <label className="cursor-pointer transition">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                    className="hidden"
+                  />
+                  <span
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      display: "inline-block",
+                    }}
+                  >
+                    Change Photo
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Banner Image */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Banner Image
+              </label>
+              <div className="space-y-4">
+                {bannerImagePreview && (
+                  <div className="relative group w-full h-48 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
+                    <img
+                      key={bannerImagePreview}
+                      src={`${bannerImagePreview}${bannerImagePreview.includes("?") ? "&" : "?"}t=${Date.now()}`}
+                      alt="Banner"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleEditBannerImage}
+                      className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-center justify-center cursor-pointer"
+                    >
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <PencilIcon className="h-10 w-10 text-white" />
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveBannerImage}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition z-10"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                <label className="cursor-pointer transition inline-block">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerImageChange}
+                    className="hidden"
+                  />
+                  <span
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      display: "inline-block",
+                    }}
+                  >
+                    {bannerImagePreview ? "Change Banner" : "Add Banner"}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Display Name */}
+            <div>
+              <label
+                htmlFor="displayName"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Display Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="displayName"
+                name="displayName"
+                value={formData.displayName}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.displayName
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
+                placeholder="Your name"
+              />
+              {fieldErrors.displayName && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Display name is required
+                </p>
+              )}
+            </div>
+
+            {/* First Name */}
+            <div>
+              <label
+                htmlFor="firstName"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.firstName
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
+                placeholder="First name"
+              />
+              {fieldErrors.firstName && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  First name is required
+                </p>
+              )}
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label
+                htmlFor="lastName"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.lastName
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
+                placeholder="Last name"
+              />
+              {fieldErrors.lastName && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Last name is required
+                </p>
+              )}
+            </div>
+
+            {/* Username */}
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Username <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                    usernameError || fieldErrors.username
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-600"
+                  }`}
+                  placeholder="username"
+                />
+                {usernameChecking && (
+                  <div className="absolute right-3 top-3">
+                    <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                  </div>
+                )}
+                {!usernameChecking &&
+                  formData.username &&
+                  formData.username !== profile.username &&
+                  !usernameError && (
+                    <CheckIcon className="absolute right-3 top-3 h-5 w-5 text-green-600" />
+                  )}
+              </div>
+              {usernameError && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  {usernameError}
+                </p>
+              )}
+              {fieldErrors.username && !usernameError && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Username is required
+                </p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                  fieldErrors.email
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
+                placeholder="email@example.com"
+              />
+              {fieldErrors.email && (
+                <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                  Email is required
+                </p>
+              )}
+            </div>
+
+            {/* Bio */}
+            <div>
+              <label
+                htmlFor="bio"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Bio
+              </label>
+              <textarea
+                id="bio"
+                name="bio"
+                value={formData.bio}
+                onChange={handleInputChange}
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none dark:bg-gray-700 dark:text-white"
+                placeholder="Tell us about yourself..."
+                maxLength={150}
+              />
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {formData.bio.length}/150 characters
+              </p>
+            </div>
+
+            {/* Cover Images */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Cover Images (Max 5)
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                {coverImagePreviews.map((preview, index) => (
+                  <div key={index} className="relative group">
+                    <div className="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 aspect-[3/4]">
+                      <img
+                        key={preview}
+                        src={`${preview}${preview.includes("?") ? "&" : "?"}t=${Date.now()}`}
+                        alt={`Cover ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCoverImage(index)}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <XMarkIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {coverImagePreviews.length < 5 && (
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="hidden"
+                  />
+                  <PlusIcon className="h-5 w-5" />
+                  <span>Add Cover Image</span>
+                </label>
+              )}
+            </div>
+
+            {/* Links */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Links
+              </label>
+              <div className="space-y-2 mb-4">
+                {links.map((link, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="flex-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {link.title}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                        {link.url}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveLink(index)}
+                      style={{
+                        backgroundColor: COLORS.Dark_Gray,
+                        color: COLORS.Beige,
+                      }}
+                      className="p-2 rounded-lg transition"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Link */}
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newLink.title}
+                  onChange={(e) =>
+                    setNewLink({ ...newLink, title: e.target.value })
+                  }
+                  placeholder="Link title (e.g., Website, Instagram)"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={newLink.url}
+                    onChange={(e) =>
+                      setNewLink({ ...newLink, url: e.target.value })
+                    }
+                    placeholder="https://example.com"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddLink}
+                    style={{
+                      backgroundColor: COLORS.Dark_Gray,
+                      color: COLORS.Beige,
+                    }}
+                    className="px-4 py-2 rounded-lg transition"
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={loading || usernameError}
+                style={{
+                  backgroundColor: COLORS.Dark_Gray,
+                  color: COLORS.Beige,
+                }}
+                className="flex-1 px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+              >
+                {loading ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={loading}
+                className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default EditProfile;

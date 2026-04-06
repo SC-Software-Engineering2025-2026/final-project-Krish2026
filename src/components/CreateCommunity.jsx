@@ -1,0 +1,522 @@
+import { useState, useRef } from "react";
+import { useAuth } from "../context/AuthContext";
+import { createCommunity } from "../services/communityService";
+import { useNavigate } from "react-router-dom";
+import ImageCropper from "./ImageCropper";
+import { getCroppedImg } from "../utils/cropImage";
+import COLORS from "../theme/colors";
+
+const CreateCommunity = ({ onClose }) => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const formContainerRef = useRef(null);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    isPublic: true,
+    isCollaborative: true,
+    image: null,
+    categories: [""],
+  });
+
+  // Comprehensive category list (should match settings page)
+  const CATEGORY_OPTIONS = [
+    "Sports",
+    "Discussion",
+    "School",
+    "Theater",
+    "Fashion",
+    "Design",
+    "Gaming",
+    "Music",
+    "Networking",
+    "Scientific interests",
+    "Math",
+    "Computer Science",
+    "Economics",
+    "Educational",
+    "Creative",
+    "Influencer",
+    "Emotions",
+    "Animals",
+    "Marine life",
+    "Beach",
+    "Travel",
+    "City life",
+    "Nature",
+    "Environmentalists",
+    "Photography",
+    "Videography",
+    "Filmmaking",
+    "Films",
+    "TV Shows",
+    "Cars",
+    "Racing",
+    "Show Cars",
+    // Additional categories
+    "Technology",
+    "Art",
+    "Books",
+    "Writing",
+    "Fitness",
+    "Health",
+    "Food",
+    "Cooking",
+    "Politics",
+    "History",
+    "Parenting",
+    "Relationships",
+    "Science",
+    "Space",
+    "DIY",
+    "Crafts",
+    "Finance",
+    "Investing",
+    "Startups",
+    "Entrepreneurship",
+    "Memes",
+    "Podcasts",
+    "Board Games",
+    "Card Games",
+    "Outdoors",
+    "Hiking",
+    "Camping",
+    "Wellness",
+    "Mindfulness",
+    "Language Learning",
+    "News",
+    "Events",
+  ];
+
+  // Handle dropdown change for a specific slot
+  const handleCategoryDropdownChange = (idx, value) => {
+    setFormData((prev) => {
+      const updated = [...prev.categories];
+      updated[idx] = value;
+      // If last slot and not empty, add another slot (up to 3)
+      if (idx === updated.length - 1 && value && updated.length < 3) {
+        updated.push("");
+      }
+      // Remove empty slots after the last filled one
+      while (
+        updated.length > 1 &&
+        updated[updated.length - 1] === "" &&
+        updated[updated.length - 2] === ""
+      ) {
+        updated.pop();
+      }
+      // Remove duplicates
+      const deduped = updated.filter(
+        (cat, i) => cat === "" || updated.indexOf(cat) === i,
+      );
+      return { ...prev, categories: deduped };
+    });
+  };
+
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageToCrop, setImageToCrop] = useState(null);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleToggle = (field) => {
+    setFormData((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image must be less than 5MB");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+
+      // Show cropper instead of directly setting image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageToCrop(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = async (croppedAreaPixels) => {
+    try {
+      const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+
+      // Convert blob to file
+      const file = new File([croppedImage], "community-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      setFormData((prev) => ({ ...prev, image: file }));
+      setImagePreview(URL.createObjectURL(croppedImage));
+      setImageToCrop(null);
+    } catch (error) {
+      console.error("Error cropping image:", error);
+      setError("Failed to crop image");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Validation
+    if (!formData.name.trim()) {
+      setError("Community name is required");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (formData.name.length < 3) {
+      setError("Community name must be at least 3 characters");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!formData.image) {
+      setError("Community image is required");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (formData.description.length > 500) {
+      setError("Description must be less than 500 characters");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const communityId = await createCommunity(
+        currentUser.uid,
+        {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          isPublic: formData.isPublic,
+          isCollaborative: formData.isCollaborative,
+          categories: formData.categories,
+        },
+        formData.image,
+      );
+
+      // Navigate to the new community
+      navigate(`/communities/${communityId}`);
+      if (onClose) onClose();
+    } catch (err) {
+      console.error("Error creating community:", err);
+      setError(err.message || "Failed to create community");
+      formContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div
+        ref={formContainerRef}
+        className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Create Community
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            disabled={loading}
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-600 dark:text-red-200 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          {/* Community Image */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Community Image *
+            </label>
+            <div className="flex items-center space-x-4">
+              <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium text-gray-900 dark:text-white">
+                Choose Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  disabled={loading}
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Community Name */}
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Community Name *
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              placeholder="Enter community name"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              required
+              disabled={loading}
+              maxLength={50}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.name.length}/50 characters
+            </p>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              placeholder="Describe your community..."
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              rows={4}
+              disabled={loading}
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {formData.description.length}/500 characters
+            </p>
+          </div>
+
+          {/* Categories Section (Dropdowns) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Categories{" "}
+              <span className="text-xs text-gray-500">(Choose up to 3)</span>
+            </label>
+            <div className="flex flex-col gap-2">
+              {formData.categories.map((selected, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <select
+                    value={selected}
+                    onChange={(e) =>
+                      handleCategoryDropdownChange(idx, e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    disabled={loading}
+                  >
+                    <option value="">Select category...</option>
+                    {CATEGORY_OPTIONS.filter(
+                      (cat) =>
+                        !formData.categories.includes(cat) || cat === selected,
+                    ).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  {selected && (
+                    <button
+                      type="button"
+                      aria-label="Remove category"
+                      className="ml-1 px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-200 dark:hover:bg-red-700 hover:text-red-700 dark:hover:text-red-400 transition"
+                      onClick={() => handleCategoryDropdownChange(idx, "")}
+                      disabled={loading}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.categories.filter((c) => c).length} selected
+            </p>
+          </div>
+
+          {/* Privacy Toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">
+                Privacy
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {formData.isPublic
+                  ? "Anyone can find and join"
+                  : "Invitation only"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleToggle("isPublic")}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.isPublic ? "bg-blue-600" : "bg-gray-300"
+              }`}
+              disabled={loading}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  formData.isPublic ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Community Type Toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">
+                Community Type
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {formData.isCollaborative
+                  ? "All members can post and contribute"
+                  : "Only admins can post, members can view"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleToggle("isCollaborative")}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.isCollaborative ? "bg-blue-600" : "bg-gray-300"
+              }`}
+              disabled={loading}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  formData.isCollaborative ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Page Configuration Info */}
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h3 className="font-medium text-blue-900 dark:text-blue-200 mb-2">
+              Community Features
+            </h3>
+            <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
+              {formData.isCollaborative ? (
+                <>
+                  <li>✓ Home page with rich text editor</li>
+                  <li>✓ Community posts (all members)</li>
+                  <li>✓ Group chat</li>
+                  <li>✓ Shared media library</li>
+                </>
+              ) : (
+                <>
+                  <li>✓ Home page (admin editing only)</li>
+                  <li>✓ Community posts (admin posting only)</li>
+                  <li>✓ Admin private chat</li>
+                  <li>✓ User-to-admin messaging</li>
+                </>
+              )}
+            </ul>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 rounded-lg font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+              style={{ backgroundColor: COLORS.Dark_Gray, color: COLORS.Beige }}
+              disabled={loading}
+            >
+              {loading ? "Creating..." : "Create Community"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Image Cropper Modal */}
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setImageToCrop(null)}
+          aspect={1}
+          lockAspectRatio={true}
+        />
+      )}
+    </div>
+  );
+};
+
+export default CreateCommunity;

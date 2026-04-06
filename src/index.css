@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+}
+
+@layer components {
+  /* Custom component styles will go here */
+
+  /* Hide scrollbar for horizontal scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
+  /* Force scroll snap to stop at each item */
+  .snap-always {
+    scroll-snap-stop: always;
+  }
+
+  /* Like button animation */
+  @keyframes likeAnimation {
+    0% {
+      transform: scale(1);
+    }
+    15% {
+      transform: scale(1.3) rotate(-5deg);
+    }
+    30% {
+      transform: scale(1.3) rotate(5deg);
+    }
+    45% {
+      transform: scale(1.3) rotate(-5deg);
+    }
+    60% {
+      transform: scale(1.3) rotate(0deg);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .like-animate {
+    animation: likeAnimation 0.6s ease-in-out;
+  }
+
+  .community-home-editor .ql-container {
+    min-height: 20rem;
+  }
+
+  .community-home-editor .ql-editor {
+    min-height: 18rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.65;
+  }
+
+  .community-home-editor .ql-editor img,
+  .community-home-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    object-fit: contain;
+  }
+
+  .community-home-editor .ql-editor video,
+  .community-home-content video,
+  .community-home-content iframe {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 0.5rem;
+  }
+
+  .community-home-content {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Accessibility Styles */
+
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* High Contrast Mode */
+  body.high-contrast-mode {
+    @apply bg-white dark:bg-black text-black dark:text-white;
+  }
+
+  body.high-contrast-mode * {
+    border-color: #000 !important;
+  }
+
+  body.high-contrast-mode button,
+  body.high-contrast-mode a,
+  body.high-contrast-mode input,
+  body.high-contrast-mode select,
+  body.high-contrast-mode textarea {
+    border: 2px solid #000 !important;
+    outline: 2px solid #000 !important;
+  }
+
+  body.high-contrast-mode button:hover,
+  body.high-contrast-mode a:hover {
+    background-color: #000 !important;
+    color: #fff !important;
+  }
+
+  /* Focus visible for keyboard navigation */
+  body.high-contrast-mode button:focus-visible,
+  body.high-contrast-mode a:focus-visible,
+  body.high-contrast-mode input:focus-visible,
+  body.high-contrast-mode select:focus-visible,
+  body.high-contrast-mode textarea:focus-visible {
+    outline: 3px solid #000 !important;
+    outline-offset: 2px;
+  }
+
+  /* Increased contrast for better readability */
+  @media (prefers-contrast: more) {
+    body {
+      @apply text-gray-900 dark:text-white;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Text-to-speech indicator */
+  body[data-tts-enabled="true"] {
+    --tts-indicator: block;
+  }
+
+  /* Better focus indicators - only show on keyboard navigation */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgb(59, 130, 246);
+    outline-offset: 2px;
+  }
+}

@@ -1,0 +1,1581 @@
+// ===== Community Service =====
+// Handles all community CRUD operations, member management, and ownership tracking
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  serverTimestamp,
+  increment,
+  arrayUnion,
+  arrayRemove,
+  writeBatch,
+  onSnapshot,
+} from "firebase/firestore";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { db, storage } from "./firebase";
+import {
+  createCommunityMemberJoinedNotification,
+  createCommunityRoleChangedNotification,
+  createCommunityMemberKickedNotification,
+  createCommunityJoinRequestNotification,
+  createCommunityJoinRequestApprovedNotification,
+  createCommunityJoinRequestRejectedNotification,
+} from "./notificationService";
+import { getUserProfile } from "./profileService";
+
+/**
+ * CREATE COMMUNITY
+ * Creates a new community with creator as initial owner/admin
+ * Stores community in main collection and adds creator to communityMembers subcollection
+ * @param {string} userId - Creator's user ID
+ * @param {Object} communityData - Community details (name, description, type, etc.)
+ * @param {File} imageFile - Optional community image
+ * @returns {Promise<string>} New community ID
+ */
+export const createCommunity = async (
+  userId,
+  communityData,
+  imageFile = null,
+) => {
+  try {
+    // Create community document first (without image) to get the community ID
+    const communitiesRef = collection(db, "communities");
+    const community = {
+      name: communityData.name,
+      description: communityData.description || "",
+      imageUrl: "", // Placeholder, will be updated if image is provided
+      isPublic: communityData.isPublic,
+      isCollaborative: communityData.isCollaborative,
+      categories: communityData.categories || [],
+      creatorId: userId,
+      admins: [userId],
+      members: [userId],
+      memberCount: 1,
+      bannedUsers: [],
+      homePageContent: "",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(communitiesRef, community);
+    const communityId = docRef.id;
+
+    // Upload image if provided, to community-specific folder
+    let imageUrl = "";
+    if (imageFile) {
+      const imageRef = ref(
+        storage,
+        `communities/${communityId}/profile/${Date.now()}_${imageFile.name}`,
+      );
+      const snapshot = await uploadBytes(imageRef, imageFile);
+      imageUrl = await getDownloadURL(snapshot.ref);
+
+      // Update community with image URL
+      await updateDoc(docRef, {
+        imageUrl,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    // Add user to community members subcollection
+    await addDoc(
+      collection(db, `communities/${communityId}/communityMembers`),
+      {
+        userId,
+        role: "admin",
+        joinedAt: serverTimestamp(),
+      },
+    );
+
+    // Add community to user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      joinedCommunities: arrayUnion(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    return communityId;
+  } catch (error) {
+    console.error("Error creating community:", error);
+    throw new Error("Failed to create community");
+  }
+};
+
+/**
+ * Get community by ID
+ * @param {string} communityId - Community ID
+ * @returns {Promise<Object>} Community data
+ */
+export const getCommunity = async (communityId) => {
+  try {
+    const communityDoc = await getDoc(doc(db, "communities", communityId));
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    return {
+      id: communityDoc.id,
+      ...communityDoc.data(),
+    };
+  } catch (error) {
+    console.error("Error getting community:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all public communities or user's communities
+ * @param {string} userId - Optional user ID to get user's communities
+ * @returns {Promise<Array>} Array of communities
+ */
+export const getCommunities = async (userId = null) => {
+  try {
+    const communitiesRef = collection(db, "communities");
+    let q;
+
+    if (userId) {
+      // Get communities where user is a member
+      q = query(
+        communitiesRef,
+        where("members", "array-contains", userId),
+        orderBy("updatedAt", "desc"),
+      );
+    } else {
+      // Get all public communities
+      q = query(
+        communitiesRef,
+        where("isPublic", "==", true),
+        orderBy("memberCount", "desc"),
+        limit(50),
+      );
+    }
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting communities:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all communities regardless of privacy setting
+ * @returns {Promise<Array>} Array of all communities
+ */
+export const getAllCommunities = async () => {
+  try {
+    const communitiesRef = collection(db, "communities");
+    const q = query(communitiesRef, orderBy("memberCount", "desc"), limit(100));
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting all communities:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get multiple communities by their IDs
+ * @param {Array<string>} communityIds - Array of community IDs
+ * @returns {Promise<Array>} Array of community objects
+ */
+export const getCommunitiesByIds = async (communityIds) => {
+  try {
+    if (!communityIds || communityIds.length === 0) {
+      return [];
+    }
+
+    // Fetch all communities in parallel
+    const communityPromises = communityIds.map(async (id) => {
+      try {
+        const communityDoc = await getDoc(doc(db, "communities", id));
+        if (communityDoc.exists()) {
+          return {
+            id: communityDoc.id,
+            ...communityDoc.data(),
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error(`Error fetching community ${id}:`, error);
+        return null;
+      }
+    });
+
+    const communities = await Promise.all(communityPromises);
+    // Filter out any null values (communities that don't exist or had errors)
+    return communities.filter((community) => community !== null);
+  } catch (error) {
+    console.error("Error getting communities by IDs:", error);
+    throw error;
+  }
+};
+
+/**
+ * Join a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ */
+export const joinCommunity = async (communityId, userId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if already a member
+    if (communityData.members?.includes(userId)) {
+      throw new Error("Already a member of this community");
+    }
+
+    // Check if user is banned
+    if (communityData.bannedUsers?.includes(userId)) {
+      throw new Error("You are banned from this community");
+    }
+
+    // Check if community is private
+    if (!communityData.isPublic) {
+      throw new Error("Cannot join private community without invitation");
+    }
+
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
+    // Add user to members array and increment count
+    batch.update(communityRef, {
+      members: arrayUnion(userId),
+      memberCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    batch.update(userRef, {
+      joinedCommunities: arrayUnion(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    // Add to community members subcollection
+    await addDoc(
+      collection(db, `communities/${communityId}/communityMembers`),
+      {
+        userId,
+        role: "member",
+        joinedAt: serverTimestamp(),
+      },
+    );
+
+    // Create notifications for all admins
+    try {
+      const userProfile = await getUserProfile(userId);
+      if (userProfile) {
+        const admins = communityData.admins || [communityData.creatorId];
+
+        // Notify each admin
+        for (const adminId of admins) {
+          await createCommunityMemberJoinedNotification(
+            userId,
+            communityId,
+            adminId,
+            userProfile,
+            communityData,
+          );
+        }
+      }
+    } catch (notifError) {
+      console.error("Error creating join notifications:", notifError);
+      // Don't throw error, join action was successful
+    }
+  } catch (error) {
+    console.error("Error joining community:", error);
+    throw error;
+  }
+};
+
+/**
+ * Leave a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ */
+export const leaveCommunity = async (communityId, userId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if user is the creator
+    if (communityData.creatorId === userId) {
+      throw new Error(
+        "Creator cannot leave the community. Transfer ownership or delete the community.",
+      );
+    }
+
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
+    // Remove user from members and admins arrays
+    batch.update(communityRef, {
+      members: arrayRemove(userId),
+      admins: arrayRemove(userId),
+      memberCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    batch.update(userRef, {
+      joinedCommunities: arrayRemove(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    // Remove from community members subcollection
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userId),
+    );
+    const membersSnapshot = await getDocs(membersQuery);
+
+    const memberBatch = writeBatch(db);
+    membersSnapshot.docs.forEach((doc) => {
+      memberBatch.delete(doc.ref);
+    });
+    await memberBatch.commit();
+  } catch (error) {
+    console.error("Error leaving community:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update community information
+ * @param {string} communityId - Community ID
+ * @param {Object} updates - Updates to apply
+ * @param {File} newImage - Optional new image file
+ */
+export const updateCommunity = async (
+  communityId,
+  updates,
+  newImage = null,
+) => {
+  try {
+    const updateData = { ...updates };
+    // Ensure categories is always an array if present
+    if (updateData.categories && !Array.isArray(updateData.categories)) {
+      updateData.categories = [updateData.categories];
+    }
+
+    // Upload new image if provided to community-specific folder
+    if (newImage) {
+      const imageRef = ref(
+        storage,
+        `communities/${communityId}/profile/${Date.now()}_${newImage.name}`,
+      );
+      const snapshot = await uploadBytes(imageRef, newImage);
+      updateData.imageUrl = await getDownloadURL(snapshot.ref);
+    }
+
+    updateData.updatedAt = serverTimestamp();
+
+    await updateDoc(doc(db, "communities", communityId), updateData);
+  } catch (error) {
+    console.error("Error updating community:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID (must be creator)
+ */
+export const deleteCommunity = async (communityId, userId) => {
+  try {
+    const communityDoc = await getDoc(doc(db, "communities", communityId));
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Only creator or admin can delete
+    const isCreator = communityData.creatorId === userId;
+    const isAdmin = communityData.admins?.includes(userId);
+
+    if (!isCreator && !isAdmin) {
+      throw new Error("Only the creator or admin can delete this community");
+    }
+
+    // Helper function to get storage path from URL
+    const getStoragePathFromUrl = (url) => {
+      if (!url) return null;
+      try {
+        // If it's already a path, return it
+        if (!url.includes("http")) return url;
+
+        // Extract path from Firebase Storage URL
+        const urlObj = new URL(url);
+        const pathMatch = urlObj.pathname.match(/\/o\/(.+?)(\?|$)/);
+        if (pathMatch) {
+          return decodeURIComponent(pathMatch[1]);
+        }
+        return null;
+      } catch (err) {
+        console.warn("Error parsing storage URL:", err);
+        return null;
+      }
+    };
+
+    // Delete community image from storage
+    if (communityData.imageUrl) {
+      try {
+        const storagePath = getStoragePathFromUrl(communityData.imageUrl);
+        if (storagePath) {
+          const imageRef = ref(storage, storagePath);
+          await deleteObject(imageRef);
+        }
+      } catch (err) {
+        console.warn("Error deleting community image:", err);
+      }
+    }
+
+    // Delete all post images from storage
+    try {
+      const postsSnapshot = await getDocs(
+        collection(db, `communities/${communityId}/posts`),
+      );
+
+      for (const postDoc of postsSnapshot.docs) {
+        const postData = postDoc.data();
+
+        // Delete post images
+        if (postData.images && Array.isArray(postData.images)) {
+          for (const imageUrl of postData.images) {
+            try {
+              const storagePath = getStoragePathFromUrl(imageUrl);
+              if (storagePath) {
+                const imageRef = ref(storage, storagePath);
+                await deleteObject(imageRef);
+              }
+            } catch (err) {
+              console.warn("Error deleting post image:", err);
+            }
+          }
+        }
+
+        // Delete post videos
+        if (postData.videos && Array.isArray(postData.videos)) {
+          for (const videoUrl of postData.videos) {
+            try {
+              const storagePath = getStoragePathFromUrl(videoUrl);
+              if (storagePath) {
+                const videoRef = ref(storage, storagePath);
+                await deleteObject(videoRef);
+              }
+            } catch (err) {
+              console.warn("Error deleting post video:", err);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Error deleting post media:", err);
+    }
+
+    // Delete all media library files from storage
+    try {
+      const mediaSnapshot = await getDocs(
+        collection(db, `communities/${communityId}/media`),
+      );
+
+      for (const mediaDoc of mediaSnapshot.docs) {
+        const mediaData = mediaDoc.data();
+        if (mediaData.url) {
+          try {
+            const storagePath = getStoragePathFromUrl(mediaData.url);
+            if (storagePath) {
+              const mediaRef = ref(storage, storagePath);
+              await deleteObject(mediaRef);
+            }
+          } catch (err) {
+            console.warn("Error deleting media file:", err);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Error deleting media library:", err);
+    }
+
+    // Delete subcollections and main document using batches
+    const batch = writeBatch(db);
+    let batchCount = 0;
+    const MAX_BATCH_SIZE = 500;
+
+    // Helper function to commit batch if needed
+    const commitIfNeeded = async () => {
+      if (batchCount >= MAX_BATCH_SIZE) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    };
+
+    // Delete community members
+    const membersSnapshot = await getDocs(
+      collection(db, `communities/${communityId}/communityMembers`),
+    );
+    for (const memberDoc of membersSnapshot.docs) {
+      batch.delete(memberDoc.ref);
+      batchCount++;
+      await commitIfNeeded();
+    }
+
+    // Delete community posts and their comments
+    const postsSnapshot = await getDocs(
+      collection(db, `communities/${communityId}/posts`),
+    );
+    for (const postDoc of postsSnapshot.docs) {
+      // Delete comments for this post
+      const commentsSnapshot = await getDocs(
+        collection(
+          db,
+          `communities/${communityId}/posts/${postDoc.id}/comments`,
+        ),
+      );
+      for (const commentDoc of commentsSnapshot.docs) {
+        batch.delete(commentDoc.ref);
+        batchCount++;
+        await commitIfNeeded();
+      }
+
+      // Delete the post
+      batch.delete(postDoc.ref);
+      batchCount++;
+      await commitIfNeeded();
+    }
+
+    // Delete media library
+    const mediaSnapshot = await getDocs(
+      collection(db, `communities/${communityId}/media`),
+    );
+    for (const mediaDoc of mediaSnapshot.docs) {
+      batch.delete(mediaDoc.ref);
+      batchCount++;
+      await commitIfNeeded();
+    }
+
+    // Delete chat messages
+    const chatSnapshot = await getDocs(
+      collection(db, `communities/${communityId}/chat`),
+    );
+    for (const chatDoc of chatSnapshot.docs) {
+      batch.delete(chatDoc.ref);
+      batchCount++;
+      await commitIfNeeded();
+    }
+
+    // Delete community document
+    batch.delete(doc(db, "communities", communityId));
+
+    // Commit final batch
+    await batch.commit();
+
+    console.log("Community and all associated data deleted successfully");
+  } catch (error) {
+    console.error("Error deleting community:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's role in a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @returns {Promise<string|null>} Role ('admin', 'member') or null
+ */
+export const getUserRole = async (communityId, userId) => {
+  try {
+    // First check the main community document
+    const communityDoc = await getDoc(doc(db, "communities", communityId));
+
+    if (!communityDoc.exists()) {
+      console.error("Community not found:", communityId);
+      return null;
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if user is in members array
+    if (!communityData.members?.includes(userId)) {
+      return null; // Not a member at all
+    }
+
+    // Check if user is an admin
+    if (communityData.admins?.includes(userId)) {
+      return "admin";
+    }
+
+    // Then query the subcollection for the specific role
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userId),
+    );
+    const snapshot = await getDocs(membersQuery);
+
+    if (!snapshot.empty) {
+      return snapshot.docs[0].data().role;
+    }
+
+    // Fallback: if in members array but not in subcollection, return "member"
+    return "member";
+  } catch (error) {
+    console.error("Error getting user role:", error);
+    return null;
+  }
+};
+
+/**
+ * Check if user is a member of a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>}
+ */
+export const isMember = async (communityId, userId) => {
+  try {
+    const communityDoc = await getDoc(doc(db, "communities", communityId));
+    if (!communityDoc.exists()) return false;
+
+    const members = communityDoc.data().members || [];
+    return members.includes(userId);
+  } catch (error) {
+    console.error("Error checking membership:", error);
+    return false;
+  }
+};
+
+/**
+ * Promote user to admin
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID to promote
+ * @param {string} promoterId - ID of user performing the promotion
+ */
+export const promoteToAdmin = async (communityId, userId, promoterId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+    const admins = communityData.admins || [];
+
+    // Check if promoter is an admin
+    if (!admins.includes(promoterId)) {
+      throw new Error("Only admins can promote users");
+    }
+
+    // Add user to admins array
+    await updateDoc(communityRef, {
+      admins: arrayUnion(userId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update role in members subcollection
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userId),
+    );
+    const membersSnapshot = await getDocs(membersQuery);
+
+    if (!membersSnapshot.empty) {
+      await updateDoc(membersSnapshot.docs[0].ref, {
+        role: "admin",
+      });
+    }
+
+    // Send notification to user about role change
+    try {
+      const promoterProfile = await getUserProfile(promoterId);
+      if (promoterProfile) {
+        await createCommunityRoleChangedNotification(
+          userId,
+          communityId,
+          promoterId,
+          "admin",
+          promoterProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating role change notification:", notifError);
+      // Don't throw error, promotion was successful
+    }
+  } catch (error) {
+    console.error("Error promoting user:", error);
+    throw error;
+  }
+};
+
+/**
+ * Demote admin to regular member
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID to demote
+ * @param {string} ownerId - ID of owner performing the demotion
+ */
+export const demoteAdmin = async (communityId, userId, ownerId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if the person demoting is the owner
+    if (communityData.creatorId !== ownerId) {
+      throw new Error("Only the owner can demote admins");
+    }
+
+    // Prevent demoting the owner themselves
+    if (userId === communityData.creatorId) {
+      throw new Error("Cannot demote the owner");
+    }
+
+    // Remove user from admins array
+    await updateDoc(communityRef, {
+      admins: arrayRemove(userId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update role in members subcollection
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userId),
+    );
+    const membersSnapshot = await getDocs(membersQuery);
+
+    if (!membersSnapshot.empty) {
+      await updateDoc(membersSnapshot.docs[0].ref, {
+        role: "member",
+      });
+    }
+
+    // Send notification to user about role change
+    try {
+      const ownerProfile = await getUserProfile(ownerId);
+      if (ownerProfile) {
+        await createCommunityRoleChangedNotification(
+          userId,
+          communityId,
+          ownerId,
+          "member",
+          ownerProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating role change notification:", notifError);
+      // Don't throw error, demotion was successful
+    }
+
+    console.log(`Admin ${userId} demoted to member`);
+  } catch (error) {
+    console.error("Error demoting admin:", error);
+    throw error;
+  }
+};
+
+/**
+ * Remove user from community (kick)
+ * @param {string} communityId - Community ID
+ * @param {string} userIdToRemove - User ID to remove
+ * @param {string} adminId - ID of admin performing the removal
+ */
+export const removeMember = async (communityId, userIdToRemove, adminId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if remover is an admin
+    if (!communityData.admins?.includes(adminId)) {
+      throw new Error("Only admins can remove members");
+    }
+
+    // Cannot remove the creator
+    if (communityData.creatorId === userIdToRemove) {
+      throw new Error("Cannot remove the community creator");
+    }
+
+    // Remove user
+    await updateDoc(communityRef, {
+      members: arrayRemove(userIdToRemove),
+      admins: arrayRemove(userIdToRemove),
+      memberCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Delete any pending join request so they can request again
+    try {
+      const requestRef = doc(
+        db,
+        `communities/${communityId}/joinRequests`,
+        userIdToRemove,
+      );
+      await deleteDoc(requestRef);
+    } catch (error) {
+      // Join request may not exist, that's okay
+      console.debug("No join request to clean up:", error.message);
+    }
+
+    // Remove from members subcollection
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userIdToRemove),
+    );
+    const membersSnapshot = await getDocs(membersQuery);
+
+    const batch = writeBatch(db);
+    membersSnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+
+    // Send notification to removed user
+    try {
+      const adminProfile = await getUserProfile(adminId);
+      if (adminProfile) {
+        await createCommunityMemberKickedNotification(
+          userIdToRemove,
+          communityId,
+          adminId,
+          adminProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating kick notification:", notifError);
+      // Don't throw error, removal was successful
+    }
+  } catch (error) {
+    console.error("Error removing member:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get community members with their roles
+ * @param {string} communityId - Community ID
+ * @returns {Promise<Array>} Array of members with roles
+ */
+export const getCommunityMembers = async (communityId) => {
+  try {
+    const membersSnapshot = await getDocs(
+      collection(db, `communities/${communityId}/communityMembers`),
+    );
+
+    return membersSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting community members:", error);
+    throw error;
+  }
+};
+
+/**
+ * Transfer community ownership to another admin
+ * @param {string} communityId - Community ID
+ * @param {string} newOwnerId - User ID of the new owner (must be an admin)
+ * @param {string} currentOwnerId - User ID of the current owner
+ */
+export const transferOwnership = async (
+  communityId,
+  newOwnerId,
+  currentOwnerId,
+) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Verify current user is the owner
+    if (communityData.creatorId !== currentOwnerId) {
+      throw new Error("Only the owner can transfer ownership");
+    }
+
+    const admins = communityData.admins || [];
+
+    // Verify new owner is an admin
+    if (!admins.includes(newOwnerId)) {
+      throw new Error("New owner must be an admin");
+    }
+
+    // Update the creatorId to the new owner
+    await updateDoc(communityRef, {
+      creatorId: newOwnerId,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(
+      `Ownership transferred from ${currentOwnerId} to ${newOwnerId}`,
+    );
+  } catch (error) {
+    console.error("Error transferring ownership:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update community home page content
+ * @param {string} communityId - Community ID
+ * @param {string} content - HTML content from rich text editor
+ */
+export const updateHomePageContent = async (communityId, content) => {
+  try {
+    await updateDoc(doc(db, "communities", communityId), {
+      homePageContent: content,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating home page content:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update community home page sections with optional images
+ * @param {string} communityId - Community ID
+ * @param {Object} sections - { welcomeMessage, bio, orderedImages }
+ */
+export const updateHomePageSections = async (communityId, sections) => {
+  try {
+    const orderedImageUrls = [];
+
+    for (const imageItem of sections.orderedImages || []) {
+      if (imageItem.isNew && imageItem.file) {
+        const imageRef = ref(
+          storage,
+          `communities/${communityId}/home-page/${Date.now()}_${imageItem.file.name}`,
+        );
+        const snapshot = await uploadBytes(imageRef, imageItem.file);
+        const imageUrl = await getDownloadURL(snapshot.ref);
+        orderedImageUrls.push(imageUrl);
+      } else if (imageItem.url) {
+        orderedImageUrls.push(imageItem.url);
+      }
+    }
+
+    const structuredContent = {
+      welcomeMessage: sections.welcomeMessage || "",
+      bio: sections.bio || "",
+      imageUrls: orderedImageUrls,
+    };
+
+    const escapedWelcome = structuredContent.welcomeMessage
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const escapedBio = structuredContent.bio
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br />");
+
+    const contentHtml = `
+      <h2>${escapedWelcome}</h2>
+      <p>${escapedBio}</p>
+      <div>${structuredContent.imageUrls
+        .map(
+          (imageUrl) =>
+            `<img src="${imageUrl}" alt="Community welcome image" style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px;" />`,
+        )
+        .join("")}</div>
+    `;
+
+    await updateDoc(doc(db, "communities", communityId), {
+      homePageSections: structuredContent,
+      homePageContent: contentHtml,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error updating home page sections:", error);
+    throw error;
+  }
+};
+
+/**
+ * Ban user from community
+ * @param {string} communityId - Community ID
+ * @param {string} userIdToBan - User ID to ban
+ * @param {string} adminId - ID of admin performing the ban
+ */
+export const banUserFromCommunity = async (
+  communityId,
+  userIdToBan,
+  adminId,
+) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if banning user is an admin
+    if (!communityData.admins?.includes(adminId)) {
+      throw new Error("Only admins can ban members");
+    }
+
+    // Cannot ban the creator
+    if (communityData.creatorId === userIdToBan) {
+      throw new Error("Cannot ban the community creator");
+    }
+
+    // Add to banned list and remove from community
+    const bannedUsers = communityData.bannedUsers || [];
+    if (bannedUsers.includes(userIdToBan)) {
+      throw new Error("User is already banned from this community");
+    }
+
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
+    // Add user to banned list and remove from members
+    batch.update(communityRef, {
+      bannedUsers: arrayUnion(userIdToBan),
+      members: arrayRemove(userIdToBan),
+      admins: arrayRemove(userIdToBan),
+      memberCount: increment(-1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Remove from user's joinedCommunities array
+    const userRef = doc(db, "users", userIdToBan);
+    batch.update(userRef, {
+      joinedCommunities: arrayRemove(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    // Delete any pending join request so they can request again
+    try {
+      const requestRef = doc(
+        db,
+        `communities/${communityId}/joinRequests`,
+        userIdToBan,
+      );
+      await deleteDoc(requestRef);
+    } catch (error) {
+      // Join request may not exist, that's okay
+      console.debug("No join request to clean up:", error.message);
+    }
+
+    // Remove from members subcollection
+    const membersQuery = query(
+      collection(db, `communities/${communityId}/communityMembers`),
+      where("userId", "==", userIdToBan),
+    );
+    const membersSnapshot = await getDocs(membersQuery);
+
+    const deleteBatch = writeBatch(db);
+    membersSnapshot.docs.forEach((doc) => {
+      deleteBatch.delete(doc.ref);
+    });
+    await deleteBatch.commit();
+
+    // Send notification to banned user
+    try {
+      const adminProfile = await getUserProfile(adminId);
+      if (adminProfile) {
+        // We'll use the kicked notification for ban as well since the user is being removed
+        await createCommunityMemberKickedNotification(
+          userIdToBan,
+          communityId,
+          adminId,
+          adminProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating ban notification:", notifError);
+      // Don't throw error, ban was successful
+    }
+  } catch (error) {
+    console.error("Error banning user:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if user is banned from a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} True if user is banned
+ */
+export const isUserBanned = async (communityId, userId) => {
+  try {
+    const communityDoc = await getDoc(doc(db, "communities", communityId));
+    if (!communityDoc.exists()) return false;
+
+    const bannedUsers = communityDoc.data().bannedUsers || [];
+    return bannedUsers.includes(userId);
+  } catch (error) {
+    console.error("Error checking ban status:", error);
+    return false;
+  }
+};
+
+/**
+ * Listen to community ban status in real-time
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @param {Function} callback - Callback function to receive ban status
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToUserBanStatus = (communityId, userId, callback) => {
+  const communityRef = doc(db, "communities", communityId);
+
+  return onSnapshot(
+    communityRef,
+    (doc) => {
+      if (doc.exists()) {
+        const bannedUsers = doc.data().bannedUsers || [];
+        callback(bannedUsers.includes(userId));
+      } else {
+        callback(false);
+      }
+    },
+    (error) => {
+      console.error("Error listening to ban status:", error);
+      callback(false);
+    },
+  );
+};
+
+/**
+ * Listen to community updates in real-time
+ * @param {string} communityId - Community ID
+ * @param {Function} callback - Callback function to receive updates
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToCommunity = (communityId, callback) => {
+  const communityRef = doc(db, "communities", communityId);
+
+  return onSnapshot(
+    communityRef,
+    (doc) => {
+      if (doc.exists()) {
+        callback({
+          id: doc.id,
+          ...doc.data(),
+        });
+      }
+    },
+    (error) => {
+      console.error("Error listening to community:", error);
+    },
+  );
+};
+
+/**
+ * Send a join request for a private community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID requesting to join
+ * @param {Object} userProfile - User profile data
+ * @returns {Promise<void>}
+ */
+export const sendJoinRequest = async (communityId, userId, userProfile) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if already a member
+    if (communityData.members?.includes(userId)) {
+      throw new Error("Already a member of this community");
+    }
+
+    // Check if user is banned
+    if (communityData.bannedUsers?.includes(userId)) {
+      throw new Error("You are banned from this community");
+    }
+
+    // Check if user already has a pending request
+    const existingRequest = await getDoc(
+      doc(db, `communities/${communityId}/joinRequests`, userId),
+    );
+
+    if (existingRequest.exists()) {
+      throw new Error("You have already requested to join this community");
+    }
+
+    // Create join request
+    await setDoc(doc(db, `communities/${communityId}/joinRequests`, userId), {
+      userId,
+      userName:
+        userProfile?.displayName || userProfile?.username || "Unknown User",
+      userImage: userProfile?.photoURL || "",
+      email: userProfile?.email || "",
+      requestedAt: serverTimestamp(),
+      status: "pending",
+    });
+
+    // Send notifications to all admins
+    try {
+      const admins = communityData.admins || [communityData.creatorId];
+
+      // Notify each admin
+      for (const adminId of admins) {
+        await createCommunityJoinRequestNotification(
+          userId,
+          communityId,
+          adminId,
+          userProfile,
+          communityData,
+        );
+      }
+    } catch (notifError) {
+      console.error("Error creating join request notifications:", notifError);
+      // Don't throw error, join request was successful
+    }
+  } catch (error) {
+    console.error("Error sending join request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all pending join requests for a community
+ * @param {string} communityId - Community ID
+ * @returns {Promise<Array>} Array of join requests
+ */
+export const getJoinRequests = async (communityId) => {
+  try {
+    const requestsSnapshot = await getDocs(
+      query(
+        collection(db, `communities/${communityId}/joinRequests`),
+        where("status", "==", "pending"),
+        orderBy("requestedAt", "asc"),
+      ),
+    );
+
+    return requestsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error getting join requests:", error);
+    throw error;
+  }
+};
+
+/**
+ * Subscribe to join requests in real-time
+ * @param {string} communityId - Community ID
+ * @param {Function} callback - Callback function to receive requests
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToJoinRequests = (communityId, callback) => {
+  return onSnapshot(
+    query(
+      collection(db, `communities/${communityId}/joinRequests`),
+      where("status", "==", "pending"),
+      orderBy("requestedAt", "asc"),
+    ),
+    (snapshot) => {
+      const requests = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(requests);
+    },
+    (error) => {
+      console.error("Error subscribing to join requests:", error);
+      callback([]);
+    },
+  );
+};
+
+/**
+ * Approve a join request and add user to community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID to approve
+ * @param {string} adminId - Admin ID approving the request
+ */
+export const approveJoinRequest = async (communityId, userId, adminId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if approver is an admin
+    if (!communityData.admins?.includes(adminId)) {
+      throw new Error("Only admins can approve join requests");
+    }
+
+    // Check if user is already a member
+    if (communityData.members?.includes(userId)) {
+      throw new Error("User is already a member of this community");
+    }
+
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
+    // Add user to members array and increment count
+    batch.update(communityRef, {
+      members: arrayUnion(userId),
+      memberCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update user's joinedCommunities array
+    const userRef = doc(db, "users", userId);
+    batch.update(userRef, {
+      joinedCommunities: arrayUnion(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Update join request status to approved
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    batch.update(requestRef, {
+      status: "approved",
+      approvedAt: serverTimestamp(),
+      approvedBy: adminId,
+    });
+
+    await batch.commit();
+
+    // Add to community members subcollection
+    await addDoc(
+      collection(db, `communities/${communityId}/communityMembers`),
+      {
+        userId,
+        role: "member",
+        joinedAt: serverTimestamp(),
+      },
+    );
+
+    // Create notification for the approved user
+    try {
+      await createCommunityJoinRequestApprovedNotification(
+        userId,
+        communityId,
+        communityData,
+      );
+    } catch (notifError) {
+      console.error("Error creating approval notification:", notifError);
+      // Don't throw error, approval was successful
+    }
+  } catch (error) {
+    console.error("Error approving join request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Reject a join request
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID to reject
+ * @param {string} adminId - Admin ID rejecting the request
+ */
+export const rejectJoinRequest = async (communityId, userId, adminId) => {
+  try {
+    const communityRef = doc(db, "communities", communityId);
+    const communityDoc = await getDoc(communityRef);
+
+    if (!communityDoc.exists()) {
+      throw new Error("Community not found");
+    }
+
+    const communityData = communityDoc.data();
+
+    // Check if rejector is an admin
+    if (!communityData.admins?.includes(adminId)) {
+      throw new Error("Only admins can reject join requests");
+    }
+
+    // Update join request status to rejected
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    await updateDoc(requestRef, {
+      status: "rejected",
+      rejectedAt: serverTimestamp(),
+      rejectedBy: adminId,
+    });
+
+    // Send rejection notification to the user
+    try {
+      await createCommunityJoinRequestRejectedNotification(
+        userId,
+        communityId,
+        communityData,
+      );
+    } catch (notifError) {
+      console.error("Error creating rejection notification:", notifError);
+      // Don't throw error, rejection was successful
+    }
+  } catch (error) {
+    console.error("Error rejecting join request:", error);
+    throw error;
+  }
+};
+
+/**
+ * Check if user has a pending join request for a community
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} True if user has pending request
+ */
+export const hasPendingJoinRequest = async (communityId, userId) => {
+  try {
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    const requestDoc = await getDoc(requestRef);
+
+    if (!requestDoc.exists()) {
+      return false;
+    }
+
+    return requestDoc.data().status === "pending";
+  } catch (error) {
+    console.error("Error checking join request status:", error);
+    return false;
+  }
+};
+
+/**
+ * Cancel a pending join request
+ * @param {string} communityId - Community ID
+ * @param {string} userId - User ID canceling the request
+ * @returns {Promise<void>}
+ */
+export const cancelJoinRequest = async (communityId, userId) => {
+  try {
+    const requestRef = doc(
+      db,
+      `communities/${communityId}/joinRequests`,
+      userId,
+    );
+    const requestDoc = await getDoc(requestRef);
+
+    if (!requestDoc.exists()) {
+      throw new Error("Join request not found");
+    }
+
+    const requestData = requestDoc.data();
+    if (requestData.status !== "pending") {
+      throw new Error("Only pending requests can be cancelled");
+    }
+
+    // Delete the request
+    await deleteDoc(requestRef);
+  } catch (error) {
+    console.error("Error canceling join request:", error);
+    throw error;
+  }
+};
+
+export default {
+  createCommunity,
+  getCommunity,
+  getCommunities,
+  getAllCommunities,
+  getCommunitiesByIds,
+  joinCommunity,
+  leaveCommunity,
+  updateCommunity,
+  deleteCommunity,
+  getUserRole,
+  isMember,
+  promoteToAdmin,
+  demoteAdmin,
+  removeMember,
+  banUserFromCommunity,
+  isUserBanned,
+  subscribeToUserBanStatus,
+  getCommunityMembers,
+  updateHomePageContent,
+  updateHomePageSections,
+  subscribeToCommunity,
+  sendJoinRequest,
+  getJoinRequests,
+  subscribeToJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest,
+  hasPendingJoinRequest,
+  cancelJoinRequest,
+};
