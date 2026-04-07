@@ -14,6 +14,7 @@ import {
   sendFollowRequest,
   cancelFollowRequest,
   hasFollowRequestPending,
+  syncUserCommunities,
 } from "../services/profileService";
 import { getCommunitiesByIds } from "../services/communityService";
 import COLORS from "../theme/colors";
@@ -63,6 +64,8 @@ const ProfilePage = () => {
   const [followersSearchQuery, setFollowersSearchQuery] = useState("");
   const [followingSearchQuery, setFollowingSearchQuery] = useState("");
   const [communitiesSearchQuery, setCommunitiesSearchQuery] = useState("");
+  const [syncingCommunities, setSyncingCommunities] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null);
   const [hasRequestedFollow, setHasRequestedFollow] = useState(false);
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [showPrivacyPopup, setShowPrivacyPopup] = useState(false);
@@ -356,6 +359,35 @@ const ProfilePage = () => {
       } finally {
         setCommunitiesLoading(false);
       }
+    }
+  };
+
+  const handleSyncCommunities = async () => {
+    try {
+      setSyncingCommunities(true);
+      setSyncMessage(null);
+      const result = await syncUserCommunities(profileId);
+      setSyncMessage({
+        type: "success",
+        text: `Fixed! Removed ${result.removed} stale communities. You now have ${result.added} active communities.`,
+      });
+      // Refresh the communities list
+      if (profile?.joinedCommunities && profile.joinedCommunities.length > 0) {
+        const communityDetails = await getCommunitiesByIds(result.communityIds);
+        setCommunities(communityDetails);
+      } else {
+        setCommunities([]);
+      }
+      // Force refresh the profile to show updated count
+      window.location.reload();
+    } catch (error) {
+      console.error("Error syncing communities:", error);
+      setSyncMessage({
+        type: "error",
+        text: "Failed to sync communities: " + error.message,
+      });
+    } finally {
+      setSyncingCommunities(false);
     }
   };
 
@@ -950,15 +982,39 @@ const ProfilePage = () => {
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-stone-200">
-                Communities
-              </h2>
-              <button
-                onClick={() => setShowCommunitiesModal(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
-              >
-                <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
-              </button>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-stone-200">
+                  Communities ({profile?.joinedCommunities?.length || 0})
+                </h2>
+                {syncMessage && (
+                  <p
+                    className={`text-sm mt-1 ${
+                      syncMessage.type === "success"
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {syncMessage.text}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isOwnProfile && (
+                  <button
+                    onClick={handleSyncCommunities}
+                    disabled={syncingCommunities}
+                    className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded transition"
+                  >
+                    {syncingCommunities ? "Syncing..." : "Sync"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowCommunitiesModal(false)}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+                >
+                  <XMarkIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
             </div>
 
             {/* Search Input */}

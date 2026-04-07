@@ -1022,7 +1022,72 @@ export const deleteUserProfile = async (userId) => {
  * - Removal from all communities (or deletion if creator)
  * - All community posts by the user
  * - All community chat messages by the user
- * - All community media uploaded by the user
+/**
+ * Sync user's joinedCommunities array with actual community memberships
+ * Fixes cases where the array is out of sync due to communities being deleted or manual removals
+ * @param {string} userId - The user ID
+ * @returns {Promise<Object>} Summary of changes {added: number, removed: number, communityIds: string[]}
+ */
+export const syncUserCommunities = async (userId) => {
+  try {
+    console.log(`Syncing communities for user: ${userId}`);
+
+    // Get all communities where the user is a member
+    const communitiesRef = collection(db, "communities");
+    const q = query(communitiesRef, where("members", "array-contains", userId));
+    const communitiesSnapshot = await getDocs(q);
+
+    // Build the correct list of community IDs
+    const actualCommunityIds = communitiesSnapshot.docs.map((doc) => doc.id);
+
+    // Get current user profile
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      throw new Error("User profile not found");
+    }
+
+    const userData = userSnap.data();
+    const currentJoinedCommunities = userData.joinedCommunities || [];
+
+    // Find differences
+    const removed = currentJoinedCommunities.filter(
+      (id) => !actualCommunityIds.includes(id),
+    );
+    const added = actualCommunityIds.filter(
+      (id) => !currentJoinedCommunities.includes(id),
+    );
+
+    // Update the user profile with correct communityIds
+    await updateDoc(userRef, {
+      joinedCommunities: actualCommunityIds,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(
+      `Sync complete. Added: ${added.length}, Removed: ${removed.length}`,
+    );
+
+    return {
+      success: true,
+      added: added.length,
+      removed: removed.length,
+      communityIds: actualCommunityIds,
+      removedIds: removed,
+    };
+  } catch (error) {
+    console.error("Error syncing user communities:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete complete user account and all associated data
+ * Removes:
+ * - All user posts, comments, likes
+ * - All communities created by user
+ * - All community memberships and media
  * - User profile and storage
  * - Firebase Auth account
  * @param {string} userId - The user ID to delete
