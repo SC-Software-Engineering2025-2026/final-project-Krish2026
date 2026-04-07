@@ -1,6 +1,15 @@
 // Utility to reset user's community count to actual memberships
 // Use this to clean up ghost communities
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  serverTimestamp,
+  getDoc,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "../services/firebase";
 
@@ -12,7 +21,7 @@ export const resetCurrentUserCommunities = async () => {
   try {
     const auth = getAuth();
     const user = auth.currentUser;
-    
+
     if (!user) {
       throw new Error("No user logged in");
     }
@@ -31,7 +40,10 @@ export const resetCurrentUserCommunities = async () => {
       name: doc.data().name,
     }));
 
-    console.log(`Found ${actualCommunityIds.length} actual communities:`, communityDetails);
+    console.log(
+      `Found ${actualCommunityIds.length} actual communities:`,
+      communityDetails,
+    );
 
     // Update user's joinedCommunities array
     const userRef = doc(db, "users", userId);
@@ -40,7 +52,9 @@ export const resetCurrentUserCommunities = async () => {
       updatedAt: serverTimestamp(),
     });
 
-    console.log(`✅ Successfully reset to ${actualCommunityIds.length} communities`);
+    console.log(
+      `✅ Successfully reset to ${actualCommunityIds.length} communities`,
+    );
     return {
       success: true,
       count: actualCommunityIds.length,
@@ -57,36 +71,41 @@ export const checkUserCommunities = async () => {
   try {
     const auth = getAuth();
     const user = auth.currentUser;
-    
+
     if (!user) {
       throw new Error("No user logged in");
     }
 
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
-    
+
     if (!userSnap.exists()) {
       throw new Error("User profile not found");
     }
 
     const userData = userSnap.data();
-    
+
     // Find actual communities
     const communitiesRef = collection(db, "communities");
-    const q = query(communitiesRef, where("members", "array-contains", user.uid));
+    const q = query(
+      communitiesRef,
+      where("members", "array-contains", user.uid),
+    );
     const actualSnapshot = await getDocs(q);
     const actualCount = actualSnapshot.docs.length;
-    
+
     const profileCount = userData.joinedCommunities?.length || 0;
-    
+
     console.log(`📊 Community Count Status:`);
     console.log(`   Profile shows: ${profileCount} communities`);
     console.log(`   Actually in: ${actualCount} communities`);
-    
+
     if (profileCount > actualCount) {
-      console.log(`   ⚠️  ${profileCount - actualCount} ghost communities detected`);
+      console.log(
+        `   ⚠️  ${profileCount - actualCount} ghost communities detected`,
+      );
     }
-    
+
     return {
       profileCount,
       actualCount,

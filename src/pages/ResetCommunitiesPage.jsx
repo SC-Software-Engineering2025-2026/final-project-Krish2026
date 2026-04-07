@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { resetCurrentUserCommunities, checkUserCommunities } from "../utils/resetUserCommunities";
+import {
+  resetCurrentUserCommunities,
+  checkUserCommunities,
+} from "../utils/resetUserCommunities";
 import COLORS from "../theme/colors";
 
 /**
@@ -78,8 +81,14 @@ const ResetCommunitiesPage = () => {
               📊 Current Status
             </p>
             <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-              <li>Profile count: <span className="font-semibold">{status.profileCount}</span></li>
-              <li>Actual memberships: <span className="font-semibold">{status.actualCount}</span></li>
+              <li>
+                Profile count:{" "}
+                <span className="font-semibold">{status.profileCount}</span>
+              </li>
+              <li>
+                Actual memberships:{" "}
+                <span className="font-semibold">{status.actualCount}</span>
+              </li>
               {status.hasGhosts && (
                 <li className="text-red-600 dark:text-red-400 font-semibold">
                   Ghost communities: {status.ghostCount}
