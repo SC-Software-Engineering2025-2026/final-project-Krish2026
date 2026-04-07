@@ -608,6 +608,35 @@ export const deleteCommunity = async (communityId, userId) => {
       await commitIfNeeded();
     }
 
+    // Remove community from all members' joinedCommunities arrays
+    if (communityData.members && Array.isArray(communityData.members)) {
+      for (const memberId of communityData.members) {
+        const userRef = doc(db, "users", memberId);
+        batch.update(userRef, {
+          joinedCommunities: arrayRemove(communityId),
+          updatedAt: serverTimestamp(),
+        });
+        batchCount++;
+        await commitIfNeeded();
+      }
+    }
+
+    // Also remove from admins array if they're not in members array already
+    if (communityData.admins && Array.isArray(communityData.admins)) {
+      for (const adminId of communityData.admins) {
+        // Only update if not already updated in members loop
+        if (!communityData.members?.includes(adminId)) {
+          const userRef = doc(db, "users", adminId);
+          batch.update(userRef, {
+            joinedCommunities: arrayRemove(communityId),
+            updatedAt: serverTimestamp(),
+          });
+          batchCount++;
+          await commitIfNeeded();
+        }
+      }
+    }
+
     // Delete community document
     batch.delete(doc(db, "communities", communityId));
 
@@ -850,13 +879,25 @@ export const removeMember = async (communityId, userIdToRemove, adminId) => {
       throw new Error("Cannot remove the community creator");
     }
 
-    // Remove user
-    await updateDoc(communityRef, {
+    // Use batch write to update both community and user profile
+    const batch = writeBatch(db);
+
+    // Remove user from members and admins arrays
+    batch.update(communityRef, {
       members: arrayRemove(userIdToRemove),
       admins: arrayRemove(userIdToRemove),
       memberCount: increment(-1),
       updatedAt: serverTimestamp(),
     });
+
+    // Remove community from user's joinedCommunities array
+    const userRef = doc(db, "users", userIdToRemove);
+    batch.update(userRef, {
+      joinedCommunities: arrayRemove(communityId),
+      updatedAt: serverTimestamp(),
+    });
+
+    await batch.commit();
 
     // Delete any pending join request so they can request again
     try {
@@ -878,11 +919,11 @@ export const removeMember = async (communityId, userIdToRemove, adminId) => {
     );
     const membersSnapshot = await getDocs(membersQuery);
 
-    const batch = writeBatch(db);
+    const deleteBatch = writeBatch(db);
     membersSnapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
+      deleteBatch.delete(doc.ref);
     });
-    await batch.commit();
+    await deleteBatch.commit();
 
     // Send notification to removed user
     try {
