@@ -21,6 +21,7 @@ import Discover from "./pages/Discover";
 import Messages from "./pages/Messages";
 import Inbox from "./pages/Inbox";
 import Settings from "./pages/Settings";
+import ResetCommunitiesPage from "./pages/ResetCommunitiesPage";
 
 // Temporary utility component
 import SyncUserCommunities from "./components/SyncUserCommunities";
@@ -64,10 +65,14 @@ function App() {
                   <Route path="/inbox" element={<Inbox />} />
                   <Route path="/messages" element={<Messages />} />
 
-                  {/* Temporary utility route - remove after use */}
+                  {/* Temporary utility routes - remove after use */}
                   <Route
                     path="/sync-communities"
                     element={<SyncUserCommunities />}
+                  />
+                  <Route
+                    path="/reset-communities"
+                    element={<ResetCommunitiesPage />}
                   />
                 </Routes>
               </main>
