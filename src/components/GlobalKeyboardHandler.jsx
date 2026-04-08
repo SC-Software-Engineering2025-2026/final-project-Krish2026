@@ -17,6 +17,11 @@ const GlobalKeyboardHandler = () => {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Guard against undefined event.key
+      if (!event || !event.key) {
+        return;
+      }
+
       // Get the combination of keys pressed
       const keyCombination = [];
       if (event.ctrlKey || event.metaKey) keyCombination.push("ctrl");
