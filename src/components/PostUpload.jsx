@@ -6,15 +6,15 @@ import {
   PhotoIcon,
   PlusIcon,
   MapPinIcon,
-  HashtagIcon,
 } from "@heroicons/react/24/outline";
 import LocationPicker from "./LocationPicker";
+import UserTagger from "./UserTagger";
+import { COLORS } from "../theme/colors";
 
 const PostUpload = ({ onClose, onPostCreated }) => {
   const { currentUser } = useAuth();
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState(null); // { name, coordinates: { lat, lng } }
-  const [tags, setTags] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -74,10 +74,6 @@ const PostUpload = ({ onClose, onPostCreated }) => {
         caption: caption.trim(),
         location: location?.name || "",
         locationCoordinates: location?.coordinates || null,
-        tags: tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag),
       };
 
       const postId = await createPost(currentUser.uid, postData, imageFiles);
@@ -184,20 +180,13 @@ const PostUpload = ({ onClose, onPostCreated }) => {
 
           {/* Caption */}
           <div>
-            <label
-              htmlFor="caption"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Caption
             </label>
-            <textarea
-              id="caption"
+            <UserTagger
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Write a caption..."
-              maxLength={2200}
+              placeholder="Write a caption... (use @ to mention users)"
               disabled={loading}
             />
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -256,31 +245,6 @@ const PostUpload = ({ onClose, onPostCreated }) => {
               currentLocation={location}
             />
           )}
-
-          {/* Tags */}
-          <div>
-            <label
-              htmlFor="tags"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              <div className="flex items-center gap-2">
-                <HashtagIcon className="h-5 w-5" />
-                <span>Tags</span>
-              </div>
-            </label>
-            <input
-              type="text"
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Add tags separated by commas (e.g., nature, travel, photography)"
-              disabled={loading}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Separate tags with commas
-            </p>
-          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">

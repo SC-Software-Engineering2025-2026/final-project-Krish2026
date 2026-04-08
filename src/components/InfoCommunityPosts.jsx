@@ -15,6 +15,7 @@ import {
 import { getUserProfile } from "../services/profileService";
 import ImageCropper from "./ImageCropper";
 import LocationPicker from "./LocationPicker";
+import MentionDisplay from "./MentionDisplay";
 import { getCroppedImg } from "../utils/cropImage";
 import { shortenLocation } from "../utils/locationUtils";
 
@@ -485,7 +486,10 @@ const PostCard = ({
       {/* Post Content */}
       {post.content && (
         <div className="px-4 pb-3 pt-3">
-          <p className="text-gray-900 dark:text-white pl-2.5">{post.content}</p>
+          <MentionDisplay
+            text={post.content}
+            className="text-gray-900 dark:text-white pl-2.5 block"
+          />
           {/* Hashtags */}
           {post.hashtags && post.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2 pl-2.5">
@@ -571,8 +575,7 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
   const [location, setLocation] = useState(null); // { name, coordinates: { lat, lng } }
-  const [hashtags, setHashtags] = useState("");
-  const [taggedUsers, setTaggedUsers] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(null);
@@ -597,14 +600,6 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
         content: content.trim(),
         location: location?.name || "",
         locationCoordinates: location?.coordinates || null,
-        hashtags: hashtags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag),
-        taggedUsers: taggedUsers
-          .split(",")
-          .map((user) => user.trim())
-          .filter((user) => user),
       };
 
       await createCommunityPost(
@@ -1192,80 +1187,6 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
               currentLocation={location}
             />
           )}
-
-          {/* Hashtags */}
-          <div>
-            <label
-              htmlFor="hashtags"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              <div className="flex items-center gap-2">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-                  />
-                </svg>
-                <span>Hashtags</span>
-              </div>
-            </label>
-            <input
-              type="text"
-              id="hashtags"
-              value={hashtags}
-              onChange={(e) => setHashtags(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-              placeholder="Add hashtags separated by commas (e.g., nature, travel, photography)"
-              disabled={loading}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Separate hashtags with commas
-            </p>
-          </div>
-
-          {/* Tagged Users */}
-          <div>
-            <label
-              htmlFor="taggedUsers"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              <div className="flex items-center gap-2">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-                <span>Tag Users</span>
-              </div>
-            </label>
-            <input
-              type="text"
-              id="taggedUsers"
-              value={taggedUsers}
-              onChange={(e) => setTaggedUsers(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-              placeholder="Tag users by username, separated by commas (e.g., @john, @jane)"
-              disabled={loading}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Separate usernames with commas
-            </p>
-          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">

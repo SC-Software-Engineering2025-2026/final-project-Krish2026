@@ -14,6 +14,7 @@ import {
   subscribeToUserLikes,
 } from "../services/postService";
 import { getUserProfile } from "../services/profileService";
+import MentionDisplay from "../components/MentionDisplay";
 import {
   HeartIcon,
   ChatBubbleLeftIcon,
@@ -345,16 +346,17 @@ const PostDetail = () => {
               {/* Caption */}
               {post.caption && (
                 <div className="mb-4">
-                  <p className="text-gray-900 whitespace-pre-wrap pl-2.5">
-                    {post.caption}
-                  </p>
+                  <MentionDisplay
+                    text={post.caption}
+                    className="text-gray-900 whitespace-pre-wrap pl-2.5"
+                  />
                   <p className="text-xs text-gray-500 mt-2">
                     {formatTimestamp(post.createdAt)}
                   </p>
                 </div>
               )}
 
-              {/* Tags */}
+              {/* Tags - Legacy display, kept for backwards compatibility */}
               {post.tags && post.tags.length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-2 pl-2.5">
                   {post.tags.map((tag, index) => (

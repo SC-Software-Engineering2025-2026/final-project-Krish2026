@@ -20,10 +20,14 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
+import { getUniqueMentionedUsernames } from "../utils/mentionUtils";
+import { createNotification } from "./notificationService";
+import { getUserProfile } from "./profileService";
 
 /**
  * CREATE COMMUNITY POST
  * Add a new post to a specific community's posts collection
+ * Extracts mentions, creates notifications for tagged users
  * @param {string} communityId - Community ID
  * @param {string} userId - Post creator's user ID
  * @param {Object} postData - Post content (text, hashtags, location, etc.)
@@ -49,6 +53,59 @@ export const createCommunityPost = async (
       imageUrls.push(url);
     }
 
+    // Extract mentions from post content
+    const mentionedUsernames = getUniqueMentionedUsernames(
+      postData.content || "",
+    );
+    const taggedUserIds = [];
+
+    // Resolve usernames to user IDs and create notifications
+    if (mentionedUsernames.length > 0) {
+      for (const username of mentionedUsernames) {
+        try {
+          // Find user by username
+          const usersRef = collection(db, "users");
+          const q = query(usersRef, where("username", "==", username));
+          const snapshot = await getDocs(q);
+
+          if (!snapshot.empty) {
+            const mentionedUser = snapshot.docs[0];
+            const mentionedUserId = mentionedUser.id;
+
+            // Don't tag the post creator
+            if (mentionedUserId !== userId) {
+              taggedUserIds.push(mentionedUserId);
+
+              // Create mention notification
+              try {
+                const posterProfile = await getUserProfile(userId);
+                if (posterProfile) {
+                  await createNotification({
+                    userId: mentionedUserId,
+                    type: "mention",
+                    actorId: userId,
+                    actorName:
+                      posterProfile.displayName || posterProfile.username,
+                    actorProfileImage: posterProfile.profilePhotoURL || "",
+                    communityId: communityId,
+                    postId: null, // Will reference the post after creation
+                    message: `${posterProfile.displayName || posterProfile.username} mentioned you in a community post`,
+                  });
+                }
+              } catch (notifError) {
+                console.error(
+                  "Error creating mention notification:",
+                  notifError,
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error resolving username ${username}:`, error);
+        }
+      }
+    }
+
     // Create post document in community's posts subcollection
     const postsRef = collection(db, `communities/${communityId}/posts`);
     const post = {
@@ -59,7 +116,8 @@ export const createCommunityPost = async (
       location: postData.location || "",
       locationCoordinates: postData.locationCoordinates || null,
       hashtags: postData.hashtags || [], // Searchable tags
-      taggedUsers: postData.taggedUsers || [], // Mentioned users
+      taggedUserIds: taggedUserIds, // New field: IDs of tagged users
+      taggedUsers: postData.taggedUsers || [], // Legacy field
       likes: [], // Array of user IDs who liked
       likesCount: 0,
       commentsCount: 0,
