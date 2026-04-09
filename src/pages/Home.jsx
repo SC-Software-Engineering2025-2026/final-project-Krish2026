@@ -28,7 +28,6 @@ import {
   likeComment,
 } from "../services/postService";
 import PostUpload from "../components/PostUpload";
-import MentionDisplay from "../components/MentionDisplay";
 import {
   PlusIcon,
   PhotoIcon,
@@ -1318,10 +1317,9 @@ const PostCard = ({
         {/* Post Text */}
         {(post.content || post.caption) && (
           <>
-            <MentionDisplay
-              text={post.content || post.caption}
-              className="text-sm text-gray-800 dark:text-gray-200 mb-2 mt-3 line-clamp-3 whitespace-pre-wrap pl-2.5 block"
-            />
+            <span className="text-sm text-gray-800 dark:text-gray-200 mb-2 mt-3 line-clamp-3 whitespace-pre-wrap pl-2.5 block">
+              {post.content || post.caption}
+            </span>
             {/* Hashtags/Tags */}
             {((post.hashtags && post.hashtags.length > 0) ||
               (post.tags && post.tags.length > 0)) && (

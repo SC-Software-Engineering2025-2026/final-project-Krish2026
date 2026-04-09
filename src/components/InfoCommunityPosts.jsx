@@ -15,7 +15,6 @@ import {
 import { getUserProfile } from "../services/profileService";
 import ImageCropper from "./ImageCropper";
 import LocationPicker from "./LocationPicker";
-import MentionDisplay from "./MentionDisplay";
 import { getCroppedImg } from "../utils/cropImage";
 import { shortenLocation } from "../utils/locationUtils";
 
@@ -486,10 +485,9 @@ const PostCard = ({
       {/* Post Content */}
       {post.content && (
         <div className="px-4 pb-3 pt-3">
-          <MentionDisplay
-            text={post.content}
-            className="text-gray-900 dark:text-white pl-2.5 block"
-          />
+          <span className="text-gray-900 dark:text-white pl-2.5 block">
+            {post.content}
+          </span>
           {/* Hashtags */}
           {post.hashtags && post.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2 pl-2.5">

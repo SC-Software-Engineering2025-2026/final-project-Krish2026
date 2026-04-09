@@ -15,7 +15,6 @@ import {
 import { getUserProfile } from "../services/profileService";
 import ImageCropper from "./ImageCropper";
 import LocationPicker from "./LocationPicker";
-import UserTagger from "./UserTagger";
 import { getCroppedImg } from "../utils/cropImage";
 import { shortenLocation } from "../utils/locationUtils";
 
@@ -486,10 +485,9 @@ const PostCard = ({
       {/* Post Content */}
       {post.content && (
         <div className="px-4 pb-3 pt-3">
-          <MentionDisplay
-            text={post.content}
-            className="text-gray-900 dark:text-white pl-2.5 block"
-          />
+          <span className="text-gray-900 dark:text-white pl-2.5 block">
+            {post.content}
+          </span>
           {/* Hashtags */}
           {post.hashtags && post.hashtags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2 pl-2.5">
@@ -858,11 +856,13 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6">
-            <UserTagger
+            <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="What's on your mind? (use @ to mention users)"
+              placeholder="What's on your mind?"
               disabled={loading}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+              rows="4"
             />
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {content.length}/5000 characters
@@ -1052,11 +1052,13 @@ const CreatePostModal = ({ communityId, onClose, onSuccess }) => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Caption
             </label>
-            <UserTagger
+            <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Write a caption... (use @ to mention users)"
+              placeholder="Write a caption..."
               disabled={loading}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+              rows="4"
             />
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {content.length}/2200 characters

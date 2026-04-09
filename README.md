@@ -5,7 +5,7 @@
 **Student Name:** [Krish Chawla]  
 **GitHub Username:** [Krish2026]  
 **Repository URL:** [https://github.com/SC-Software-Engineering2025-2026/final-project-Krish2026.git]  
-**Deployed URL:** [To be added after deployment]
+**Deployed URL:** [https://final-project-krish2026.vercel.app/]
 
 ---
 
@@ -135,15 +135,15 @@ All data handling will be done through Firebase. User log-in and authentication 
 
 - [x] Write and run tests
 - [x] Fix bugs and optimize performance
-- [ ] Deploy to hosting platform
-- [ ] Prepare final presentation
+- [x] Deploy to hosting platform
+- [x] Prepare final presentation
 
 ---
 
 ## ✅ Success Criteria
 
 - [x] All core features are functional
-- [ ] Application is deployed and accessible online
+- [x] Application is deployed and accessible online
 - [x] Code is well-documented with clear comments
 
 ---
@@ -239,9 +239,11 @@ npm test -- --coverage
 
 [Describe your deployment process and platform]
 
-**Deployment Platform:** [Vercel/Netlify/GitHub Pages/etc.]
+I deployed my website to vercel. The linking process was fairly simple where i connected my github account and was able to pick my application. I then had to merge my development branch to my main so that all pushed commits reflect in my application. Then I had to input all my firebase API variables into the environment settings so that vercel can connect to it. Then I added the domain to my authentication in firebase so that user authentication works, especially with google log in as well.
 
-**Live URL:** [To be added]
+**Deployment Platform:** [Vercel]
+
+**Live URL:** [https://final-project-krish2026.vercel.app/]
 
 ---
 
@@ -251,11 +253,16 @@ npm test -- --coverage
 
 ### Home Page
 
-![Home Page](./screenshots/home.png)
+![Home Page](./public/screenshots/home-page.png)
 
 ### [Feature Name]
 
-![Feature](./screenshots/feature.png)
+![Feature](./public/screenshots/discover-page.png)
+![Feature](./public/screenshots/community-page.png)
+![Feature](./public/screenshots/discover-page.png)
+![Feature](./public/screenshots/inbox-page.png)
+![Feature](./public/screenshots/messaging-system.png)
+![Feature](./public/screenshots/profile-page.png)
 
 ---
 
@@ -263,19 +270,19 @@ npm test -- --coverage
 
 ### What I Learned
 
-[Reflect on what you learned throughout this project]
+What I learned from this project is how to work with an AI chat bot model, how to bettern communicate, how to incorperate firebase into a larger project, and how to start up my own project where it then can be deployed into a real application. Starting the application was difficult because I didn't really know where to start and how. I learned that AI is good at taking information and forming it into real thoughts to plug back into itself to code. Learning to connect other things like firebase, google auth, and vercel with having to need the API's and everyting to truly connect them taught me that AI can't do everything. Leaning more into that, I learned that AI isn't going to do literally everything for me. I can't just give it a single prompt and have it done in 1 hour. I have to break down the prompt into certain parts and give very specific direction in context of my app. Especially when switching into different chats, since the new chat won't have the same context, I would have had to explain the last context to keep going. I learned how to communicate properly with AI through that where I had to get my thoughts down on paper in an understandable way. AI was only there as a tool to do the heavy lifting of the laborious coding and does not replace me as the programmer.
 
 ### Challenges Faced
 
-[Discuss significant challenges and how you overcame them]
+My first significant challenge came when I started the application. I'm used to having a template and base to work off of where I just get to clone a set up project. But actually creating a structure and base, connecting it to github, and linking firebase took some time for me. I had to go back to old projects and see how to do it all. I also got a lot of insight from copilot where it told me step by step how to set some things up. My next challenge came in different forms. There were some tasks such as the messaging system, the privacy functionality, the saving of user profile and community profile data in a database, and many others that were simply too much for the AI to handle. It would take many "continues" and many consecutive prompts to figure it out where after it would "change code," nothing would have actually changed. I was able to fix a lot of the with better prompting that came in the form of both having more clear instructions of what I want, and also debugging the app myself then telling copilot what the exact error is and having it help me fix it. However, some features I had to ditch all together because I simply could not figure them out in time such as the user tagging on posts. At one point I had it working completely. Then I broke something else unrelated and went back a commit where I hadn't commited that new code. I thought I couldve just asked copilot to do it again, however, I never was able to get the tagging to work again even thought I had all the pieces.
 
 ### GitHub Copilot Experience
 
-[Discuss how GitHub Copilot helped or hindered your development process. Provide specific examples.]
+I feel like GitHub Copilot played a dual role throughout this project where it proved to be genuinely useful in some areas while revealing clear limitations in others. On the helpful side, Copilot was amazing during the initial setup phase, as well as future set ups with outside programs like firebase. Since starting a project from scratch without a template or base was unfamiliar territory, copilot provided step-by-step guidance on how to structure the application, connect it to GitHub, and link firebase. This kind of foundational orientation helped bridge the gap when prior projects could only offer so much reference. I was able to to try new forms of implementation and fully get a new form of real world knowledge. However, copilot's limitations became apparent quickly when the complexity of the tasks increased. Features like the messaging system, privacy functionality, and saving user and community profile data to a database proved to be too involved for Copilot to handle effectively. Prompts would require numerous "continues" and follow-up messages, and after Copilot claimed to have changed code, nothing would have actually been modified. This was a recurring frustration that cost significant time. I would find myself being stuck on what felt like simple tasks of a small feature for hours on end, trying to find a solution. The experience did lead to an important skill: learning how to communicate with AI more effectively. Rather than issuing broad, vague prompts, breaking tasks down into specific, context-rich instructions yielded far better results. Debugging the application independently first, then feeding Copilot the exact error, became a much more productive workflow than relying on it to diagnose problems on its own. Perhaps the most telling example of Copilot's limits was the user tagging feature. It had been fully implemented at one point, but after reverting to an earlier commit where that code hadn't been saved, Copilot was never able to recreate it, even with all the relevant context available. The feature had to be scrapped entirely. This illustrated that Copilot is a tool for handling the heavy lifting of laborious coding, not a replacement for the programmer's judgment, memory, or problem-solving ability.
 
 ### Future Improvements
 
-[What would you do differently or add if you had more time?]
+I believe Sfera is in a very good state of what it's able to do, but there are a lot more features I wouldv'e loved to add. The main overal features I would lvoe to add would be more security checking legal acknoledgements to make the company a legit business as well as ensure user safety. I also want to add a moderation system through an algorithm that would check the social safety of posts, chats, and messages throughout the app to ensure a firendly user environment. As for more technical featuresm I want to add more features to the communities such as ways to tag people in posts and comment sections. I want better image handling and data transfer. I want a better notification system that more accurately describes what happens in a organized way for all features of the application. I currently have good ones for my more basic features, but I would love to add higher quality ones. I also want to add a way for the user to change their email and password while they're logged in, as well as set up a way for users to reset their password if they forgot it. Something like that would require more authentication steps so people can't steal accounts via email. I think my main concerns for the future woul dbe to add more security to the app as well as increase the overal quality of it to make it as safe and smooth proccess as it can be.
 
 ---
 

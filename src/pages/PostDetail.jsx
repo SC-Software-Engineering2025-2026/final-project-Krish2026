@@ -14,7 +14,6 @@ import {
   subscribeToUserLikes,
 } from "../services/postService";
 import { getUserProfile } from "../services/profileService";
-import MentionDisplay from "../components/MentionDisplay";
 import {
   HeartIcon,
   ChatBubbleLeftIcon,
@@ -346,10 +345,9 @@ const PostDetail = () => {
               {/* Caption */}
               {post.caption && (
                 <div className="mb-4">
-                  <MentionDisplay
-                    text={post.caption}
-                    className="text-gray-900 whitespace-pre-wrap pl-2.5"
-                  />
+                  <span className="text-gray-900 whitespace-pre-wrap pl-2.5">
+                    {post.caption}
+                  </span>
                   <p className="text-xs text-gray-500 mt-2">
                     {formatTimestamp(post.createdAt)}
                   </p>

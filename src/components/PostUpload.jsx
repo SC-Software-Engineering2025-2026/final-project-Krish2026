@@ -8,7 +8,6 @@ import {
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import LocationPicker from "./LocationPicker";
-import UserTagger from "./UserTagger";
 import { COLORS } from "../theme/colors";
 
 const PostUpload = ({ onClose, onPostCreated }) => {
@@ -183,11 +182,13 @@ const PostUpload = ({ onClose, onPostCreated }) => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Caption
             </label>
-            <UserTagger
+            <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Write a caption... (use @ to mention users)"
+              placeholder="Write a caption..."
               disabled={loading}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+              rows="4"
             />
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {caption.length}/2200 characters

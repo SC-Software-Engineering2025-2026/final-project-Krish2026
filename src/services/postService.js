@@ -32,15 +32,11 @@ import {
   createLikeNotification,
   createPostCommentNotification,
 } from "./notificationService";
-import { getUserProfile } from "./profileService";
-import { getUniqueMentionedUsernames } from "../utils/mentionUtils";
-import { createNotification } from "./notificationService";
 
 /**
  * CREATE NEW USER POST
  * Add a new post to user's personal posts collection
  * Increments user's post count and uploads all images
- * Extracts mentions, creates notifications for tagged users
  * @param {string} userId - Post creator's user ID
  * @param {Object} postData - Post content (caption, location, tags, etc.)
  * @param {File[]} images - Array of image files to upload
@@ -51,59 +47,6 @@ export const createPost = async (userId, postData, images = []) => {
     // Upload all images in parallel to Firebase Storage
     const imageUrls = await uploadPostImages(userId, images);
 
-    // Extract mentions from caption
-    const mentionedUsernames = getUniqueMentionedUsernames(
-      postData.caption || "",
-    );
-    const taggedUserIds = [];
-
-    // Resolve usernames to user IDs and create notifications
-    if (mentionedUsernames.length > 0) {
-      for (const username of mentionedUsernames) {
-        try {
-          // Find user by username
-          const usersRef = collection(db, "users");
-          const q = query(usersRef, where("username", "==", username));
-          const snapshot = await getDocs(q);
-
-          if (!snapshot.empty) {
-            const mentionedUser = snapshot.docs[0];
-            const mentionedUserId = mentionedUser.id;
-            const mentionedUserData = mentionedUser.data();
-
-            // Don't tag the post creator
-            if (mentionedUserId !== userId) {
-              taggedUserIds.push(mentionedUserId);
-
-              // Create mention notification
-              try {
-                const posterProfile = await getUserProfile(userId);
-                if (posterProfile) {
-                  await createNotification({
-                    userId: mentionedUserId,
-                    type: "mention",
-                    actorId: userId,
-                    actorName:
-                      posterProfile.displayName || posterProfile.username,
-                    actorProfileImage: posterProfile.profilePhotoURL || "",
-                    postId: null, // Will be updated after post is created
-                    message: `${posterProfile.displayName || posterProfile.username} mentioned you in a post`,
-                  });
-                }
-              } catch (notifError) {
-                console.error(
-                  "Error creating mention notification:",
-                  notifError,
-                );
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Error resolving username ${username}:`, error);
-        }
-      }
-    }
-
     // Create post document in userPosts collection
     const postsRef = collection(db, "userPosts");
     const post = {
@@ -111,7 +54,6 @@ export const createPost = async (userId, postData, images = []) => {
       caption: postData.caption || "",
       images: imageUrls,
       tags: postData.tags || [], // Legacy tags field (for hashtags)
-      taggedUserIds: taggedUserIds, // New field: IDs of tagged users
       location: postData.location || "",
       locationCoordinates: postData.locationCoordinates || null,
       likesCount: 0,

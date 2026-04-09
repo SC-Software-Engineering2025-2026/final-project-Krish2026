@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { HeartIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
-import MentionDisplay from "./MentionDisplay";
 
 const PostGrid = ({
   posts,
@@ -80,10 +79,9 @@ const PostGrid = ({
             (post.hashtags && post.hashtags.length > 0)) && (
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
               {post.caption && (
-                <MentionDisplay
-                  text={post.caption}
-                  className="text-white text-sm line-clamp-2 mb-2 block"
-                />
+                <span className="text-white text-sm line-clamp-2 mb-2 block">
+                  {post.caption}
+                </span>
               )}
               {/* Hashtags/Tags */}
               {((post.hashtags && post.hashtags.length > 0) ||
